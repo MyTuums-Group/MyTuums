@@ -1,0 +1,26 @@
+{
+  "name": "@workspace/api-contract",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.ts\""
+  },
+  "dependencies": {
+    "@trpc/server": "^11.4.0",
+    "@workspace/types": "workspace:*",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@trpc/client": "^11.4.0",
+    "@types/node": "^25.1.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
+  }
+}

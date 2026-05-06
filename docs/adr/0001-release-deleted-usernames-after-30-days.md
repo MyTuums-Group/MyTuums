@@ -1,0 +1,3 @@
+# Release deleted usernames after 30 days
+
+MyTuums is handle-first, but v1 releases usernames 30 days after account deletion while holding deleted emails for 3 days. This trades permanent handle reservation and stronger impersonation protection for a smaller reserved namespace and easier fresh-start reuse; the delay gives a short safety buffer before a deleted handle can be claimed again. After reuse, `/@{username}` resolves to the current holder only; historical audit, moderation, and notification references use internal IDs and must not rebind deleted-user history to a new account.

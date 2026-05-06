@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mytuums-db
+    environment:
+      POSTGRES_USER: mytuums
+      POSTGRES_PASSWORD: mytuums_dev
+      POSTGRES_DB: mytuums
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mytuums-mailpit
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+
+volumes:
+  pgdata:

@@ -1,8 +1,43 @@
 import { betterAuth } from "better-auth/minimal";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { createTransport } from "nodemailer";
 import { db } from "@workspace/db";
 import * as schema from "@workspace/db/schema";
 import { env } from "@workspace/config";
+
+// ── Email delivery ───────────────────────────────────────────────────
+
+/** Resolve the appropriate email transport based on environment. */
+function getTransport() {
+  if (env.RESEND_API_KEY) {
+    return createTransport({
+      host: "smtp.resend.com",
+      port: 465,
+      secure: true,
+      auth: { user: "resend", pass: env.RESEND_API_KEY },
+    });
+  }
+  // Development: Mailpit SMTP on localhost:1025
+  return createTransport({
+    host: "localhost",
+    port: 1025,
+    secure: false,
+  });
+}
+
+async function sendEmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  const transport = getTransport();
+  await transport.sendMail({
+    from: "MyTuums <noreply@mytuums.com>",
+    ...opts,
+  });
+}
+
+// ── BetterAuth configuration ─────────────────────────────────────────
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -20,29 +55,23 @@ export const auth = betterAuth({
     autoSignIn: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your MyTuums password",
+        html: resetPasswordTemplate({ user, url }),
+      });
+    },
   },
 
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      if (env.RESEND_API_KEY) {
-        // Production: Resend
-        const { Resend } = await import("resend");
-        const resend = new Resend(env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: "MyTuums <noreply@mytuums.com>",
-          to: user.email,
-          subject: "Verify your MyTuums account",
-          html: verificationEmailTemplate({ user, url }),
-        });
-      } else {
-        // Development: console output (captured by Mailpit if configured)
-        // Mailpit captures SMTP on localhost:1025, but for now we log
-        // the link so developers can verify manually.
-        console.log("─".repeat(60));
-        console.log(`  Verification email for: ${user.email}`);
-        console.log(`  Verification URL: ${url}`);
-        console.log("─".repeat(60));
-      }
+      const html = verificationEmailTemplate({ user, url });
+      await sendEmail({
+        to: user.email ?? "",
+        subject: "Verify your MyTuums account",
+        html,
+      });
     },
   },
 
@@ -63,7 +92,8 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
 });
 
-/** Simple HTML template for the verification email */
+// ── Email templates ──────────────────────────────────────────────────
+
 function verificationEmailTemplate({
   user,
   url,
@@ -84,6 +114,30 @@ function verificationEmailTemplate({
   </a>
   <p style="color: #666; font-size: 14px; margin-top: 24px;">
     If you didn't create this account, you can safely ignore this email.
+  </p>
+</body>
+</html>`;
+}
+
+function resetPasswordTemplate({
+  user,
+  url,
+}: {
+  user: { email: string; name?: string | null };
+  url: string;
+}): string {
+  const displayName = user.name ?? user.email;
+  return `<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
+  <h1 style="color: #a855f7; font-size: 28px;">MyTuums</h1>
+  <p>Hey ${displayName},</p>
+  <p>Someone requested a password reset for your account. Click the button below to choose a new password.</p>
+  <a href="${url}" style="display: inline-block; background: #a855f7; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+    Reset your password
+  </a>
+  <p style="color: #666; font-size: 14px; margin-top: 24px;">
+    If you didn't request this, you can safely ignore this email. The link expires in 1 hour.
   </p>
 </body>
 </html>`;

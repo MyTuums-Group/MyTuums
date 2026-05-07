@@ -2,11 +2,14 @@ import Fastify, { type FastifyRequest, type FastifyReply } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
+import { eq } from "drizzle-orm";
 import { appRouter } from "./trpc";
 import { createContext } from "./context";
 import { auth } from "./auth";
 import { fromNodeHeaders } from "better-auth/node";
 import { env } from "@workspace/config";
+import { db } from "@workspace/db";
+import { profile } from "@workspace/db/schema";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -66,6 +69,28 @@ export async function buildApp() {
     status: "healthy",
     timestamp: new Date().toISOString(),
   }));
+
+  // Profile exists check (used by frontend route guard)
+  app.get("/api/profile/exists", async (request, reply) => {
+    try {
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(request.headers)) {
+        if (typeof v === "string") headers.set(k, v);
+      }
+      const session = await auth.api.getSession({ headers });
+      if (!session) {
+        return reply.status(401).send({ hasProfile: false });
+      }
+      const [row] = await db
+        .select({ id: profile.id })
+        .from(profile)
+        .where(eq(profile.userId, session.user.id))
+        .limit(1);
+      return { hasProfile: row !== undefined };
+    } catch {
+      return reply.status(500).send({ hasProfile: false });
+    }
+  });
 
   return app;
 }

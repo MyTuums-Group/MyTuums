@@ -1,6 +1,6 @@
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import type { Context } from "./context";
+import type { Context } from "./context.js";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -11,11 +11,40 @@ export const publicProcedure = t.procedure;
 export const middleware = t.middleware;
 export const mergeRouters = t.mergeRouters;
 
-// Placeholder app router — populated in subsequent issues
+// ── Auth middleware ──────────────────────────────────────────────────
+
+const isAuthenticated = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+    });
+  }
+
+  return next({
+    ctx: {
+      // Pass the session and user to downstream procedures
+      session: ctx.session,
+      user: ctx.session.user,
+    },
+  });
+});
+
+/** Procedure that requires a valid session. Returns 401 if unauthenticated. */
+export const protectedProcedure = t.procedure.use(isAuthenticated);
+
+// ── Placeholder app router ───────────────────────────────────────────
+
 export const appRouter = router({
   health: publicProcedure.query(() => ({
     status: "ok",
     timestamp: new Date().toISOString(),
+  })),
+
+  // Example protected endpoint — verifies the auth middleware works
+  me: protectedProcedure.query(({ ctx }) => ({
+    user: ctx.user,
+    session: ctx.session,
   })),
 });
 

@@ -69,3 +69,14 @@ export async function buildApp() {
 
   return app;
 }
+
+// Start the server when this module is run directly (not imported)
+const port = parseInt(process.env.API_PORT ?? "4000", 10);
+const app = await buildApp();
+try {
+  await app.listen({ port, host: "0.0.0.0" });
+  app.log.info(`API server listening on http://0.0.0.0:${port}`);
+} catch (err) {
+  app.log.error(`Failed to start server: ${String(err)}`);
+  process.exit(1);
+}

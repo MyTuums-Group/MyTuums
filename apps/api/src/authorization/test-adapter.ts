@@ -57,6 +57,7 @@ export function createTestAdapter(): AuthorizationAdapter & {
   async function getViewerContext(
     session: { userId: string } | null,
   ): Promise<ViewerContext> {
+    // eslint-disable-next-line @typescript-eslint/require-await
     if (!session) {
       return {
         userId: null,

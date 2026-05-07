@@ -1,41 +1,9 @@
 import { betterAuth } from "better-auth/minimal";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { createTransport } from "nodemailer";
 import { db } from "@workspace/db";
 import * as schema from "@workspace/db/schema";
 import { env } from "@workspace/config";
-
-// ── Email delivery ───────────────────────────────────────────────────
-
-/** Resolve the appropriate email transport based on environment. */
-function getTransport() {
-  if (env.RESEND_API_KEY) {
-    return createTransport({
-      host: "smtp.resend.com",
-      port: 465,
-      secure: true,
-      auth: { user: "resend", pass: env.RESEND_API_KEY },
-    });
-  }
-  // Development: Mailpit SMTP on localhost:1025
-  return createTransport({
-    host: "localhost",
-    port: 1025,
-    secure: false,
-  });
-}
-
-async function sendEmail(opts: {
-  to: string;
-  subject: string;
-  html: string;
-}) {
-  const transport = getTransport();
-  await transport.sendMail({
-    from: "MyTuums <noreply@mytuums.com>",
-    ...opts,
-  });
-}
+import { sendEmail } from "./email.js";
 
 // ── BetterAuth configuration ─────────────────────────────────────────
 

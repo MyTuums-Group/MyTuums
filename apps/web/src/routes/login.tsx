@@ -22,11 +22,11 @@ function LoginPage() {
             void (async () => {
               const form = new FormData(e.currentTarget);
               const { signInEmail } = await import("@/lib/auth-client");
-              const res = await signInEmail({
+              const result = await signInEmail({
                 email: form.get("email") as string,
                 password: form.get("password") as string,
               });
-              if (res.ok) {
+              if (result.ok) {
                 window.location.href = "/";
               }
             })();

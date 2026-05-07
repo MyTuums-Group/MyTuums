@@ -22,12 +22,12 @@ function RegisterPage() {
             void (async () => {
               const form = new FormData(e.currentTarget);
               const { signUpEmail } = await import("@/lib/auth-client");
-              const res = await signUpEmail({
+              const result = await signUpEmail({
                 email: form.get("email") as string,
                 password: form.get("password") as string,
                 name: form.get("name") as string,
               });
-              if (res.ok) {
+              if (result.ok) {
                 window.location.href = "/login?verified=pending";
               }
             })();

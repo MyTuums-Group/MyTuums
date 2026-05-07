@@ -169,6 +169,9 @@ importers:
       '@trpc/server':
         specifier: ^11.4.0
         version: 11.17.0(typescript@5.9.3)
+      '@workspace/api':
+        specifier: workspace:*
+        version: link:../../apps/api
       '@workspace/types':
         specifier: workspace:*
         version: link:../types
@@ -219,6 +222,9 @@ importers:
       '@workspace/config':
         specifier: workspace:*
         version: link:../config
+      '@workspace/types':
+        specifier: workspace:*
+        version: link:../types
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -232,9 +238,6 @@ importers:
       '@types/node':
         specifier: ^25.1.0
         version: 25.3.0
-      '@workspace/types':
-        specifier: workspace:*
-        version: link:../types
       drizzle-kit:
         specifier: ^0.31.5
         version: 0.31.10

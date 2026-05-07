@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { Context } from "./context.js";
+import { profileRouter } from "./routers/profile.js";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -41,11 +42,12 @@ export const appRouter = router({
     timestamp: new Date().toISOString(),
   })),
 
-  // Example protected endpoint — verifies the auth middleware works
   me: protectedProcedure.query(({ ctx }) => ({
     user: ctx.user,
     session: ctx.session,
   })),
+
+  profile: profileRouter,
 });
 
 export type AppRouter = typeof appRouter;

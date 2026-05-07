@@ -15,6 +15,16 @@ export { type Result, ValidationError, success, failure } from "./result.js";
 export { graphemeLength } from "./grapheme.js";
 export { isReservedUsername } from "./reserved-usernames.js";
 
+// ── Authorization ───────────────────────────────────────────────────
+export {
+  type TargetRef,
+  type TargetType,
+  type ViewerContext,
+  type AuthorizationAdapter,
+  isViewerActive,
+  isStaff,
+} from "./authorization.js";
+
 // ── Auth ────────────────────────────────────────────────────────────
 export type UserRole = "user" | "moderator" | "admin" | "owner";
 

@@ -72,7 +72,7 @@ V1 excludes:
 
 ## Architecture Notes
 
-MyTuums is planned as a Turborepo monorepo.
+MyTuums is a Turborepo monorepo.
 
 `pnpm` is the canonical package manager and should be enforced through package metadata and CI.
 

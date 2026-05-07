@@ -63,6 +63,10 @@ export const user = pgTable(
     })
       .notNull()
       .default("active"),
+    /** When the user deleted their account (for hold-window tracking) */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /** When a temporary suspension expires (null = active or indefinite) */
+    suspendedUntil: timestamp("suspended_until", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("user_email_unique").on(table.email),
@@ -251,6 +255,12 @@ export const post = pgTable(
     likeCount: integer("like_count").notNull().default(0),
     /** Denormalized — updated transactionally with comment rows */
     commentCount: integer("comment_count").notNull().default(0),
+    /** User self-deletion timestamp (null = not deleted) */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /** Moderation removal timestamp (null = not removed) */
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    /** Public reason shown to author when content is removed */
+    removalPublicReason: text("removal_public_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -279,6 +289,12 @@ export const comment = pgTable(
     text: text("text").notNull(),
     /** Denormalized — updated transactionally with comment_like rows */
     likeCount: integer("like_count").notNull().default(0),
+    /** User self-deletion timestamp (null = not deleted) */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /** Moderation removal timestamp (null = not removed) */
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    /** Public reason shown to author when content is removed */
+    removalPublicReason: text("removal_public_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

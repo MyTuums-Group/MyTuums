@@ -20,6 +20,8 @@ function ProfilePage() {
     return <ProfileError message={query.error.message} />;
   }
 
+  if (!query.data) return null;
+
   const profile = query.data;
 
   return (

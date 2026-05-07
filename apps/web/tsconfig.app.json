@@ -11,7 +11,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"]
+      "@workspace/ui/*": ["../../packages/ui/src/*"],
+      "@workspace/types": ["../../packages/types/src/index.ts"],
+      "@workspace/db": ["../../packages/db/src/index.ts"],
+      "@workspace/api-contract": ["../../packages/api-contract/src/index.ts"]
     }
   },
   "include": ["src"]

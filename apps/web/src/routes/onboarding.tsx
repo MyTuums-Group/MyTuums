@@ -20,7 +20,6 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
 const isValidUsername = (s: string) => USERNAME_REGEX.test(s);
 
 function OnboardingPage() {
@@ -32,13 +31,9 @@ function OnboardingPage() {
   });
 
   // Local typed copies — workspace constants can't be resolved by eslint strict
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const minLen: number = USERNAME_MIN_LENGTH;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const maxLen: number = USERNAME_MAX_LENGTH;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const maxDisplayLen: number = DISPLAY_NAME_MAX_LENGTH;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const maxBioLen: number = BIO_MAX_LENGTH;
 
   const [username, setUsername] = useState("");

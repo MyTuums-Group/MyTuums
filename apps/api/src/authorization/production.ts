@@ -14,8 +14,8 @@ import type {
 } from "@workspace/types";
 import type { UserRole, AccountStatus } from "@workspace/types";
 import { db } from "@workspace/db";
-import { user, block, post, comment } from "@workspace/db/schema";
-import { eq, and, or, inArray } from "drizzle-orm";
+import { user, block } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 
 // ── getViewerContext ─────────────────────────────────────────────────
 
@@ -74,8 +74,8 @@ export async function getViewerContext(
     userId: viewerId,
     role: viewerUser.role as UserRole,
     accountStatus: viewerUser.accountStatus as AccountStatus,
-    blockedUserIds: blockedByViewer.map((r) => r.blockedId),
-    blockedByUserIds: blockingViewer.map((r) => r.blockerId),
+    blockedUserIds: blockedByViewer.map((r) => r.blockedId as string),
+    blockedByUserIds: blockingViewer.map((r) => r.blockerId as string),
     isAuthenticated: true,
   };
 }

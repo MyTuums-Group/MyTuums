@@ -17,9 +17,10 @@ import type {
   ViewerContext,
   TargetRef,
   AuthorizationAdapter,
-  UserRole,
-  AccountStatus,
 } from "@workspace/types";
+import type { UserRole, AccountStatus } from "@workspace/types";
+
+// ── Internal state (plain objects, no Map/Set for CI compatibility) ──
 
 interface TestUser {
   id: string;
@@ -32,32 +33,46 @@ interface TestBlock {
   blockedId: string;
 }
 
+interface TestState {
+  users: Record<string, TestUser>;
+  /** blockerId → blockedId[] */
+  blocksByBlocker: Record<string, string[]>;
+}
+
 export function createTestAdapter(): AuthorizationAdapter & {
   addUser: (u: TestUser) => void;
   addBlock: (b: TestBlock) => void;
   reset: () => void;
 } {
-  const users = new Map<string, TestUser>();
-  const blocks = new Map<string, Set<string>>(); // blockerId → Set<blockedId>
+  const state: TestState = { users: {}, blocksByBlocker: {} };
 
   function addUser(u: TestUser): void {
-    users.set(u.id, u);
+    state.users[u.id] = u;
   }
 
   function addBlock(b: TestBlock): void {
-    if (!blocks.has(b.blockerId)) blocks.set(b.blockerId, new Set());
-    blocks.get(b.blockerId)!.add(b.blockedId);
+    if (!state.blocksByBlocker[b.blockerId]) {
+      state.blocksByBlocker[b.blockerId] = [];
+    }
+    state.blocksByBlocker[b.blockerId]!.push(b.blockedId);
   }
 
   function reset(): void {
-    users.clear();
-    blocks.clear();
+    state.users = {};
+    state.blocksByBlocker = {};
   }
 
-  async function getViewerContext(
+  function getViewerContext(
     session: { userId: string } | null,
   ): Promise<ViewerContext> {
-    // eslint-disable-next-line @typescript-eslint/require-await
+    // Synchronous in-memory — wraps in Promise.resolve to satisfy interface
+    const result = _getViewerContext(session);
+    return Promise.resolve(result);
+  }
+
+  function _getViewerContext(
+    session: { userId: string } | null,
+  ): ViewerContext {
     if (!session) {
       return {
         userId: null,
@@ -69,7 +84,7 @@ export function createTestAdapter(): AuthorizationAdapter & {
       };
     }
 
-    const viewer = users.get(session.userId);
+    const viewer = state.users[session.userId];
     if (!viewer) {
       return {
         userId: null,
@@ -82,14 +97,13 @@ export function createTestAdapter(): AuthorizationAdapter & {
     }
 
     // Users blocked BY this viewer
-    const blockedUserIds = Array.from(
-      blocks.get(viewer.id) ?? new Set(),
-    );
+    const blockedUserIds = state.blocksByBlocker[viewer.id] ?? [];
 
     // Users that block THIS viewer
     const blockedByUserIds: string[] = [];
-    for (const [blockerId, blockedSet] of blocks) {
-      if (blockedSet.has(viewer.id)) {
+    for (const blockerId of Object.keys(state.blocksByBlocker)) {
+      const blockedList = state.blocksByBlocker[blockerId];
+      if (blockedList && blockedList.includes(viewer.id)) {
         blockedByUserIds.push(blockerId);
       }
     }

@@ -74,8 +74,8 @@ export async function getViewerContext(
     userId: viewerId,
     role: viewerUser.role as UserRole,
     accountStatus: viewerUser.accountStatus as AccountStatus,
-    blockedUserIds: blockedByViewer.map((r) => r.blockedId as string),
-    blockedByUserIds: blockingViewer.map((r) => r.blockerId as string),
+    blockedUserIds: blockedByViewer.map((r) => r.blockedId),
+    blockedByUserIds: blockingViewer.map((r) => r.blockerId),
     isAuthenticated: true,
   };
 }

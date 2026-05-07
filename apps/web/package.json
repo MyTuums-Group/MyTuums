@@ -13,7 +13,11 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-router": "^1.132.0",
+    "@trpc/client": "^11.4.0",
+    "@trpc/react-query": "^11.17.0",
+    "@workspace/api-contract": "workspace:^",
     "@workspace/ui": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -21,8 +25,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/router-devtools": "^1.132.0",
+    "@tanstack/router-plugin": "^1.132.0",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",

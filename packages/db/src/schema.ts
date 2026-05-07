@@ -10,6 +10,20 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+import {
+  USER_ROLES,
+  ACCOUNT_STATUSES,
+  MEDIA_PURPOSES,
+  MEDIA_STATUSES,
+  CASE_STATUSES,
+  CASE_PRIORITIES,
+  REPORT_REASONS,
+  REPORT_TARGET_TYPES,
+  MODERATION_ACTION_TYPES,
+  NOTIFICATION_TYPES,
+  CONTACT_CATEGORIES,
+} from "@workspace/types";
+
 // ─────────────────────────────────────────────────────────────────────
 // BetterAuth tables
 //
@@ -39,13 +53,13 @@ export const user = pgTable(
      * DB is the source of truth; auth middleware reads this column.
      */
     role: text("role", {
-      enum: ["user", "moderator", "admin", "owner"],
+      enum: USER_ROLES,
     })
       .notNull()
       .default("user"),
     /** Account lifecycle state */
     accountStatus: text("account_status", {
-      enum: ["active", "suspended", "account_deleted"],
+      enum: ACCOUNT_STATUSES,
     })
       .notNull()
       .default("active"),
@@ -155,10 +169,10 @@ export const media = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     purpose: text("purpose", {
-      enum: ["post_attachment", "profile_avatar", "profile_banner"],
+      enum: MEDIA_PURPOSES,
     }).notNull(),
     status: text("status", {
-      enum: ["pending", "ready", "attached", "failed", "deleted"],
+      enum: MEDIA_STATUSES,
     })
       .notNull()
       .default("pending"),
@@ -384,13 +398,7 @@ export const notification = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     type: text("type", {
-      enum: [
-        "follow",
-        "post_like",
-        "post_comment",
-        "comment_like",
-        "content_removed",
-      ],
+            enum: NOTIFICATION_TYPES,
     }).notNull(),
     /** User whose action triggered the notification (nullable for system) */
     actorId: text("actor_id").references(() => user.id, {
@@ -417,7 +425,7 @@ export const moderationCase = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     targetType: text("target_type", {
-      enum: ["post", "comment", "profile"],
+      enum: REPORT_TARGET_TYPES,
     }).notNull(),
     /**
      * Polymorphic reference — the UUID of the target entity.
@@ -425,12 +433,12 @@ export const moderationCase = pgTable(
      */
     targetId: uuid("target_id").notNull(),
     status: text("status", {
-      enum: ["open", "reviewing", "dismissed", "actioned"],
+      enum: CASE_STATUSES,
     })
       .notNull()
       .default("open"),
     priority: text("priority", {
-      enum: ["normal", "urgent"],
+      enum: CASE_PRIORITIES,
     })
       .notNull()
       .default("normal"),
@@ -457,20 +465,11 @@ export const report = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     targetType: text("target_type", {
-      enum: ["post", "comment", "profile"],
+      enum: REPORT_TARGET_TYPES,
     }).notNull(),
     targetId: uuid("target_id").notNull(),
     reason: text("reason", {
-      enum: [
-        "self_harm",
-        "illegal_or_dangerous",
-        "privacy",
-        "underage_or_safety",
-        "harassment",
-        "spam",
-        "impersonation",
-        "other",
-      ],
+            enum: REPORT_REASONS,
     }).notNull(),
     /** Free-text notes from the reporter */
     notes: text("notes"),
@@ -484,6 +483,7 @@ export const report = pgTable(
       .defaultNow(),
   },
   (table) => [
+
     index("report_reporter_id_idx").on(table.reporterId),
     index("report_moderation_case_id_idx").on(table.moderationCaseId),
   ],
@@ -501,27 +501,10 @@ export const moderationAction = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     action: text("action", {
-      enum: [
-        "remove_post",
-        "restore_post",
-        "remove_comment",
-        "restore_comment",
-        "suspend_user",
-        "unsuspend_user",
-        "dismiss_case",
-      ],
+            enum: MODERATION_ACTION_TYPES,
     }).notNull(),
     reason: text("reason", {
-      enum: [
-        "self_harm",
-        "illegal_or_dangerous",
-        "privacy",
-        "underage_or_safety",
-        "harassment",
-        "spam",
-        "impersonation",
-        "other",
-      ],
+            enum: REPORT_REASONS,
     }).notNull(),
     /** Shown to the content author (user-facing) */
     publicReason: text("public_reason"),
@@ -549,10 +532,10 @@ export const roleChangeAudit = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     oldRole: text("old_role", {
-      enum: ["user", "moderator", "admin", "owner"],
+      enum: USER_ROLES,
     }).notNull(),
     newRole: text("new_role", {
-      enum: ["user", "moderator", "admin", "owner"],
+      enum: USER_ROLES,
     }).notNull(),
     internalNotes: text("internal_notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -590,14 +573,7 @@ export const contactSubmission = pgTable(
     }),
     email: text("email"),
     category: text("category", {
-      enum: [
-        "account_access",
-        "moderation_or_safety",
-        "privacy_or_data",
-        "bug_report",
-        "general_support",
-        "other",
-      ],
+            enum: CONTACT_CATEGORIES,
     }).notNull(),
     message: text("message").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

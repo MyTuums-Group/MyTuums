@@ -52,11 +52,11 @@ function ResetPasswordPage() {
               void (async () => {
                 const form = new FormData(e.currentTarget);
                 const { resetPassword } = await import("@/lib/auth-client");
-                const res = await resetPassword({
+                const result = await resetPassword({
                   token,
                   newPassword: form.get("password") as string,
                 });
-                if (res.ok) setDone(true);
+                if (result.ok) setDone(true);
               })();
             }}
           >

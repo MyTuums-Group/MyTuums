@@ -9,6 +9,7 @@ export {
   submitOnboarding,
   getByUsername,
   checkProfileExists,
+  getMyProfile,
   type OnboardingError,
   type ProfileAccessError,
   type PublicProfile,

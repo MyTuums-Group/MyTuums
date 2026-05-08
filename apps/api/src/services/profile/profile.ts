@@ -83,6 +83,19 @@ export async function submitOnboarding(
 }
 
 /**
+ * Fetch the authenticated user's own profile.
+ *
+ * Returns null if the user has no profile yet (e.g. before onboarding).
+ */
+export async function getMyProfile(
+  userId: string,
+): Promise<PublicProfile | null> {
+  const row = await adapter.findByUserId(userId);
+  if (!row) return null;
+  return toPublicProfile(row);
+}
+
+/**
  * Fetch a public profile by username.
  *
  * Applies visibility rules through the authorization adapter.

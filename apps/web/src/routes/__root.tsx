@@ -1,4 +1,5 @@
 import { createRootRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth-client";
 import { getApiBase } from "@/lib/trpc";
 import { decideRootNavigation } from "./-root-guard";
@@ -35,8 +36,8 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   return (
-    <div className="min-h-svh">
+    <AppShell>
       <Outlet />
-    </div>
+    </AppShell>
   );
 }

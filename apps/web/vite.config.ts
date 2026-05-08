@@ -15,7 +15,6 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@workspace/types": path.resolve(__dirname, "../../packages/types/src/index.ts"),
-      "@workspace/db": path.resolve(__dirname, "../../packages/db/src/index.ts"),
       "@workspace/api-contract": path.resolve(__dirname, "../../packages/api-contract/src/index.ts"),
     },
   },

@@ -11,18 +11,101 @@ import {
 } from "drizzle-orm/pg-core";
 
 import {
-  USER_ROLES,
-  ACCOUNT_STATUSES,
-  MEDIA_PURPOSES,
-  MEDIA_STATUSES,
-  CASE_STATUSES,
-  CASE_PRIORITIES,
-  REPORT_REASONS,
-  REPORT_TARGET_TYPES,
-  MODERATION_ACTION_TYPES,
-  NOTIFICATION_TYPES,
-  CONTACT_CATEGORIES,
+  type AccountStatus,
+  type CasePriority,
+  type CaseStatus,
+  type ContactCategory,
+  type MediaPurpose,
+  type MediaStatus,
+  type ModerationActionType,
+  type NotificationType,
+  type ReportReason,
+  type ReportTargetType,
+  type UserRole,
 } from "@workspace/types";
+
+const USER_ROLES = [
+  "user",
+  "moderator",
+  "admin",
+  "owner",
+] as const satisfies readonly UserRole[];
+
+const ACCOUNT_STATUSES = [
+  "active",
+  "suspended",
+  "account_deleted",
+] as const satisfies readonly AccountStatus[];
+
+const MEDIA_PURPOSES = [
+  "post_attachment",
+  "profile_avatar",
+  "profile_banner",
+] as const satisfies readonly MediaPurpose[];
+
+const MEDIA_STATUSES = [
+  "pending",
+  "ready",
+  "attached",
+  "failed",
+  "deleted",
+] as const satisfies readonly MediaStatus[];
+
+const CASE_STATUSES = [
+  "open",
+  "reviewing",
+  "dismissed",
+  "actioned",
+] as const satisfies readonly CaseStatus[];
+
+const CASE_PRIORITIES = [
+  "normal",
+  "urgent",
+] as const satisfies readonly CasePriority[];
+
+const REPORT_REASONS = [
+  "self_harm",
+  "illegal_or_dangerous",
+  "privacy",
+  "underage_or_safety",
+  "harassment",
+  "spam",
+  "impersonation",
+  "other",
+] as const satisfies readonly ReportReason[];
+
+const REPORT_TARGET_TYPES = [
+  "post",
+  "comment",
+  "profile",
+] as const satisfies readonly ReportTargetType[];
+
+const MODERATION_ACTION_TYPES = [
+  "remove_post",
+  "restore_post",
+  "remove_comment",
+  "restore_comment",
+  "suspend_user",
+  "unsuspend_user",
+  "dismiss_case",
+] as const satisfies readonly ModerationActionType[];
+
+const NOTIFICATION_TYPES = [
+  "follow",
+  "post_like",
+  "post_comment",
+  "comment_like",
+  "content_removed",
+] as const satisfies readonly NotificationType[];
+
+const CONTACT_CATEGORIES = [
+  "account_access",
+  "moderation_or_safety",
+  "privacy_or_data",
+  "bug_report",
+  "general_support",
+  "other",
+] as const satisfies readonly ContactCategory[];
 
 // ─────────────────────────────────────────────────────────────────────
 // BetterAuth tables

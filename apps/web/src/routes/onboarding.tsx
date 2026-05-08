@@ -13,14 +13,11 @@ import {
   USERNAME_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
-  USERNAME_REGEX,
 } from "@workspace/types";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
-
-const isValidUsername = (s: string) => USERNAME_REGEX.test(s);
 
 function OnboardingPage() {
   const navigate = useNavigate();
@@ -42,9 +39,6 @@ function OnboardingPage() {
     }
     if (trimmed.length > USERNAME_MAX_LENGTH) {
       return `Username must be at most ${USERNAME_MAX_LENGTH} characters.`;
-    }
-    if (!isValidUsername(trimmed)) {
-      return "Username must start with a letter and contain only lowercase letters, numbers, and underscores.";
     }
     return null;
   }

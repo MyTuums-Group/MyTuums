@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/componen
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 
-export const Route = createFileRoute("/@/$username")({
+export const Route = createFileRoute("/@{$username}")({
   component: ProfilePage,
 });
 
@@ -38,7 +38,7 @@ function ProfilePage() {
         <CardContent className="flex flex-col gap-4">
           {profile.bio && <p className="text-muted-foreground">{profile.bio}</p>}
           <div className="text-sm text-muted-foreground">
-            <p>Follower / following counts — coming soon</p>
+            <p>Follower / following counts: coming soon</p>
           </div>
         </CardContent>
       </Card>

@@ -2,14 +2,11 @@ import Fastify, { type FastifyRequest, type FastifyReply } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { eq } from "drizzle-orm";
-import { appRouter } from "./trpc";
+import { appRouter } from "./app-router.js";
 import { createContext } from "./context";
-import { auth } from "./auth";
-import { fromNodeHeaders } from "better-auth/node";
+import { registerAuthRoutes } from "./auth/handler.js";
+import { registerProfileRoutes } from "./profile-routes.js";
 import { env } from "@workspace/config";
-import { db } from "@workspace/db";
-import { profile } from "@workspace/db/schema";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -25,34 +22,11 @@ export async function buildApp() {
   // Cookies (required for BetterAuth sessions)
   await app.register(cookie);
 
-  // BetterAuth handler — catch-all under /api/auth/*
-  app.route({
-    method: ["GET", "POST"],
-    url: "/api/auth/*",
-    async handler(request, reply) {
-      try {
-        const url = new URL(request.url, `http://${request.headers.host}`);
-        const headers = fromNodeHeaders(request.headers);
+  // BetterAuth — catch-all under /api/auth/*
+  registerAuthRoutes(app);
 
-        const req = new Request(url.toString(), {
-          method: request.method,
-          headers,
-          ...(request.body ? { body: JSON.stringify(request.body) } : {}),
-        });
-
-        const response = await auth.handler(req);
-
-        reply.status(response.status);
-        response.headers.forEach((value, key) => reply.header(key, value));
-        const body = response.body ? await response.text() : null;
-        void reply.send(body ? (body.startsWith("{") ? JSON.parse(body) : body) : null);
-        return;
-      } catch (error) {
-        app.log.error(`Auth error: ${String(error)}`);
-        return reply.status(500).send({ error: "Internal authentication error" });
-      }
-    },
-  });
+  // Profile REST routes
+  registerProfileRoutes(app);
 
   // tRPC plugin — mounted at /trpc
   await app.register(fastifyTRPCPlugin, {
@@ -69,28 +43,6 @@ export async function buildApp() {
     status: "healthy",
     timestamp: new Date().toISOString(),
   }));
-
-  // Profile exists check (used by frontend route guard)
-  app.get("/api/profile/exists", async (request, reply) => {
-    try {
-      const headers = new Headers();
-      for (const [k, v] of Object.entries(request.headers)) {
-        if (typeof v === "string") headers.set(k, v);
-      }
-      const session = await auth.api.getSession({ headers });
-      if (!session) {
-        return reply.status(401).send({ hasProfile: false });
-      }
-      const [row] = await db
-        .select({ id: profile.id })
-        .from(profile)
-        .where(eq(profile.userId, session.user.id))
-        .limit(1);
-      return { hasProfile: row !== undefined };
-    } catch {
-      return reply.status(500).send({ hasProfile: false });
-    }
-  });
 
   return app;
 }

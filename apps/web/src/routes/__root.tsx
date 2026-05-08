@@ -1,14 +1,9 @@
 import { createRootRoute, Outlet, redirect } from "@tanstack/react-router";
 import { getSession } from "@/lib/auth-client";
+import { getApiBase } from "@/lib/trpc";
 
-// Routes that do NOT require authentication.
-// Everything else defaults to auth-required — new static pages
-// like /terms, /privacy won't silently bypass auth.
+// Static public pages are accessible regardless of session state.
 const PUBLIC_PATHS = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
   "/terms",
   "/privacy",
   "/cookies",
@@ -18,25 +13,33 @@ const PUBLIC_PATHS = [
   "/about",
 ];
 
-const PUBLIC_SET = new Set(PUBLIC_PATHS);
+// Auth pages are guest-only: logged-in users should not see them.
+const GUEST_ONLY_PATHS = [
+  "/login",
+  "/register",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+];
 
-function getApiBase() {
-  try {
-    const env = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env;
-    if (env?.VITE_API_URL) return env.VITE_API_URL;
-  } catch {
-    // import.meta not available (SSR or non-Vite)
-  }
-  return "http://localhost:4000";
-}
+const PUBLIC_SET = new Set(PUBLIC_PATHS);
+const GUEST_ONLY_SET = new Set(GUEST_ONLY_PATHS);
 
 export const Route = createRootRoute({
   component: RootLayout,
   beforeLoad: async ({ location }) => {
-    // Public pages — no auth required
     if (PUBLIC_SET.has(location.pathname)) return;
 
     const session = await getSession();
+
+    if (GUEST_ONLY_SET.has(location.pathname)) {
+      if (session) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw redirect({ to: "/" });
+      }
+      return;
+    }
+
     if (!session) {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login" });

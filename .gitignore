@@ -21,6 +21,10 @@ coverage
 
 # Build Outputs
 dist
+*.tsbuildinfo
+
+# Tool caches
+.tanstack/
 
 # Debug
 npm-debug.log*

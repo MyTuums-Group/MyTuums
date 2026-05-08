@@ -6,7 +6,7 @@ import type { AppRouter } from "@workspace/api-contract";
 export const trpc = createTRPCReact<AppRouter>();
 
 /** Vite injects import.meta.env at build time. */
-function getApiBase() {
+export function getApiBase() {
   try {
     const env = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env;
     if (env?.VITE_API_URL) return env.VITE_API_URL;

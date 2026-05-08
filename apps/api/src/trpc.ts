@@ -1,7 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { Context } from "./context.js";
-import { profileRouter } from "./routers/profile.js";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -33,21 +32,3 @@ const isAuthenticated = t.middleware(async ({ ctx, next }) => {
 
 /** Procedure that requires a valid session. Returns 401 if unauthenticated. */
 export const protectedProcedure = t.procedure.use(isAuthenticated);
-
-// ── Placeholder app router ───────────────────────────────────────────
-
-export const appRouter = router({
-  health: publicProcedure.query(() => ({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  })),
-
-  me: protectedProcedure.query(({ ctx }) => ({
-    user: ctx.user,
-    session: ctx.session,
-  })),
-
-  profile: profileRouter,
-});
-
-export type AppRouter = typeof appRouter;

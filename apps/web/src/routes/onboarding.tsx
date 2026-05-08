@@ -32,8 +32,8 @@ function OnboardingPage() {
   const [bio, setBio] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
-  function validate(): string | null {
-    const trimmed = username.trim().toLowerCase();
+  function usernameLengthHint(): string | null {
+    const trimmed = username.trim();
     if (trimmed.length < USERNAME_MIN_LENGTH) {
       return `Username must be at least ${USERNAME_MIN_LENGTH} characters.`;
     }
@@ -45,20 +45,21 @@ function OnboardingPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const validationError = validate();
+    const validationError = usernameLengthHint();
     if (validationError) {
       setLocalError(validationError);
       return;
     }
     setLocalError(null);
     mutation.mutate({
-      username: username.trim().toLowerCase(),
+      username: username.trim(),
       displayName: displayName.trim() || undefined,
       bio: bio.trim() || undefined,
     });
   }
 
-  const errorMessage = localError ?? mutation.error?.message;
+  const serverErrorMessage = mutation.error?.message;
+  const errorMessage = localError ?? serverErrorMessage;
 
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
@@ -87,13 +88,19 @@ function OnboardingPage() {
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   const val: string = e.target.value;
                   setUsername(val);
+                  setLocalError(null);
+                  mutation.reset();
                 }}
+                minLength={USERNAME_MIN_LENGTH}
                 maxLength={USERNAME_MAX_LENGTH}
+                aria-invalid={Boolean(errorMessage)}
+                aria-describedby="username-help"
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                {USERNAME_MIN_LENGTH}–{USERNAME_MAX_LENGTH} chars, lowercase
-                letters, numbers, and underscores only.
+              <p id="username-help" className="text-xs text-muted-foreground">
+                {USERNAME_MIN_LENGTH}–{USERNAME_MAX_LENGTH} chars. Your handle is
+                permanent; the server will check format, reserved names, and
+                availability when you submit.
               </p>
             </div>
 

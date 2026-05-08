@@ -32,11 +32,19 @@ const profileRow: ProfileRow = {
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
 };
 
-function authorizationAdapter(canView: boolean): AuthorizationAdapter {
+function authorizationAdapter(canView: boolean): {
+  adapter: AuthorizationAdapter;
+  canView: ReturnType<typeof vi.fn>;
+} {
+  const canViewMock = vi.fn(() => canView);
+
   return {
-    getViewerContext: vi.fn(),
-    canView: vi.fn(() => canView),
-    filterVisible: vi.fn(),
+    adapter: {
+      getViewerContext: vi.fn(),
+      canView: canViewMock,
+      filterVisible: vi.fn(),
+    },
+    canView: canViewMock,
   };
 }
 
@@ -51,7 +59,7 @@ describe("Profile access module", () => {
     const result = await getByUsername(
       "missing",
       publicViewer,
-      authorizationAdapter(true),
+      authorizationAdapter(true).adapter,
     );
 
     expect(result).toEqual({ ok: false, error: { kind: "not_found" } });
@@ -62,7 +70,7 @@ describe("Profile access module", () => {
     vi.mocked(profileAdapter.findByUsername).mockResolvedValue(profileRow);
     const authorization = authorizationAdapter(false);
 
-    const result = await getByUsername("alice", publicViewer, authorization);
+    const result = await getByUsername("alice", publicViewer, authorization.adapter);
 
     expect(result).toEqual({
       ok: true,
@@ -80,7 +88,7 @@ describe("Profile access module", () => {
     vi.mocked(profileAdapter.findByUsername).mockResolvedValue(profileRow);
     const authorization = authorizationAdapter(true);
 
-    const result = await getByUsername("alice", loggedInViewer, authorization);
+    const result = await getByUsername("alice", loggedInViewer, authorization.adapter);
 
     expect(result.ok).toBe(true);
     expect(authorization.canView).toHaveBeenCalledWith(loggedInViewer, {
@@ -93,7 +101,7 @@ describe("Profile access module", () => {
     vi.mocked(profileAdapter.findByUsername).mockResolvedValue(profileRow);
     const authorization = authorizationAdapter(false);
 
-    const result = await getByUsername("alice", loggedInViewer, authorization);
+    const result = await getByUsername("alice", loggedInViewer, authorization.adapter);
 
     expect(result).toEqual({ ok: false, error: { kind: "not_visible" } });
     expect(authorization.canView).toHaveBeenCalledWith(loggedInViewer, {

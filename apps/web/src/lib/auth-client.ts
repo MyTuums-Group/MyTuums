@@ -5,18 +5,7 @@
  * interact with raw fetch/Response.
  */
 
-const API_BASE = "http://localhost:4000";
-
-/** Vite injects import.meta.env at build time. */
-function getApiBase() {
-  try {
-    const env = (import.meta as unknown as { env: { VITE_API_URL?: string } }).env;
-    if (env?.VITE_API_URL) return env.VITE_API_URL;
-  } catch {
-    // import.meta not available (SSR or non-Vite)
-  }
-  return API_BASE;
-}
+import { getApiBase } from "./trpc";
 
 // ── Typed response shapes ────────────────────────────────────────────
 

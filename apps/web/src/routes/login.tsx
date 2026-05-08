@@ -1,10 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import type { AuthError } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
@@ -19,19 +24,38 @@ function LoginPage() {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
+            setError(null);
+            setIsSubmitting(true);
             void (async () => {
-              const form = new FormData(e.currentTarget);
-              const { signInEmail } = await import("@/lib/auth-client");
-              const result = await signInEmail({
-                email: form.get("email") as string,
-                password: form.get("password") as string,
-              });
-              if (result.ok) {
-                window.location.href = "/";
+              try {
+                const form = new FormData(e.currentTarget);
+                const { signInEmail } = await import("@/lib/auth-client");
+                const result = await signInEmail({
+                  email: form.get("email") as string,
+                  password: form.get("password") as string,
+                });
+                if (result.ok) {
+                  window.location.href = "/";
+                  return;
+                }
+                setError(getLoginErrorMessage(result.error));
+              } catch {
+                setError("Could not reach the authentication server. Please try again.");
+              } finally {
+                setIsSubmitting(false);
               }
             })();
           }}
         >
+          {error ? (
+            <div
+              role="alert"
+              className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
+            >
+              {error}
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email
@@ -62,9 +86,10 @@ function LoginPage() {
           </div>
           <button
             type="submit"
-            className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
+            disabled={isSubmitting}
+            className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Log in
+            {isSubmitting ? "Logging in…" : "Log in"}
           </button>
         </form>
 
@@ -83,4 +108,19 @@ function LoginPage() {
       </div>
     </div>
   );
+}
+
+function getLoginErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case "EMAIL_NOT_VERIFIED":
+      return "Your email address is not verified yet. Please check your inbox and click the verification link before logging in.";
+    case "INVALID_EMAIL_OR_PASSWORD":
+    case "INVALID_CREDENTIALS":
+      return "The email or password you entered is incorrect.";
+    case "RATE_LIMITED":
+    case "TOO_MANY_REQUESTS":
+      return "Too many login attempts. Please wait a moment before trying again.";
+    default:
+      return error.message || "Login failed. Please check your details and try again.";
+  }
 }

@@ -1,0 +1,1 @@
+export { createGameSlug } from "./game.policy.js";

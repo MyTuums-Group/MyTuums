@@ -1,0 +1,1 @@
+export { createCommentBody } from "./comment.policy.js";

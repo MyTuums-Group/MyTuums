@@ -30,12 +30,6 @@ function OnboardingPage() {
     },
   });
 
-  // Local typed copies — workspace constants can't be resolved by eslint strict
-  const minLen: number = USERNAME_MIN_LENGTH;
-  const maxLen: number = USERNAME_MAX_LENGTH;
-  const maxDisplayLen: number = DISPLAY_NAME_MAX_LENGTH;
-  const maxBioLen: number = BIO_MAX_LENGTH;
-
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -43,11 +37,11 @@ function OnboardingPage() {
 
   function validate(): string | null {
     const trimmed = username.trim().toLowerCase();
-    if (trimmed.length < minLen) {
-      return `Username must be at least ${minLen} characters.`;
+    if (trimmed.length < USERNAME_MIN_LENGTH) {
+      return `Username must be at least ${USERNAME_MIN_LENGTH} characters.`;
     }
-    if (trimmed.length > maxLen) {
-      return `Username must be at most ${maxLen} characters.`;
+    if (trimmed.length > USERNAME_MAX_LENGTH) {
+      return `Username must be at most ${USERNAME_MAX_LENGTH} characters.`;
     }
     if (!isValidUsername(trimmed)) {
       return "Username must start with a letter and contain only lowercase letters, numbers, and underscores.";
@@ -100,11 +94,11 @@ function OnboardingPage() {
                   const val: string = e.target.value;
                   setUsername(val);
                 }}
-                maxLength={maxLen}
+                maxLength={USERNAME_MAX_LENGTH}
                 required
               />
               <p className="text-xs text-muted-foreground">
-                {minLen}–{maxLen} chars, lowercase
+                {USERNAME_MIN_LENGTH}–{USERNAME_MAX_LENGTH} chars, lowercase
                 letters, numbers, and underscores only.
               </p>
             </div>
@@ -119,7 +113,7 @@ function OnboardingPage() {
                   const val: string = e.target.value;
                   setDisplayName(val);
                 }}
-                maxLength={maxDisplayLen}
+                maxLength={DISPLAY_NAME_MAX_LENGTH}
               />
             </div>
 
@@ -133,11 +127,11 @@ function OnboardingPage() {
                   const val: string = e.target.value;
                   setBio(val);
                 }}
-                maxLength={maxBioLen}
+                maxLength={BIO_MAX_LENGTH}
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                {bio.length}/{maxBioLen}
+                {bio.length}/{BIO_MAX_LENGTH}
               </p>
             </div>
 

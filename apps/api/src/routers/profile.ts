@@ -1,16 +1,44 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { db } from "@workspace/db";
-import { profile } from "@workspace/db/schema";
 import {
-  createUsername,
-  DISPLAY_NAME_MAX_LENGTH,
-  BIO_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
+  DISPLAY_NAME_MAX_LENGTH,
+  BIO_MAX_LENGTH,
 } from "@workspace/types";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
+import { authorization } from "../authorization/index.js";
+import {
+  submitOnboarding,
+  getByUsername,
+  checkProfileExists,
+  type OnboardingError,
+  type ProfileAccessError,
+} from "../services/profile/index.js";
+
+// ── Domain error → tRPC error mapping ────────────────────────────────
+
+function mapOnboardingError(error: OnboardingError): TRPCError {
+  switch (error.kind) {
+    case "invalid_username":
+      return new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    case "already_has_profile":
+      return new TRPCError({ code: "CONFLICT", message: "You already have a profile." });
+    case "username_taken":
+      return new TRPCError({ code: "CONFLICT", message: "This username is already taken." });
+  }
+}
+
+function mapProfileAccessError(error: ProfileAccessError): TRPCError {
+  switch (error.kind) {
+    case "not_found":
+      return new TRPCError({ code: "NOT_FOUND", message: "Profile not found." });
+    case "not_visible":
+      return new TRPCError({ code: "FORBIDDEN", message: "This profile is not available." });
+  }
+}
+
+// ── Router ───────────────────────────────────────────────────────────
 
 export const profileRouter = router({
   /**
@@ -29,81 +57,33 @@ export const profileRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // 1. Validate username format + reserved list
-      const result = createUsername(input.username);
+      const result = await submitOnboarding(ctx.user.id, {
+        username: input.username,
+        displayName: input.displayName ?? null,
+        bio: input.bio ?? null,
+      });
       if (!result.ok) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: result.error.message,
-        });
+        throw mapOnboardingError(result.error);
       }
-      const username = result.value;
-
-      // 2. Check if user already has a profile (one per user)
-      const [existing] = await db
-        .select({ id: profile.id })
-        .from(profile)
-        .where(eq(profile.userId, ctx.user.id))
-        .limit(1);
-
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You already have a profile.",
-        });
-      }
-
-      // 3. Insert — unique constraint on username handles race conditions atomically
-      try {
-        const [row] = await db
-          .insert(profile)
-          .values({
-            userId: ctx.user.id,
-            username,
-            displayName: input.displayName?.trim() || null,
-            bio: input.bio?.trim() || null,
-          })
-          .returning();
-
-        return row;
-      } catch (err) {
-        // PostgreSQL unique violation code 23505
-        if (
-          typeof err === "object" &&
-          err !== null &&
-          "code" in err &&
-          (err as { code: string }).code === "23505"
-        ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "This username is already taken.",
-          });
-        }
-        throw err;
-      }
+      return result.value;
     }),
 
   /**
    * Fetch a profile by username.
    * Public — used for /@{username} pages.
+   * Applies visibility rules for authenticated viewers.
    */
   getByUsername: publicProcedure
     .input(z.object({ username: z.string() }))
-    .query(async ({ input }) => {
-      const [row] = await db
-        .select()
-        .from(profile)
-        .where(eq(profile.username, input.username.toLowerCase()))
-        .limit(1);
-
-      if (!row) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Profile not found.",
-        });
+    .query(async ({ ctx, input }) => {
+      const viewerCtx = ctx.session?.user
+        ? await authorization.getViewerContext({ userId: ctx.session.user.id })
+        : null;
+      const result = await getByUsername(input.username, viewerCtx, authorization);
+      if (!result.ok) {
+        throw mapProfileAccessError(result.error);
       }
-
-      return row;
+      return result.value;
     }),
 
   /**
@@ -111,12 +91,6 @@ export const profileRouter = router({
    * Used by the frontend route guard to redirect to onboarding.
    */
   checkExists: protectedProcedure.query(async ({ ctx }) => {
-    const [row] = await db
-      .select({ id: profile.id })
-      .from(profile)
-      .where(eq(profile.userId, ctx.user.id))
-      .limit(1);
-
-    return { hasProfile: row !== undefined };
+    return checkProfileExists(ctx.user.id);
   }),
 });

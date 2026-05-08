@@ -2,18 +2,12 @@
 // Populated as domain entities are defined. This package exports only
 // stable value types — no service logic, DB clients, or React components.
 
-// ── Value objects (with invariant validation) ───────────────────────
-export {
-  type Username,
-  createUsername,
-  isUsername,
-} from "./username.js";
-export { type PostBody, createPostBody, postBodyLength } from "./post-body.js";
-export { type CommentBody, createCommentBody } from "./comment-body.js";
-export { type GameSlug, createGameSlug } from "./game-slug.js";
+// ── Value object types (branded types only — validation logic moved to services) ──
+export { type Username } from "./username.js";
+export { type PostBody } from "./post-body.js";
+export { type CommentBody } from "./comment-body.js";
+export { type GameSlug } from "./game-slug.js";
 export { type Result, ValidationError, success, failure } from "./result.js";
-export { graphemeLength } from "./grapheme.js";
-export { isReservedUsername } from "./reserved-usernames.js";
 
 // ── Authorization ───────────────────────────────────────────────────
 export {

@@ -21,6 +21,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: false,
+    requireEmailVerification: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
     sendResetPassword: async ({ user, url }) => {
@@ -33,8 +34,12 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      const html = verificationEmailTemplate({ user, url });
+      const verificationUrl = withWebCallback(url);
+      const html = verificationEmailTemplate({ user, url: verificationUrl });
       await sendEmail({
         to: user.email ?? "",
         subject: "Verify your MyTuums account",
@@ -58,9 +63,18 @@ export const auth = betterAuth({
 
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
+  trustedOrigins: env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? [
+    "http://localhost:5173",
+  ],
 });
 
 // ── Email templates ──────────────────────────────────────────────────
+
+function withWebCallback(url: string): string {
+  const verificationUrl = new URL(url);
+  verificationUrl.searchParams.set("callbackURL", env.WEB_APP_URL);
+  return verificationUrl.toString();
+}
 
 function verificationEmailTemplate({
   user,

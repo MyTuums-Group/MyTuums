@@ -21,7 +21,7 @@ export interface AuthUser {
   accountStatus?: string;
 }
 
-export interface AuthSession {
+interface AuthSession {
   id: string;
   userId: string;
   expiresAt: string;
@@ -90,12 +90,6 @@ export async function signInEmail(data: {
   });
   if (!res.ok) return { ok: false, error: json as AuthError };
   return { ok: true, data: json as { token: string; user: AuthUser } };
-}
-
-export async function signOut(): Promise<AuthResult<{ success: boolean }>> {
-  const { res, json } = await api("/sign-out", { method: "POST" });
-  if (!res.ok) return { ok: false, error: json as AuthError };
-  return { ok: true, data: json as { success: boolean } };
 }
 
 export async function getSession(): Promise<SessionResponse | null> {

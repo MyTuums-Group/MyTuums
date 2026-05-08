@@ -8,6 +8,18 @@ export const Route = createFileRoute("/forgot-password")({
 function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void (async () => {
+      const form = new FormData(e.currentTarget);
+      const { forgetPassword } = await import("@/lib/auth-client");
+      await forgetPassword({
+        email: form.get("email") as string,
+      });
+      setSent(true);
+    })();
+  };
+
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
@@ -23,17 +35,7 @@ function ForgotPasswordPage() {
         {!sent && (
           <form
             className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void (async () => {
-                const form = new FormData(e.currentTarget);
-                const { forgetPassword } = await import("@/lib/auth-client");
-                await forgetPassword({
-                  email: form.get("email") as string,
-                });
-                setSent(true);
-              })();
-            }}
+            onSubmit={handleSubmit}
           >
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">

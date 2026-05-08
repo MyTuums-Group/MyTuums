@@ -14,7 +14,8 @@
     "db:migrate": "pnpm --filter @workspace/db db:migrate",
     "db:push": "pnpm --filter @workspace/db db:push",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "doctor": "react-doctor . --verbose --yes"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -22,6 +23,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "react-doctor": "^0.1.2",
     "turbo": "^2.8.17",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.54.0",

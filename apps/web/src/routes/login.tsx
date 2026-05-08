@@ -10,6 +10,31 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    void (async () => {
+      try {
+        const form = new FormData(e.currentTarget);
+        const { signInEmail } = await import("@/lib/auth-client");
+        const result = await signInEmail({
+          email: form.get("email") as string,
+          password: form.get("password") as string,
+        });
+        if (result.ok) {
+          window.location.href = "/";
+          return;
+        }
+        setError(getLoginErrorMessage(result.error));
+      } catch {
+        setError("Could not reach the authentication server. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
+  };
+
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
@@ -22,30 +47,7 @@ function LoginPage() {
 
         <form
           className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError(null);
-            setIsSubmitting(true);
-            void (async () => {
-              try {
-                const form = new FormData(e.currentTarget);
-                const { signInEmail } = await import("@/lib/auth-client");
-                const result = await signInEmail({
-                  email: form.get("email") as string,
-                  password: form.get("password") as string,
-                });
-                if (result.ok) {
-                  window.location.href = "/";
-                  return;
-                }
-                setError(getLoginErrorMessage(result.error));
-              } catch {
-                setError("Could not reach the authentication server. Please try again.");
-              } finally {
-                setIsSubmitting(false);
-              }
-            })();
-          }}
+          onSubmit={handleSubmit}
         >
           {error ? (
             <div

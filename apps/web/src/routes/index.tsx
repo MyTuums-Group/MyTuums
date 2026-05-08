@@ -11,7 +11,7 @@ function IndexPage() {
       <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
         <div>
           <h1 className="font-medium">MyTuums</h1>
-          <p>Gaming social platform — v1 scaffold.</p>
+          <p>Gaming social platform: v1 scaffold.</p>
           <Button className="mt-2">Get Started</Button>
         </div>
         <div className="text-muted-foreground font-mono text-xs">

@@ -68,7 +68,7 @@ function OnboardingPage() {
           <CardTitle>Choose your username</CardTitle>
           <CardDescription>
             This will be your permanent handle on MyTuums.
-            Choose wisely — it cannot be changed.
+            Choose wisely: it cannot be changed.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -12,6 +12,19 @@ function ResetPasswordPage() {
   const { token } = Route.useSearch();
   const [done, setDone] = useState(false);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void (async () => {
+      const form = new FormData(e.currentTarget);
+      const { resetPassword } = await import("@/lib/auth-client");
+      const result = await resetPassword({
+        token,
+        newPassword: form.get("password") as string,
+      });
+      if (result.ok) setDone(true);
+    })();
+  };
+
   if (!token) {
     return (
       <div className="flex min-h-svh items-center justify-center p-6">
@@ -47,18 +60,7 @@ function ResetPasswordPage() {
         {!done && (
           <form
             className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void (async () => {
-                const form = new FormData(e.currentTarget);
-                const { resetPassword } = await import("@/lib/auth-client");
-                const result = await resetPassword({
-                  token,
-                  newPassword: form.get("password") as string,
-                });
-                if (result.ok) setDone(true);
-              })();
-            }}
+            onSubmit={handleSubmit}
           >
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">

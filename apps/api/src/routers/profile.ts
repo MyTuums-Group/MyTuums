@@ -12,6 +12,7 @@ import {
   submitOnboarding,
   getByUsername,
   checkProfileExists,
+  getMyProfile,
   type OnboardingError,
   type ProfileAccessError,
 } from "../services/profile/index.js";
@@ -41,6 +42,15 @@ function mapProfileAccessError(error: ProfileAccessError): TRPCError {
 // ── Router ───────────────────────────────────────────────────────────
 
 export const profileRouter = router({
+  /**
+   * Fetch the authenticated user's own profile.
+   * Returns null if the user has not completed onboarding yet.
+   */
+  getMyProfile: protectedProcedure.query(async ({ ctx }) => {
+    const profile = await getMyProfile(ctx.user.id);
+    return profile;
+  }),
+
   /**
    * Create a profile during onboarding.
    * Requires auth. Username is immutable once set.

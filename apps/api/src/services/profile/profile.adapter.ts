@@ -14,6 +14,21 @@ import type { Username } from "@workspace/types";
 export type ProfileRow = typeof profile.$inferSelect;
 
 /**
+ * Find a profile by user ID.
+ * Returns the full row — the service decides what to expose.
+ */
+export async function findByUserId(
+  userId: string,
+): Promise<ProfileRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(profile)
+    .where(eq(profile.userId, userId))
+    .limit(1);
+  return row;
+}
+
+/**
  * Find a profile by username (case-insensitive lookup).
  * Returns the full row — the service decides what to expose.
  */

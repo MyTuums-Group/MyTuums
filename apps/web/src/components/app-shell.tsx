@@ -24,8 +24,6 @@ import { trpc } from "@/lib/trpc";
 import { getApiBase } from "@/lib/trpc";
 import type { ReactNode } from "react";
 import {
-  House,
-  Users,
   Compass,
   Bell,
   MagnifyingGlass,
@@ -83,9 +81,12 @@ function AppHeader() {
           className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           aria-label="MyTuums home"
         >
-          <span className="bg-primary text-primary-foreground grid size-9 shrink-0 place-items-center rounded-xl font-heading text-sm font-bold tracking-tight shadow-sm">
-            MT
-          </span>
+          <img
+            src="/favicon.svg"
+            alt=""
+            className="size-9 shrink-0 rounded-xl shadow-sm"
+            aria-hidden="true"
+          />
           <span className="hidden min-w-0 flex-col leading-none sm:flex">
             <span className="font-heading text-base font-semibold tracking-tight">
               MyTuums
@@ -102,12 +103,6 @@ function AppHeader() {
             aria-label="Primary navigation"
             className="hidden items-center gap-1 md:flex"
           >
-            <HeaderNavLink to="/" icon={<House weight="bold" />}>
-              For You
-            </HeaderNavLink>
-            <HeaderNavLink to="/" search={{ tab: "following" }} icon={<Users weight="bold" />}>
-              Following
-            </HeaderNavLink>
             <HeaderNavLink to="/discover" icon={<Compass weight="bold" />}>
               Discover
             </HeaderNavLink>
@@ -221,14 +216,6 @@ function AppHeader() {
                     <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 flex flex-col gap-1">
-                    <MobileNavLink to="/">
-                      <House weight="bold" />
-                      For You
-                    </MobileNavLink>
-                    <MobileNavLink to="/" search={{ tab: "following" }}>
-                      <Users weight="bold" />
-                      Following
-                    </MobileNavLink>
                     <MobileNavLink to="/discover">
                       <Compass weight="bold" />
                       Discover
@@ -350,9 +337,17 @@ function AppFooter() {
         <div className="grid gap-8 md:grid-cols-[1fr_auto]">
           {/* Brand */}
           <div className="max-w-md">
-            <p className="font-heading text-sm font-semibold tracking-tight">
-              MyTuums
-            </p>
+            <div className="flex items-center gap-2">
+              <img
+                src="/favicon.svg"
+                alt=""
+                className="size-6 rounded-md"
+                aria-hidden="true"
+              />
+              <p className="font-heading text-sm font-semibold tracking-tight">
+                MyTuums
+              </p>
+            </div>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               A web-first social platform for gamers to post short updates,
               share clips, follow people, and browse game-tagged discovery.

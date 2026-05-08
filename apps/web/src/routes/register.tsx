@@ -5,6 +5,25 @@ export const Route = createFileRoute("/register")({
 });
 
 function RegisterPage() {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void (async () => {
+      const form = new FormData(e.currentTarget);
+      const { signUpEmail } = await import("@/lib/auth-client");
+      const email = form.get("email") as string;
+      const result = await signUpEmail({
+        email,
+        password: form.get("password") as string,
+        // Better Auth requires a name, but MyTuums profile identity is chosen
+        // during onboarding. Do not collect a misleading display name here.
+        name: email,
+      });
+      if (result.ok) {
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+      }
+    })();
+  };
+
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
@@ -17,36 +36,8 @@ function RegisterPage() {
 
         <form
           className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void (async () => {
-              const form = new FormData(e.currentTarget);
-              const { signUpEmail } = await import("@/lib/auth-client");
-              const email = form.get("email") as string;
-              const result = await signUpEmail({
-                email,
-                password: form.get("password") as string,
-                name: form.get("name") as string,
-              });
-              if (result.ok) {
-                window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
-              }
-            })();
-          }}
+          onSubmit={handleSubmit}
         >
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">
-              Display name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              required
-              className="border-input w-full rounded-md border px-3 py-2 text-sm"
-            />
-          </div>
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email

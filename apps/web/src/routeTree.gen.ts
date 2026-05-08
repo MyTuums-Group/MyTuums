@@ -15,8 +15,8 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as AtChar123usernameChar125RouteImport } from './routes/@{$username}'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AtUsernameRouteImport } from './routes/@/$username'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -48,90 +48,91 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtChar123usernameChar125Route =
+  AtChar123usernameChar125RouteImport.update({
+    id: '/@{$username}',
+    path: '/@{$username}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AtUsernameRoute = AtUsernameRouteImport.update({
-  id: '/@/$username',
-  path: '/@/$username',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/@/$username': typeof AtUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/@/$username': typeof AtUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
-  '/@/$username': typeof AtUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/@{$username}'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
     | '/register'
     | '/reset-password'
     | '/verify-email'
-    | '/@/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/@{$username}'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
     | '/register'
     | '/reset-password'
     | '/verify-email'
-    | '/@/$username'
   id:
     | '__root__'
     | '/'
+    | '/@{$username}'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
     | '/register'
     | '/reset-password'
     | '/verify-email'
-    | '/@/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AtChar123usernameChar125Route: typeof AtChar123usernameChar125Route
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
-  AtUsernameRoute: typeof AtUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$username}': {
+      id: '/@{$username}'
+      path: '/@{$username}'
+      fullPath: '/@{$username}'
+      preLoaderRoute: typeof AtChar123usernameChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -185,25 +193,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/@/$username': {
-      id: '/@/$username'
-      path: '/@/$username'
-      fullPath: '/@/$username'
-      preLoaderRoute: typeof AtUsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AtChar123usernameChar125Route: AtChar123usernameChar125Route,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
-  AtUsernameRoute: AtUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

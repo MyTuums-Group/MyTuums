@@ -1,10 +1,15 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { auth } from "./auth";
+import {
+  accountStatusService,
+  type AccountLifecycleSnapshot,
+} from "./services/account-status/index.js";
 
 export interface Context {
   req: FastifyRequest;
   reply: FastifyReply;
   session: Awaited<ReturnType<typeof auth.api.getSession>> | null;
+  accountLifecycle: AccountLifecycleSnapshot | null;
 }
 
 export async function createContext(
@@ -18,6 +23,9 @@ export async function createContext(
   );
 
   const session = await auth.api.getSession({ headers });
+  const accountLifecycle = session
+    ? await accountStatusService.getLifecycleSnapshot(session.user.id)
+    : null;
 
-  return { req, reply, session };
+  return { req, reply, session, accountLifecycle };
 }

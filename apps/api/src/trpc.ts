@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { Context } from "./context.js";
+import { isActionAllowedForAccount } from "./services/account-status/index.js";
 export type { AppRouter } from "./app-router.js";
 
 const t = initTRPC.context<Context>().create({
@@ -22,11 +23,26 @@ const isAuthenticated = t.middleware(async ({ ctx, next }) => {
     });
   }
 
+  if (!ctx.accountLifecycle) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Account not found",
+    });
+  }
+
+  if (!isActionAllowedForAccount(ctx.accountLifecycle, "protected_action")) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Account status does not allow this action",
+    });
+  }
+
   return next({
     ctx: {
       // Pass the session and user to downstream procedures
       session: ctx.session,
       user: ctx.session.user,
+      accountLifecycle: ctx.accountLifecycle,
     },
   });
 });

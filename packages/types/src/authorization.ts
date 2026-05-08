@@ -38,17 +38,6 @@ export interface ViewerContext {
   isAuthenticated: boolean;
 }
 
-/** Helper: is the viewer's account active (not suspended, not deleted)? */
-export function isViewerActive(ctx: ViewerContext): boolean {
-  return ctx.isAuthenticated && ctx.accountStatus === "active";
-}
-
-/** Helper: does the viewer have staff access (moderator, admin, owner)? */
-export function isStaff(ctx: ViewerContext): boolean {
-  if (!ctx.isAuthenticated || !ctx.role) return false;
-  return ctx.role === "moderator" || ctx.role === "admin" || ctx.role === "owner";
-}
-
 /**
  * Adapter interface — both the production (Drizzle-backed) adapter and
  * the in-memory test adapter conform to this shape.

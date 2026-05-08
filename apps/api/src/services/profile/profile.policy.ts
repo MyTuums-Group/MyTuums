@@ -13,11 +13,12 @@ import {
   failure,
   USERNAME_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
-  USERNAME_REGEX,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
 } from "@workspace/types";
 import { isReservedUsername } from "./reserved-usernames.js";
+
+const USERNAME_REGEX = /^[a-z][a-z0-9_]*$/;
 
 // ── Username creation (moved from @workspace/types) ──────────────────
 // Behavioral logic does not belong in a types package (CONTEXT.md).

@@ -2,7 +2,7 @@ import { createRootRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth-client";
 import { getApiBase } from "@/lib/trpc";
-import { decideRootNavigation } from "./-root-guard";
+import { decideRootNavigation, type RootGuardAppUserState } from "./-root-guard";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -11,17 +11,16 @@ export const Route = createRootRoute({
     const decision = await decideRootNavigation({
       pathname: location.pathname,
       session,
-      hasProfile: session
+      appUserState: session
         ? async () => {
             try {
-              const res = await fetch(`${getApiBase()}/api/profile/exists`, {
+              const res = await fetch(`${getApiBase()}/api/app-user-state`, {
                 credentials: "include",
               });
-              if (!res.ok) return false;
-              const data = (await res.json()) as { hasProfile: boolean };
-              return data.hasProfile;
+              if (!res.ok) return { kind: "unauthenticated" };
+              return (await res.json()) as RootGuardAppUserState;
             } catch {
-              return false;
+              return { kind: "unauthenticated" };
             }
           }
         : null,

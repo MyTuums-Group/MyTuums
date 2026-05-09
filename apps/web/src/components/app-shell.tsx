@@ -46,19 +46,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 // ── Header ─────────────────────────────────────────────────────────────
 
 function AppHeader() {
-  const me = trpc.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-  const myProfile = trpc.profile.getMyProfile.useQuery(undefined, {
-    enabled: !!me.data,
+  const currentAppUser = trpc.currentAppUser.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
 
-  const isLoggedIn = !!me.data;
-  const user = me.data?.user;
-  const profile = myProfile.data;
+  const appUserState = currentAppUser.data;
+  const isLoggedIn = !!appUserState && appUserState.kind !== "unauthenticated";
+  const user = appUserState && "user" in appUserState ? appUserState.user : undefined;
+  const profile = appUserState?.kind === "active_onboarded_profile" ? appUserState.profile : undefined;
 
   const displayName = profile?.displayName ?? user?.name ?? user?.email ?? "";
   const username = profile?.username;

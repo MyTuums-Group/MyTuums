@@ -1,6 +1,12 @@
+import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "./trpc.js";
 import { profileRouter } from "./routers/profile.js";
+import { authorization } from "./authorization/index.js";
 import { getCurrentAppUserState } from "./services/app-user-state/index.js";
+import { createSearchService, type AppSearchInput } from "./services/search/index.js";
+import { searchQueries } from "./services/search/production.js";
+
+const appSearch = createSearchService(searchQueries);
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({
@@ -14,6 +20,22 @@ export const appRouter = router({
     user: ctx.user,
     session: ctx.session,
   })),
+
+  search: protectedProcedure
+    .input(
+      z.object({
+        query: z.string(),
+        limit: z.number().int().min(1).max(50).default(10),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
+      const searchInput: AppSearchInput = {
+        query: input.query ?? "",
+        limit: input.limit ?? 10,
+      };
+      return appSearch.appSearch(viewer, searchInput);
+    }),
 
   profile: profileRouter,
 });

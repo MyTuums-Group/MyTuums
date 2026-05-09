@@ -6,9 +6,9 @@
  * the service with transport mapping.
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { profile } from "@workspace/db/schema";
+import { favoriteGame, game, profile } from "@workspace/db/schema";
 import type { Username } from "@workspace/types";
 
 export type ProfileRow = typeof profile.$inferSelect;
@@ -54,6 +54,49 @@ export async function existsByUserId(userId: string): Promise<boolean> {
     .where(eq(profile.userId, userId))
     .limit(1);
   return row !== undefined;
+}
+
+export async function findActiveSeededGameIds(gameIds: string[]): Promise<string[]> {
+  if (gameIds.length === 0) return [];
+  const activeRows = await db
+    .select({ id: game.id })
+    .from(game)
+    .where(and(inArray(game.id, gameIds), eq(game.isActive, true)));
+  return activeRows.map((row) => row.id);
+}
+
+export async function createOnboarding(values: {
+  userId: string;
+  username: Username;
+  displayName: string | null;
+  bio: string | null;
+  favoriteGames: { gameId: string; position: number }[];
+}): Promise<ProfileRow> {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(profile)
+      .values({
+        userId: values.userId,
+        username: values.username,
+        displayName: values.displayName,
+        bio: values.bio,
+      })
+      .returning();
+
+    if (!row) throw new Error("Failed to create profile.");
+
+    if (values.favoriteGames.length > 0) {
+      await tx.insert(favoriteGame).values(
+        values.favoriteGames.map((favorite) => ({
+          profileId: row.id,
+          gameId: favorite.gameId,
+          position: favorite.position,
+        })),
+      );
+    }
+
+    return row;
+  });
 }
 
 /**

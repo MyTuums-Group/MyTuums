@@ -1,8 +1,15 @@
 export type RootGuardSession = object | null;
 
+export type RootGuardAppUserState =
+  | { kind: "unauthenticated" }
+  | { kind: "authenticated_unverified" }
+  | { kind: "verified_profileless" }
+  | { kind: "active_onboarded_profile" }
+  | { kind: "limited_account" };
+
 export type RootGuardDecision =
   | { kind: "allow" }
-  | { kind: "redirect"; to: "/" | "/login" | "/onboarding" };
+  | { kind: "redirect"; to: "/" | "/login" | "/onboarding" | "/verify-email" };
 
 const PUBLIC_PATHS = [
   "/terms",
@@ -33,7 +40,7 @@ export function isPublicProfilePath(pathname: string): boolean {
 export async function decideRootNavigation(input: {
   pathname: string;
   session: RootGuardSession;
-  hasProfile: null | (() => Promise<boolean>);
+  appUserState: null | (() => Promise<RootGuardAppUserState>);
 }): Promise<RootGuardDecision> {
   if (PUBLIC_SET.has(input.pathname)) return { kind: "allow" };
 
@@ -42,16 +49,31 @@ export async function decideRootNavigation(input: {
   }
 
   if (GUEST_ONLY_SET.has(input.pathname)) {
-    if (input.session) return { kind: "redirect", to: "/" };
-    return { kind: "allow" };
+    if (!input.session) return { kind: "allow" };
+    if (input.pathname !== "/verify-email") return { kind: "redirect", to: "/" };
   }
 
   if (!input.session) return { kind: "redirect", to: "/login" };
 
-  if (input.pathname !== "/onboarding") {
-    if (!input.hasProfile) return { kind: "redirect", to: "/onboarding" };
-    const profileExists = await input.hasProfile();
-    if (!profileExists) return { kind: "redirect", to: "/onboarding" };
+  if (!input.appUserState) return { kind: "redirect", to: "/login" };
+  const appUserState = await input.appUserState();
+
+  if (appUserState.kind === "unauthenticated") {
+    return { kind: "redirect", to: "/login" };
+  }
+
+  if (appUserState.kind === "authenticated_unverified") {
+    return input.pathname === "/verify-email"
+      ? { kind: "allow" }
+      : { kind: "redirect", to: "/verify-email" };
+  }
+
+  if (input.pathname === "/verify-email") {
+    return { kind: "redirect", to: "/" };
+  }
+
+  if (appUserState.kind === "verified_profileless" && input.pathname !== "/onboarding") {
+    return { kind: "redirect", to: "/onboarding" };
   }
 
   return { kind: "allow" };

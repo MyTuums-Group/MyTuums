@@ -22,6 +22,7 @@ import {
 function mapOnboardingError(error: OnboardingError): TRPCError {
   switch (error.kind) {
     case "invalid_username":
+    case "invalid_favorite_games":
       return new TRPCError({ code: "BAD_REQUEST", message: error.message });
     case "already_has_profile":
       return new TRPCError({ code: "CONFLICT", message: "You already have a profile." });
@@ -64,6 +65,7 @@ export const profileRouter = router({
           .max(USERNAME_MAX_LENGTH),
         displayName: z.string().max(DISPLAY_NAME_MAX_LENGTH).optional(),
         bio: z.string().max(BIO_MAX_LENGTH).optional(),
+        favoriteGameIds: z.array(z.string().uuid()).max(5).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -71,6 +73,7 @@ export const profileRouter = router({
         username: input.username,
         displayName: input.displayName ?? null,
         bio: input.bio ?? null,
+        favoriteGameIds: input.favoriteGameIds ?? [],
       });
       if (!result.ok) {
         throw mapOnboardingError(result.error);

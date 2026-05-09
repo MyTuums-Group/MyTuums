@@ -119,3 +119,21 @@ export function validateOnboardingInput(input: {
 
   return success({ username: usernameResult.value, displayName, bio });
 }
+
+export function validateFavoriteGameIds(
+  gameIds: string[],
+): Result<string[], ValidationError> {
+  if (gameIds.length > 5) {
+    return failure(
+      new ValidationError("Choose at most 5 favorite games.", "favoriteGameIds"),
+    );
+  }
+
+  if (new Set(gameIds).size !== gameIds.length) {
+    return failure(
+      new ValidationError("Favorite games must be unique.", "favoriteGameIds"),
+    );
+  }
+
+  return success(gameIds);
+}

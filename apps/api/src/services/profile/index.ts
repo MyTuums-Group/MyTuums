@@ -10,7 +10,13 @@ export {
   getByUsername,
   checkProfileExists,
   getMyProfile,
+} from "./profile.js";
+export {
+  createProfileService,
+  createInMemoryProfileOnboardingService,
   type OnboardingError,
   type ProfileAccessError,
   type PublicProfile,
-} from "./profile.js";
+  type ProfileOnboardingInput,
+  type ProfileOnboardingAdapter,
+} from "./profile.core.js";

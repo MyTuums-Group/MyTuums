@@ -24,6 +24,7 @@ import { trpc } from "@/lib/trpc";
 import { getApiBase } from "@/lib/trpc";
 import type { ReactNode } from "react";
 import {
+  House,
   Compass,
   Bell,
   MagnifyingGlass,
@@ -99,6 +100,9 @@ function AppHeader() {
             aria-label="Primary navigation"
             className="hidden items-center gap-1 md:flex"
           >
+            <HeaderNavLink to="/" icon={<House weight="bold" />}>
+              Home
+            </HeaderNavLink>
             <HeaderNavLink to="/discover" icon={<Compass weight="bold" />}>
               Discover
             </HeaderNavLink>
@@ -212,6 +216,10 @@ function AppHeader() {
                     <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 flex flex-col gap-1">
+                    <MobileNavLink to="/">
+                      <House weight="bold" />
+                      Home
+                    </MobileNavLink>
                     <MobileNavLink to="/discover">
                       <Compass weight="bold" />
                       Discover

@@ -95,6 +95,7 @@ Canonical initial structure:
 - `packages/types` exports stable cross-package domain/value types and shared constants only.
 - Neither package may contain service logic, DB clients, React components, or catch-all utilities.
 - `packages/ui` contains ShadCN primitives, design-system wrappers, and reusable low-domain components only; product/domain composition stays in `apps/web`.
+- Raw `@workspace/db` imports are restricted to DB package internals, migrations/seeds/tooling, API auth/authorization infrastructure, and persistence adapter modules. Routers, web code, service core modules, service policy modules, service composition modules, and shared packages must go through service/adapter seams instead. See `docs/agents/db-import-seam.md`.
 
 Frontend stack:
 

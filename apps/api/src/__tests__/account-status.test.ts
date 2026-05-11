@@ -11,6 +11,10 @@ import {
   shouldInvalidateSessionsForAccountChange,
   resolveEffectiveAccountStatus,
 } from "../services/account-status/policy.js";
+import {
+  createAccountStatusService,
+  type AccountStatusRepository,
+} from "../services/account-status/account-status.service.js";
 
 function account(overrides: {
   status?: AccountStatus;
@@ -25,6 +29,56 @@ function account(overrides: {
     deletedAt: overrides.deletedAt ?? null,
   };
 }
+
+function repository(overrides: Partial<AccountStatusRepository> = {}): AccountStatusRepository {
+  return {
+    getLifecycleSnapshot: vi.fn(() => Promise.resolve(null)),
+    markTemporarySuspensionExpired: vi.fn(() => Promise.resolve(undefined)),
+    invalidateSessions: vi.fn(() => Promise.resolve(undefined)),
+    ...overrides,
+  };
+}
+
+describe("Account Status service", () => {
+  it("persists lazy restoration when a temporary suspension is expired", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-10T12:00:00.000Z"));
+
+    try {
+      const suspendedUntil = new Date("2026-01-10T11:59:59.999Z");
+      const markTemporarySuspensionExpired = vi.fn(() => Promise.resolve(undefined));
+      const repo = repository({
+        getLifecycleSnapshot: vi.fn(() =>
+          Promise.resolve(account({ status: "suspended", suspendedUntil })),
+        ),
+        markTemporarySuspensionExpired,
+      });
+      const service = createAccountStatusService(repo);
+
+      await expect(service.getLifecycleSnapshot("user_1")).resolves.toEqual({
+        status: "active",
+        role: "user",
+        suspendedUntil: null,
+        deletedAt: null,
+      });
+      expect(markTemporarySuspensionExpired).toHaveBeenCalledWith("user_1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("invalidates sessions only for account lifecycle reasons", async () => {
+    const invalidateSessions = vi.fn(() => Promise.resolve(undefined));
+    const repo = repository({ invalidateSessions });
+    const service = createAccountStatusService(repo);
+
+    await service.invalidateSessions("user_1", "profile_updated");
+    expect(invalidateSessions).not.toHaveBeenCalled();
+
+    await service.invalidateSessions("user_1", "role_changed");
+    expect(invalidateSessions).toHaveBeenCalledWith("user_1");
+  });
+});
 
 describe("Account Status policy", () => {
   it("keeps active accounts active", () => {

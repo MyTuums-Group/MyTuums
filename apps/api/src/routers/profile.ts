@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   USERNAME_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
@@ -13,32 +12,11 @@ import {
   getByUsername,
   checkProfileExists,
   getMyProfile,
-  type OnboardingError,
-  type ProfileAccessError,
 } from "../services/profile/index.js";
-
-// ── Domain error → tRPC error mapping ────────────────────────────────
-
-function mapOnboardingError(error: OnboardingError): TRPCError {
-  switch (error.kind) {
-    case "invalid_username":
-    case "invalid_favorite_games":
-      return new TRPCError({ code: "BAD_REQUEST", message: error.message });
-    case "already_has_profile":
-      return new TRPCError({ code: "CONFLICT", message: "You already have a profile." });
-    case "username_taken":
-      return new TRPCError({ code: "CONFLICT", message: "This username is already taken." });
-  }
-}
-
-function mapProfileAccessError(error: ProfileAccessError): TRPCError {
-  switch (error.kind) {
-    case "not_found":
-      return new TRPCError({ code: "NOT_FOUND", message: "Profile not found." });
-    case "not_visible":
-      return new TRPCError({ code: "FORBIDDEN", message: "This profile is not available." });
-  }
-}
+import {
+  mapOnboardingErrorToTRPC,
+  mapProfileAccessErrorToTRPC,
+} from "../transport/profile-errors.js";
 
 // ── Router ───────────────────────────────────────────────────────────
 
@@ -76,7 +54,7 @@ export const profileRouter = router({
         favoriteGameIds: input.favoriteGameIds ?? [],
       });
       if (!result.ok) {
-        throw mapOnboardingError(result.error);
+        throw mapOnboardingErrorToTRPC(result.error);
       }
       return result.value;
     }),
@@ -94,7 +72,7 @@ export const profileRouter = router({
         : null;
       const result = await getByUsername(input.username, viewerCtx, authorization);
       if (!result.ok) {
-        throw mapProfileAccessError(result.error);
+        throw mapProfileAccessErrorToTRPC(result.error);
       }
       return result.value;
     }),

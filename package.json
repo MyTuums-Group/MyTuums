@@ -5,7 +5,8 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
+    "lint": "pnpm arch:check && turbo lint",
+    "arch:check": "node scripts/check-db-import-seam.mjs",
     "format": "turbo format",
     "typecheck": "turbo typecheck",
     "infra": "docker compose up -d",

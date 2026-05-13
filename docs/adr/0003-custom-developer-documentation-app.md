@@ -1,0 +1,3 @@
+# Build a custom developer documentation app
+
+MyTuums will use a custom `apps/docs` web app and `packages/docs-content` artifact for developer documentation instead of adopting a standalone wiki or static documentation product. This keeps documentation behind the existing API/BetterAuth `admin`/`owner` authorization model, preserves the main web app's visual identity through shared UI, allows API-mediated access to repo-versioned Markdown and read-only tldraw diagrams, and makes docs validation part of CI; the trade-off is owning a small documentation app rather than outsourcing navigation, rendering, and search to a third-party wiki.

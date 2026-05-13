@@ -1,7 +1,7 @@
 import type { AccountStatus, UserRole } from "@workspace/types";
 
-export const ACCOUNT_DELETION_USERNAME_HOLD_DAYS = 30;
-export const ACCOUNT_DELETION_EMAIL_HOLD_DAYS = 90;
+export const ACCOUNT_DELETION_USERNAME_HOLD_DAYS = 7;
+export const ACCOUNT_DELETION_EMAIL_HOLD_DAYS = 7;
 
 export const ACCOUNT_STATUS_SESSION_INVALIDATION_REASONS = [
   "status_changed",

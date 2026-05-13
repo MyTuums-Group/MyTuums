@@ -14,8 +14,8 @@ Use the default Matt Pocock triage labels: `needs-triage`, `needs-info`, `ready-
 
 ### Domain docs
 
-This repo uses a single-context domain-doc layout: root `CONTEXT.md` plus root `docs/adr/`. See `docs/agents/domain.md`.
+This repo uses a multi-context domain-doc layout: root `CONTEXT-MAP.md`, root `CONTEXT.md`, focused `docs/context/**/CONTEXT.md` docs, root `DESIGN.md`, and root `docs/adr/`. See `docs/agents/domain.md`.
 
 ### Frontend theme
 
-The v1 visual theme is defined by the ShadCN preset/theme in `docs/prd/v1-scope.md`. Do not override or replace that theme unless the product scope explicitly changes.
+The v1 visual theme is defined in `DESIGN.md`. Do not override or replace that theme unless the product scope explicitly changes.

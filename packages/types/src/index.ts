@@ -89,5 +89,5 @@ export const MAX_MEDIA_PER_POST = 1;
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 export const VIDEO_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 
-export const DELETED_EMAIL_HOLD_DAYS = 3;
-export const DELETED_USERNAME_HOLD_DAYS = 30;
+export const DELETED_EMAIL_HOLD_DAYS = 7;
+export const DELETED_USERNAME_HOLD_DAYS = 7;

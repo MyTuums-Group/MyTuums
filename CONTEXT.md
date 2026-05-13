@@ -1,5 +1,22 @@
 # MyTuums Context
 
+## Section Index
+
+- [`Product`](#product): product summary and the core user journey.
+- [`Documentation Structure`](#documentation-structure): where to find the focused companion docs before reading deeper.
+- [`Domain Vocabulary`](#domain-vocabulary): canonical terms for product and platform concepts.
+- [`Product Boundaries`](#product-boundaries): what v1 includes and excludes.
+- [`Architecture Notes`](#architecture-notes): monorepo structure, stack, deployment, and platform guardrails.
+- [`Core Entities`](#core-entities): the expected domain entities and ownership boundaries.
+- [`Feed And Visibility Rules`](#feed-and-visibility-rules): feed behavior, public/private visibility, and logged-out preview rules.
+- [`Search Rules`](#search-rules): authenticated search scope and discover behavior.
+- [`Media Rules`](#media-rules): upload lifecycle, storage, media limits, and cleanup behavior.
+- [`Moderation And Safety Rules`](#moderation-and-safety-rules): reports, moderation cases, role permissions, account status, and deletion handling.
+- [`Notification Rules`](#notification-rules): notification types, delivery model, and visibility constraints.
+- [`Route Conventions`](#route-conventions): public, app, admin, and static route layout.
+- [`Invariants`](#invariants): cross-cutting rules that should stay true across implementations.
+- [`Testing Priorities`](#testing-priorities): the critical flows and backend rules that need test coverage.
+
 ## Product
 
 MyTuums v1 is a web-first social platform for gamers to post, browse, and discuss short-form gaming content.
@@ -15,6 +32,17 @@ The core user journey is:
 5. The user optionally tags a post with a seeded game.
 6. The user browses the main feed's For You and Following tabs, plus Discover, game, and profile feeds.
 7. The user comments, likes, reports, and can be moderated by moderators, admins, or the owner.
+
+## Documentation Structure
+
+Start with `CONTEXT-MAP.md` for the repo's multi-context documentation layout, then read only the focused docs relevant to the work.
+
+- `CONTEXT.md`: Cross-cutting product and platform overview.
+- `docs/context/documentation-app/CONTEXT.md`: Developer documentation web app, docs-content pipeline, and docs authorization model.
+- `docs/context/legal/CONTEXT.md`: Legal, launch-readiness, internationalization, privacy, and retention rules.
+- `docs/context/coding-practices/CONTEXT.md`: Important coding practices, monorepo boundaries, and implementation guardrails.
+- `DESIGN.md`: Canonical visual system and UI theming rules.
+- `docs/adr/`: Durable architectural decisions that override older assumptions when they conflict.
 
 ## Domain Vocabulary
 
@@ -38,20 +66,25 @@ The core user journey is:
 - **Moderation case**: Staff workflow record that groups reports for one target and tracks status, assignee, priority, and resolution.
 - **Moderation action**: Staff audit event with actor, action, target, reason, notes, and timestamp.
 - **Contact submission**: Internal support/contact record created from the `/contact` form and emailed to staff.
+- **Developer documentation app**: Separate read-only web app for codebase, CI/CD, deployment, infrastructure, product, ADR, PRD, and agent documentation versioned in the repo.
+- **Organization member**: Developer or maintainer in the MyTuums organization; v1 represents organization membership by granting the `admin` or `owner` role.
 
 ## Product Boundaries
 
 V1 includes:
 
-- Email/password auth with email verification, password reset, sessions, 13+ confirmation, and roles: `user`, `moderator`, `admin`, `owner`.
+- Email/password auth with email verification, password reset, sessions, 15+ confirmation for France/EU-first launch, and roles: `user`, `moderator`, `admin`, `owner`.
 - Public signup is open in v1; invite codes and waitlists are out of scope.
 - Public signup and media uploads require owner bootstrap plus at least one additional moderator/admin configured first.
-- 13+ confirmation is captured with a required checkbox and stored confirmation timestamp; v1 does not collect birthdates.
+- Minimum-age confirmation is captured with a required checkbox and stored confirmation timestamp; v1 does not collect birthdates or support parental-consent onboarding.
 - Browser auth uses secure httpOnly cookie sessions from the API origin; v1 does not store bearer auth tokens in localStorage.
+- The developer documentation app reuses the existing API/BetterAuth session and does not have a separate auth system.
 - Passwords must be 8-128 characters; v1 does not require composition rules such as symbols, digits, or uppercase letters.
 - Normal sessions are 30-day rolling sessions and are invalidated immediately for suspension, account deletion, password change, and permission-changing role changes.
 - Required onboarding username, with optional display name, bio, avatar, and up to 5 favorite games.
 - Public posts with required text, max 500 visible characters, and at most one image or video.
+- V1 is free to use and has no paid features, subscriptions, donations, ads, creator monetization, billing, refunds, payouts, or payment-provider flows.
+- V1 has no third-party ads, sponsored posts, affiliate links, paid promotions, or advertising product. Organic MyTuums-owned promotion of public posts remains governed by the user-content license rules.
 - Chronological cursor-paginated feeds for main For You/Following tabs, Discover, game pages, and profiles.
 - Seeded game catalog, game pages, and favorite games.
 - The v1 game catalog is curated seed data versioned in the repo and applied by a repeatable seed command/migration.
@@ -64,7 +97,11 @@ V1 includes:
 - Rate-limited contact form submissions stored as minimal internal records and sent through Resend.
 - `/contact` is public. Logged-out submitters provide an email address; authenticated submitters can be linked by `userId`.
 - Responsive web UI.
-- V1 is English-only, while avoiding formatting/copy architecture that blocks later i18n.
+- The docs app, legal/i18n rules, coding practices, and design system each have their own companion docs. Use `CONTEXT-MAP.md` to find the right one quickly.
+- Separate read-only developer documentation app with the same visual identity as the main web app, available only to verified active `admin` and `owner` accounts. See `docs/context/documentation-app/CONTEXT.md`.
+- Developer documentation uses manifest-driven Markdown compiled into a validated `packages/docs-content` artifact and served through authenticated API reads; protected content must not be bundled into publicly fetchable static assets.
+- V1 legal/i18n, acceptance/versioning, locale routing, and launch-readiness policy live in `docs/context/legal/CONTEXT.md` and `docs/prd/legal-i18n-prd.md`.
+- Important coding practices and monorepo/package boundaries live in `docs/context/coding-practices/CONTEXT.md`; the visual system lives in `DESIGN.md`.
 
 V1 excludes:
 
@@ -73,6 +110,8 @@ V1 excludes:
 ## Architecture Notes
 
 MyTuums is a Turborepo monorepo.
+
+Detailed coding practices and seam rules live in `docs/context/coding-practices/CONTEXT.md`. `DESIGN.md` is the canonical UI system doc.
 
 `pnpm` is the canonical package manager and should be enforced through package metadata and CI.
 
@@ -110,7 +149,7 @@ Frontend stack:
 
 Frontend theme guardrail:
 
-- The v1 visual theme is defined by the chosen ShadCN preset/theme. Coders and agents should not override or replace that theme unless the product scope explicitly changes.
+- The v1 visual theme is defined in `DESIGN.md`. Coders and agents should not override or replace that theme unless the product scope explicitly changes.
 - The documented ShadCN init command is the canonical scaffold instruction, not an example.
 
 Backend stack:
@@ -136,6 +175,7 @@ Email conventions:
 Deployment stack:
 
 - Azure Static Web Apps for the Vite web app.
+- Azure Static Web Apps for the Vite developer documentation app shell.
 - Azure App Service for the Node-capable TypeScript API.
 - Azure Database for PostgreSQL Flexible Server for managed PostgreSQL.
 - Azure Blob Storage for production media.
@@ -147,10 +187,11 @@ Deployment stack:
 Public origin conventions:
 
 - The web app lives at `mytuums.com` and `www.mytuums.com`.
+- The developer documentation app lives at `docs.mytuums.com`.
 - The API lives at `api.mytuums.com`.
 - Azure Static Web Apps must fall back client routes to `index.html` so direct links do not 404.
 - Auth routes live under the API origin; v1 does not use a separate auth subdomain.
-- Credentialed CORS is allowed only from configured web origins.
+- Credentialed CORS is allowed only from configured web origins, including the main web app origin and developer documentation app origin.
 
 Backend rules:
 
@@ -277,6 +318,7 @@ V1 media UX and retention rules:
 - Moderation-removed media is retained as evidence while the moderation record requires it.
 - Account-deleted media blobs are cleaned up within 24 hours unless under moderation/legal hold.
 - V1 accepts the launch risk of public media uploads without automated safety scanning. Controls are reactive moderation, reports, rate limits, clear Terms, and fast staff removal. Staff access uses the same short-lived signed read URL mechanism; only staff actions are audited, not every media view.
+- V1 has no automated or routine pre-publication review and MyTuums does not undertake to monitor all content. Staff may proactively remove content or suspend accounts they encounter through reports, legal notices, staff discovery, or operational review.
 
 ## Moderation And Safety Rules
 
@@ -302,7 +344,9 @@ V1 media UX and retention rules:
 - Demoting staff automatically unassigns their open/reviewing moderation cases in the same transaction.
 - Suspending staff automatically unassigns their open/reviewing moderation cases in the same transaction.
 - Suspensions use preset durations `24h`, `7d`, `30d`, or `indefinite`. Suspended users may log in only to see account status, delete their account, and access support/contact.
+- Confirmed under-15 users are suspended indefinitely with public reason `underage`, normal app access is blocked, public content is hidden, and support/contact plus account deletion remain available. V1 does not collect identity documents for age verification; reinstatement after an age dispute is a manual support decision.
 - Temporary suspensions restore access and public visibility lazily after expiry through a centralized account-status helper, unless content was separately removed or deleted.
+- The Terms may reserve MyTuums' right to terminate access for severe or repeated violations, but v1 implements staff account enforcement as suspension rather than staff-initiated hard deletion.
 - Moderators, admins, and owner can remove and restore posts and comments.
 - Moderators can suspend/unsuspend normal `user` accounts only. Admins can suspend/unsuspend users and moderators. Owner can suspend/unsuspend users, moderators, and admins.
 - Staff cannot directly edit user profile fields.
@@ -319,6 +363,7 @@ V1 media UX and retention rules:
 - Restoring removed content does not delete or replace the historical removal notification; its target reflects current restored/visible state.
 - If a user self-deletes removed content, the prior removal notification remains database history but is hidden, excluded from unread counts, and marked read when detected.
 - V1 does not include a formal appeal system. Removed or suspended users are directed to the general support/contact flow.
+- Users may contact support if they believe a moderation or suspension action was mistaken. MyTuums may review at its discretion, and a support contact does not automatically pause, reverse, or stay enforcement.
 
 Blocking rules:
 
@@ -378,6 +423,7 @@ Static routes:
 - `/terms`
 - `/privacy`
 - `/cookies`
+- `/legal-notice`
 - `/accessibility`
 - `/support`
 - `/contact`
@@ -390,9 +436,9 @@ Static routes:
 - Unverified users cannot reserve usernames; username reservation happens only after verified-email onboarding submit.
 - Reserved usernames are enforced from a repo-versioned reserved-name list after lowercase normalization.
 - Usernames are immutable in v1.
-- Account deletion holds the deleted email for 3 days and the deleted username for 30 days, then releases them for reuse.
+- Account deletion holds the deleted email and deleted username for 7 days, then releases them for reuse.
 - `/@{username}` resolves to the current username holder only; historical and moderation references must use internal IDs, not username rebinding.
-- Account-deleted internal rows are retained indefinitely for audit/moderation with PII minimized after deletion hold windows.
+- Account-deleted internal rows are retained only under defined retention buckets, with direct PII minimized after the 7-day hold window.
 - Account deletion removes public social edges: follows are removed and the deleted user's post/comment likes no longer count publicly.
 - Account deletion updates public visibility and denormalized counts synchronously; blob cleanup remains scheduled.
 - Timestamps are stored in UTC and exposed as ISO strings; feeds use relative display, while detail/admin views can show local absolute times.
@@ -416,18 +462,15 @@ Static routes:
 - Discover is logged-in only and intentionally global/manual in v1.
 - Search is logged-in only, explicit to users/games, and does not search posts/comments in v1.
 - Public profile, post, and game pages provide shareable logged-out previews with best-effort indexing only; rich dynamic SEO/social metadata and HTTP-status-level unavailable SEO semantics are deferred.
-- Legal/support links should always appear in the footer.
-- Real launch-ready Terms, Privacy, and Cookies pages are required before public signup and media uploads are enabled.
-- V1 content/community rules live in `/terms` and `/support`; there is no separate guidelines page.
-- Accessibility is an app-level requirement, even when using ShadCN/Radix primitives.
-- CI includes axe accessibility smoke checks on key pages; complex flows still require manual keyboard/focus review.
-- Sentry is for error monitoring only in v1; no session replay or behavioral analytics through Sentry.
-- V1 has no generic analytics event pipeline/table; product counts come from domain rows, safety history from audit rows, and operational events from structured logs.
-- API logs are structured JSON to stdout/stderr and collected by Azure App Service; Sentry remains exception monitoring only.
-- Contact submissions are not support tickets; v1 has no user-facing ticket status or support dashboard.
-- Contact submissions store minimal support/audit fields and are retained for 180 days before deletion/anonymization.
-- Contact submission categories are `account_access`, `moderation_or_safety`, `privacy_or_data`, `bug_report`, `general_support`, and `other`.
-- Contact submissions require a category, cap email at 254 characters, cap message at 2,000 visible characters, and do not allow attachments.
+- Legal, launch-readiness, localization, privacy, and retention rules are canonical in `docs/context/legal/CONTEXT.md` and `docs/prd/legal-i18n-prd.md`.
+- MyTuums v1 is France/EU-first: users must confirm they are at least 15 years old, signup is limited to the EU, EEA, UK, and Switzerland, and broader signup expansion requires further legal review.
+- Public signup and media uploads remain disabled until the operating company exists, launch legal pages are complete, and the documented launch-readiness gates are met.
+- Public content may be visible to logged-out users, indexed, shared, cached, and copied by third parties; deletion cannot guarantee removal from third-party systems.
+- Legal/support links must always appear in the footer, and launch-ready Terms, Privacy, Cookies, Legal Notice, Accessibility, and Support pages are required before public launch.
+- Support, privacy, and IP/legal handling use the documented `/contact`, `support@mytuums.com`, and `privacy@mytuums.com` flows from the legal context doc.
+- Routine security/rate-limit logs keep 12 months; moderation cases/reports/actions keep 3 years; legal/IP/privacy complaints keep as long as the claim or dispute requires.
+- Accessibility is a product requirement even when using ShadCN/Radix primitives; core flows target honest WCAG 2.2 AA alignment with automated and manual review.
+- Sentry is for error monitoring only in v1, and there is no generic analytics event pipeline.
 - V1 has **Account deletion**, not self-deactivation; account deletion is irreversible user-initiated closure.
 
 ## Testing Priorities

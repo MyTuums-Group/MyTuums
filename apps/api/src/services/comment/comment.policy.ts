@@ -16,7 +16,7 @@ import { graphemeLength } from "../post/grapheme.js";
  * Same rules as PostBody but max 300 grapheme clusters.
  */
 export function createCommentBody(input: string): Result<CommentBody> {
-  const normalized = input.replace(/\r\n/g, "\n");
+  const normalized = input.replace(/\r\n?/g, "\n");
   const trimmed = normalized.trim();
 
   if (trimmed.length === 0) {

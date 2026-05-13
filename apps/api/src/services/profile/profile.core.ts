@@ -58,6 +58,11 @@ export type ProfileService = {
   submitOnboarding(userId: string, input: ProfileOnboardingInput): Promise<Result<PublicProfile, OnboardingError>>;
   getMyProfile(userId: string): Promise<PublicProfile | null>;
   getByUsername(username: string, viewerCtx: ViewerContext | null, authorization: AuthorizationAdapter): Promise<Result<PublicProfile, ProfileAccessError>>;
+  getOwnerByUsername(
+    username: string,
+    viewerCtx: ViewerContext | null,
+    authorization: AuthorizationAdapter,
+  ): Promise<Result<{ userId: string }, ProfileAccessError>>;
   checkProfileExists(userId: string): Promise<{ hasProfile: boolean }>;
 };
 
@@ -115,6 +120,15 @@ export function createProfileService(adapter: ProfileOnboardingAdapter): Profile
         return { ok: false, error: { kind: "not_visible" } };
       }
       return { ok: true, value: toPublicProfile(row) };
+    },
+
+    async getOwnerByUsername(username, viewerCtx, authorization) {
+      const row = await adapter.findByUsername(username);
+      if (!row) return { ok: false, error: { kind: "not_found" } };
+      if (viewerCtx && !authorization.canView(viewerCtx, { type: "profile", userId: row.userId })) {
+        return { ok: false, error: { kind: "not_visible" } };
+      }
+      return { ok: true, value: { userId: row.userId } };
     },
 
     async checkProfileExists(userId) {

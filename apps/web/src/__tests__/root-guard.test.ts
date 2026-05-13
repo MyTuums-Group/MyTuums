@@ -55,9 +55,21 @@ describe("decideRootNavigation", () => {
     ).resolves.toEqual({ kind: "allow" });
   });
 
+  it("allows logged-out users to view public post pages", async () => {
+    await expect(
+      decideRootNavigation({ pathname: "/post/abc123xyZ_", session: null, appUserState: null }),
+    ).resolves.toEqual({ kind: "allow" });
+  });
+
   it("still redirects logged-out users away from protected home", async () => {
     await expect(
       decideRootNavigation({ pathname: "/", session: null, appUserState: null }),
+    ).resolves.toEqual({ kind: "redirect", to: "/login" });
+  });
+
+  it("still redirects logged-out users away from malformed post paths", async () => {
+    await expect(
+      decideRootNavigation({ pathname: "/post/short", session: null, appUserState: null }),
     ).resolves.toEqual({ kind: "redirect", to: "/login" });
   });
 

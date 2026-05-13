@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "./trpc.js";
 import { profileRouter } from "./routers/profile.js";
+import { postRouter } from "./routers/post.js";
 import { authorization } from "./authorization/index.js";
 import { getCurrentAppUserState } from "./services/app-user-state/index.js";
 import { createSearchService, type AppSearchInput } from "./services/search/index.js";
@@ -38,6 +39,7 @@ export const appRouter = router({
     }),
 
   profile: profileRouter,
+  post: postRouter,
 });
 
 export type AppRouter = typeof appRouter;

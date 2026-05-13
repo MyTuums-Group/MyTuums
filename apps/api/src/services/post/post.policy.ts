@@ -16,7 +16,7 @@ import { graphemeLength } from "./grapheme.js";
  * Trims whitespace, normalizes line endings (\r\n → \n), counts grapheme clusters.
  */
 export function createPostBody(input: string): Result<PostBody> {
-  const normalized = input.replace(/\r\n/g, "\n");
+  const normalized = input.replace(/\r\n?/g, "\n");
   const trimmed = normalized.trim();
 
   if (trimmed.length === 0) {

@@ -30,6 +30,14 @@ export function getByUsername(
   return service.getByUsername(username, viewerCtx, authorization);
 }
 
+export function getOwnerByUsername(
+  username: string,
+  viewerCtx: ViewerContext | null,
+  authorization: AuthorizationAdapter,
+) {
+  return service.getOwnerByUsername(username, viewerCtx, authorization);
+}
+
 export function checkProfileExists(userId: string) {
   return service.checkProfileExists(userId);
 }

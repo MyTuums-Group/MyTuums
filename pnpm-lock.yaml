@@ -62,6 +62,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@workspace/docs-content':
+        specifier: workspace:*
+        version: link:../../packages/docs-content
       '@workspace/types':
         specifier: workspace:*
         version: link:../../packages/types

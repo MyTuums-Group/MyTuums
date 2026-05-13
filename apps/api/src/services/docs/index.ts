@@ -1,5 +1,9 @@
 export type {
   DocsArtifactAdapter,
+  DocsDiagramInput,
+  DocsDiagramResult,
+  DocsPageContent,
+  DocsPageDiagramMetadata,
   DocsPageInput,
   DocsPageResult,
   DocsSearchInput,
@@ -12,5 +16,6 @@ export {
   createDocsService,
   createInMemoryDocsService,
   DocsAccessError,
+  DocsDiagramNotFoundError,
   DocsPageNotFoundError,
 } from "./service.js";

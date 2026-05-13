@@ -80,6 +80,18 @@ const activeAdmin: AccountLifecycleSnapshot = {
   deletedAt: null,
 };
 
+const overviewPageMetadata = {
+  ...artifact.pages[0]!,
+  diagrams: [
+    {
+      id: "platform-map",
+      title: "Platform Map",
+      sourcePath: "docs/diagrams/platform-map.tldr",
+      description: "High-level tldraw map",
+    },
+  ],
+};
+
 function createViewer(
   overrides: Partial<{
     session: { user: { id: string; emailVerified?: boolean | null } } | null;
@@ -103,7 +115,24 @@ describe("Docs service", () => {
         sectionSlug: "platform",
         pageSlug: "overview",
       }),
-    ).resolves.toEqual({ page: artifact.pages[0], build: artifact.build });
+    ).resolves.toEqual({ page: overviewPageMetadata, build: artifact.build });
+
+    await expect(
+      service.getDiagram(createViewer(), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        diagramId: "platform-map",
+      }),
+    ).resolves.toEqual({
+      diagram: artifact.pages[0]?.diagrams[0],
+      page: {
+        sectionSlug: "platform",
+        sectionTitle: "Platform",
+        pageSlug: "overview",
+        pageTitle: "Overview",
+      },
+      build: artifact.build,
+    });
 
     await expect(
       service.getNavigation(
@@ -182,7 +211,31 @@ describe("Docs service", () => {
       ).rejects.toMatchObject({
         kind: deniedCase.expectedKind,
       });
+
+      await expect(
+        service.getDiagram(deniedCase.viewer, {
+          sectionSlug: "platform",
+          pageSlug: "overview",
+          diagramId: "platform-map",
+        }),
+      ).rejects.toMatchObject({
+        kind: deniedCase.expectedKind,
+      });
     }
+  });
+
+  it("returns page diagram metadata without inline snapshots", async () => {
+    const service = createInMemoryDocsService(artifact);
+
+    await expect(
+      service.getPage(createViewer(), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+      }),
+    ).resolves.toEqual({
+      page: overviewPageMetadata,
+      build: artifact.build,
+    });
   });
 
   it("searches generated docs index entries and returns stable slug targets", async () => {
@@ -275,16 +328,24 @@ describe("Docs service", () => {
     ]);
   });
 
-  it("does not read the search index before authorization succeeds", async () => {
+  it("does not read the docs artifact before authorization succeeds", async () => {
     const service = createDocsService({
       readArtifact() {
-        throw new Error("Search index leaked to unauthorized caller.");
+        throw new Error("Docs artifact leaked to unauthorized caller.");
       },
     });
 
     await expect(
       service.search(createViewer({ session: null, account: null }), {
         query: "Protected",
+      }),
+    ).rejects.toMatchObject({ kind: "unauthenticated" });
+
+    await expect(
+      service.getDiagram(createViewer({ session: null, account: null }), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        diagramId: "platform-map",
       }),
     ).rejects.toMatchObject({ kind: "unauthenticated" });
   });

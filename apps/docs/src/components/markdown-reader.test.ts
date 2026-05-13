@@ -2,7 +2,7 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { DocsMarkdownReader, normalizeCalloutMarkdown } from "./markdown-reader"
-import type { DocsPageRead } from "@/lib/trpc"
+import type { DocsPageRead } from "../lib/trpc"
 
 const pageRead = {
   build: {
@@ -31,6 +31,8 @@ const pageRead = {
 > [!NOTE]
 > Callouts become styled reader notes.
 
+![Platform map](diagram:platform-map)
+
 \`\`\`ts
 const message: string = "hello"
 \`\`\`
@@ -48,7 +50,14 @@ graph TD
       { id: "tasks", text: "Tasks", level: 2 },
     ],
     links: [],
-    diagrams: [],
+    diagrams: [
+      {
+        id: "platform-map",
+        title: "Platform Map",
+        sourcePath: "docs/diagrams/platform-map.tldr",
+        description: "High-level tldraw map",
+      },
+    ],
   },
 } satisfies DocsPageRead
 
@@ -66,15 +75,26 @@ describe("DocsMarkdownReader", () => {
     expect(html).toContain("<table")
     expect(html).toContain('type="checkbox"')
     expect(html).toContain("Callouts become styled reader notes")
+    expect(html).toContain('data-docs-diagram-id="platform-map"')
+    expect(html).toContain("Platform Map")
     expect(html).toContain("hljs")
     expect(html).toContain("CONTEXT.md")
     expect(html).toContain("abc1234")
   })
 
   it("suppresses raw HTML and leaves Mermaid as inert code", () => {
+    const pageWithoutDiagrams = {
+      ...pageRead.page,
+      markdown: pageRead.page.markdown.replace(
+        "\n![Platform map](diagram:platform-map)\n",
+        "\n"
+      ),
+      diagrams: [],
+    }
+
     const html = renderToStaticMarkup(
       createElement(DocsMarkdownReader, {
-        page: pageRead.page,
+        page: pageWithoutDiagrams,
         build: pageRead.build,
       })
     )

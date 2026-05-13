@@ -1,6 +1,7 @@
 import type {
   DocsArtifact,
   DocsBuildMetadata,
+  DocsDiagram,
   DocsPage,
   DocsSearchEntry,
   DocsSection,
@@ -28,6 +29,10 @@ export interface DocsPageInput {
   pageSlug: string;
 }
 
+export interface DocsDiagramInput extends DocsPageInput {
+  diagramId: string;
+}
+
 export interface DocsSearchInput {
   query: string;
   limit?: number;
@@ -37,8 +42,25 @@ export interface DocsArtifactAdapter {
   readArtifact(): Promise<DocsArtifact>;
 }
 
+export type DocsPageDiagramMetadata = Omit<DocsDiagram, "snapshot">;
+
+export type DocsPageContent = Omit<DocsPage, "diagrams"> & {
+  diagrams: DocsPageDiagramMetadata[];
+};
+
 export interface DocsPageResult {
-  page: DocsPage;
+  page: DocsPageContent;
+  build: DocsBuildMetadata;
+}
+
+export interface DocsDiagramResult {
+  diagram: DocsDiagram;
+  page: {
+    sectionSlug: string;
+    sectionTitle: string;
+    pageSlug: string;
+    pageTitle: string;
+  };
   build: DocsBuildMetadata;
 }
 
@@ -56,6 +78,7 @@ export interface DocsSearchResult {
 export interface DocsService {
   getNavigation(viewer: DocsViewer): Promise<DocsSection[]>;
   getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPageResult>;
+  getDiagram(viewer: DocsViewer, input: DocsDiagramInput): Promise<DocsDiagramResult>;
   search(viewer: DocsViewer, input: DocsSearchInput): Promise<DocsSearchResult[]>;
 }
 
@@ -94,6 +117,20 @@ export class DocsPageNotFoundError extends Error {
   }
 }
 
+export class DocsDiagramNotFoundError extends Error {
+  readonly sectionSlug: string;
+  readonly pageSlug: string;
+  readonly diagramId: string;
+
+  constructor(sectionSlug: string, pageSlug: string, diagramId: string) {
+    super(`Diagram not found for ${sectionSlug}/${pageSlug}#${diagramId}`);
+    this.name = "DocsDiagramNotFoundError";
+    this.sectionSlug = sectionSlug;
+    this.pageSlug = pageSlug;
+    this.diagramId = diagramId;
+  }
+}
+
 export function assertCanReadDocs(viewer: DocsViewer): void {
   if (!viewer.session) {
     throw new DocsAccessError("unauthenticated");
@@ -123,18 +160,40 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
     async getPage(viewer, input) {
       assertCanReadDocs(viewer);
       const artifact = await adapter.readArtifact();
-      const page = artifact.pages.find(
-        (candidate) =>
-          candidate.sectionId === input.sectionSlug &&
-          candidate.slug === input.pageSlug,
-      );
+      const page = findArtifactPage(artifact, input);
 
       if (!page) {
         throw new DocsPageNotFoundError(input.sectionSlug, input.pageSlug);
       }
 
       return {
-        page,
+        page: toPageContent(page),
+        build: artifact.build,
+      };
+    },
+
+    async getDiagram(viewer, input) {
+      assertCanReadDocs(viewer);
+      const artifact = await adapter.readArtifact();
+      const page = findArtifactPage(artifact, input);
+
+      if (!page) {
+        throw new DocsPageNotFoundError(input.sectionSlug, input.pageSlug);
+      }
+
+      const diagram = page.diagrams.find((candidate) => candidate.id === input.diagramId);
+      if (!diagram) {
+        throw new DocsDiagramNotFoundError(input.sectionSlug, input.pageSlug, input.diagramId);
+      }
+
+      return {
+        diagram,
+        page: {
+          sectionSlug: page.sectionId,
+          sectionTitle: page.sectionTitle,
+          pageSlug: page.slug,
+          pageTitle: page.title,
+        },
         build: artifact.build,
       };
     },
@@ -143,6 +202,19 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
       assertCanReadDocs(viewer);
       return searchDocsIndex((await adapter.readArtifact()).searchIndex, input);
     },
+  };
+}
+
+function findArtifactPage(artifact: DocsArtifact, input: DocsPageInput): DocsPage | undefined {
+  return artifact.pages.find(
+    (candidate) => candidate.sectionId === input.sectionSlug && candidate.slug === input.pageSlug,
+  );
+}
+
+function toPageContent(page: DocsPage): DocsPageContent {
+  return {
+    ...page,
+    diagrams: page.diagrams.map(({ snapshot: _snapshot, ...diagram }) => diagram),
   };
 }
 

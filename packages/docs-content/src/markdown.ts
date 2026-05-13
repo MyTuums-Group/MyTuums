@@ -12,9 +12,15 @@ export interface MarkdownSearchSection {
   text: string;
 }
 
+export interface MarkdownDiagramEmbedCandidate {
+  id: string;
+  altText: string;
+}
+
 export interface MarkdownAnalysis {
   headings: DocsHeading[];
   links: MarkdownLinkCandidate[];
+  diagramEmbeds: MarkdownDiagramEmbedCandidate[];
   sections: MarkdownSearchSection[];
   text: string;
 }
@@ -29,6 +35,7 @@ const INLINE_CODE_PATTERN = /`([^`]+)`/gu;
 export function analyzeMarkdown(markdown: string): MarkdownAnalysis {
   const headings: DocsHeading[] = [];
   const links: MarkdownLinkCandidate[] = [];
+  const diagramEmbeds: MarkdownDiagramEmbedCandidate[] = [];
   const sections: MarkdownSearchSection[] = [];
   const createHeadingId = createHeadingIdFactory();
 
@@ -94,6 +101,10 @@ export function analyzeMarkdown(markdown: string): MarkdownAnalysis {
       for (const link of extractInlineLinks(line)) {
         links.push(link);
       }
+
+      for (const diagramEmbed of extractDiagramEmbeds(line)) {
+        diagramEmbeds.push(diagramEmbed);
+      }
     }
 
     appendSectionText(currentSection, stripMarkdownLine(line));
@@ -106,6 +117,7 @@ export function analyzeMarkdown(markdown: string): MarkdownAnalysis {
   return {
     headings,
     links,
+    diagramEmbeds,
     sections,
     text: sections.map((section) => section.text).filter(Boolean).join("\n\n"),
   };
@@ -142,6 +154,31 @@ function extractInlineLinks(line: string): MarkdownLinkCandidate[] {
   }
 
   return links;
+}
+
+function extractDiagramEmbeds(line: string): MarkdownDiagramEmbedCandidate[] {
+  const embeds: MarkdownDiagramEmbedCandidate[] = [];
+
+  for (const match of line.matchAll(IMAGE_LINK_PATTERN)) {
+    const altText = match[1];
+    const href = match[2];
+
+    if (altText === undefined || href === undefined) {
+      continue;
+    }
+
+    const trimmedHref = href.trim();
+    if (!trimmedHref.startsWith("diagram:")) {
+      continue;
+    }
+
+    embeds.push({
+      id: trimmedHref.slice("diagram:".length).trim(),
+      altText: stripMarkdownLine(altText),
+    });
+  }
+
+  return embeds;
 }
 
 function stripMarkdownLine(line: string): string {

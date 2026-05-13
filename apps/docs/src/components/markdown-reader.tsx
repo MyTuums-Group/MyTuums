@@ -3,11 +3,13 @@ import ReactMarkdown, { type Components } from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
 import remarkGfm from "remark-gfm"
 import { cn } from "@workspace/ui/lib/utils"
-import type { DocsPageRead } from "@/lib/trpc"
+import { DocsDiagramViewer } from "./docs-diagram-viewer"
+import type { DocsPageRead } from "../lib/trpc"
 
 type MarkdownPage = DocsPageRead["page"]
 type MarkdownBuild = DocsPageRead["build"]
 type MarkdownHeading = MarkdownPage["headings"][number]
+type MarkdownDiagram = MarkdownPage["diagrams"][number]
 
 const CALLOUT_MARKER_PATTERN = /^(>\s*)\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/iu
 
@@ -33,7 +35,7 @@ export function DocsMarkdownReader({
           ) : null}
         </header>
 
-        <DocsMarkdown markdown={page.markdown} headings={page.headings} />
+        <DocsMarkdown page={page} />
       </article>
 
       <aside className="grid gap-4 lg:sticky lg:top-24">
@@ -45,13 +47,11 @@ export function DocsMarkdownReader({
 }
 
 export function DocsMarkdown({
-  markdown,
-  headings,
+  page,
 }: {
-  markdown: string
-  headings: MarkdownHeading[]
+  page: MarkdownPage
 }) {
-  const components = createMarkdownComponents(headings)
+  const components = createMarkdownComponents(page)
 
   return (
     <div className="px-5 py-6 sm:px-6">
@@ -63,7 +63,7 @@ export function DocsMarkdown({
           urlTransform={safeUrlTransform}
           components={components}
         >
-          {normalizeCalloutMarkdown(markdown)}
+          {normalizeCalloutMarkdown(page.markdown)}
         </ReactMarkdown>
       </div>
     </div>
@@ -84,7 +84,9 @@ export function normalizeCalloutMarkdown(markdown: string): string {
     .join("\n")
 }
 
-function createMarkdownComponents(headings: MarkdownHeading[]): Components {
+function createMarkdownComponents(page: MarkdownPage): Components {
+  const headings = page.headings
+  const diagramsById = new Map(page.diagrams.map((diagram) => [diagram.id, diagram]))
   let headingCursor = 0
 
   function takeHeading(level: number): MarkdownHeading | null {
@@ -170,8 +172,63 @@ function createMarkdownComponents(headings: MarkdownHeading[]): Components {
         type={type}
       />
     ),
+    img: ({ alt, src }) => renderImageOrDiagram({
+      alt,
+      diagramsById,
+      pageSlug: page.slug,
+      sectionSlug: page.sectionId,
+      src,
+    }),
     hr: () => <hr className="my-8 border-border/70" />,
   }
+}
+
+function renderImageOrDiagram({
+  alt,
+  diagramsById,
+  pageSlug,
+  sectionSlug,
+  src,
+}: {
+  alt?: string
+  diagramsById: Map<string, MarkdownDiagram>
+  pageSlug: string
+  sectionSlug: string
+  src?: string
+}) {
+  if (src?.startsWith("diagram:")) {
+    const diagramId = src.slice("diagram:".length).trim()
+    const diagram = diagramsById.get(diagramId)
+
+    if (diagram !== undefined) {
+      return (
+        <DocsDiagramViewer
+          diagram={diagram}
+          pageSlug={pageSlug}
+          sectionSlug={sectionSlug}
+        />
+      )
+    }
+
+    return (
+      <span className="my-4 block rounded-lg border border-destructive/35 bg-card px-3 py-2 text-sm text-destructive">
+        Missing diagram: {diagramId}
+      </span>
+    )
+  }
+
+  if (!src) {
+    return null
+  }
+
+  return (
+    <img
+      alt={alt ?? ""}
+      className="my-5 max-w-full rounded-lg border border-border/70 shadow-sm"
+      loading="lazy"
+      src={src}
+    />
+  )
 }
 
 function renderHeading(level: number, heading: MarkdownHeading | null, children: ReactNode) {
@@ -310,6 +367,7 @@ function safeUrlTransform(url: string): string {
 
   if (
     trimmedUrl.startsWith("#") ||
+    trimmedUrl.startsWith("diagram:") ||
     trimmedUrl.startsWith("/") ||
     trimmedUrl.startsWith("./") ||
     trimmedUrl.startsWith("../")

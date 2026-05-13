@@ -10,6 +10,7 @@ type DocsEnv = {
 
 export type DocsNavigation = inferRouterOutputs<AppRouter>["docs"]["navigation"]
 export type DocsPageRead = inferRouterOutputs<AppRouter>["docs"]["page"]
+export type DocsDiagramRead = inferRouterOutputs<AppRouter>["docs"]["diagram"]
 export type DocsSearchResult = inferRouterOutputs<AppRouter>["docs"]["search"][number]
 
 export function getApiBase() {

@@ -1,7 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { analyzeMarkdown, type MarkdownLinkCandidate, type MarkdownSearchSection } from "./markdown.js";
+import {
+  analyzeMarkdown,
+  type MarkdownDiagramEmbedCandidate,
+  type MarkdownLinkCandidate,
+  type MarkdownSearchSection,
+} from "./markdown.js";
 import { isValidDiagramId, isValidSemanticPath } from "./slug.js";
 import type {
   DocsArtifact,
@@ -53,6 +58,7 @@ interface CompiledPageDraft {
   text: string;
   headings: DocsPage["headings"];
   diagrams: DocsDiagram[];
+  diagramEmbeds: MarkdownDiagramEmbedCandidate[];
   rawLinks: MarkdownLinkCandidate[];
   searchSections: MarkdownSearchSection[];
 }
@@ -317,6 +323,7 @@ async function compileDocsManifest(
       const markdown = await fs.readFile(sourceAbsolutePath, "utf8");
       const analysis = analyzeMarkdown(markdown);
       const diagrams = await compileDiagrams(page, options.rootDir, issues);
+      validateDiagramEmbeds(page, diagrams, analysis.diagramEmbeds, issues);
 
       compiledPages.push({
         slug: page.slug,
@@ -330,6 +337,7 @@ async function compileDocsManifest(
         text: analysis.text,
         headings: analysis.headings,
         diagrams,
+        diagramEmbeds: analysis.diagramEmbeds,
         rawLinks: analysis.links,
         searchSections: analysis.sections,
       });
@@ -444,6 +452,30 @@ async function compileDiagrams(
   }
 
   return compiledDiagrams;
+}
+
+function validateDiagramEmbeds(
+  page: DocsManifestPage,
+  diagrams: DocsDiagram[],
+  diagramEmbeds: MarkdownDiagramEmbedCandidate[],
+  issues: string[],
+): void {
+  const diagramIds = new Set(diagrams.map((diagram) => diagram.id));
+
+  for (const embed of diagramEmbeds) {
+    if (!isValidDiagramId(embed.id)) {
+      issues.push(
+        `Diagram embed "${embed.id}" in "${page.sourcePath}" must use lowercase hyphenated words with no slashes.`,
+      );
+      continue;
+    }
+
+    if (!diagramIds.has(embed.id)) {
+      issues.push(
+        `Diagram embed "${embed.id}" in "${page.sourcePath}" is not declared in that page's manifest.`,
+      );
+    }
+  }
 }
 
 function validateSourceEligibility(page: DocsManifestPage, issues: string[]): void {

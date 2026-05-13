@@ -8,6 +8,7 @@
 export {
   submitOnboarding,
   getByUsername,
+  getOwnerByUsername,
   checkProfileExists,
   getMyProfile,
 } from "./profile.js";

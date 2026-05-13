@@ -19,9 +19,13 @@ export interface FeedPostRow {
   id: string;
   publicId: string;
   authorId: string;
+  authorUsername: string;
+  authorDisplayName: string | null;
   authorAccountStatus: AccountStatus;
   text: string;
   gameTagId: string | null;
+  gameTagSlug: string | null;
+  gameTagName: string | null;
   likeCount: number;
   commentCount: number;
   deletedAt: Date | null;
@@ -155,12 +159,12 @@ export function canViewFeedPost(
   viewer: ViewerContext,
   post: FeedPostRow,
 ): boolean {
-  if (viewer.userId === post.authorId) return true;
   if (isStaff(viewer)) return true;
   if (viewer.blockedUserIds.includes(post.authorId)) return false;
   if (viewer.blockedByUserIds.includes(post.authorId)) return false;
   if (post.authorAccountStatus !== "active") return false;
   if (post.deletedAt) return false;
+  if (viewer.userId === post.authorId) return true;
   if (post.removedAt) return false;
   return true;
 }

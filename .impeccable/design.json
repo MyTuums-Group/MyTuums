@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-13T01:29:22.0684879+02:00",
+  "title": "Design System: MyTuums",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Theme Background",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.25 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.5 0 0)",
+          "oklch(0.65 0 0)",
+          "oklch(0.8 0 0)",
+          "oklch(0.9 0 0)",
+          "oklch(1 0 0)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Theme Foreground",
+        "canonical": "oklch(0.145 0 0)",
+        "tonalRamp": [
+          "oklch(0.145 0 0)",
+          "oklch(0.25 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.45 0 0)",
+          "oklch(0.55 0 0)",
+          "oklch(0.7 0 0)",
+          "oklch(0.85 0 0)",
+          "oklch(0.97 0 0)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Theme Primary",
+        "canonical": "oklch(0.525 0.223 3.958)",
+        "tonalRamp": [
+          "oklch(0.18 0.08 3.958)",
+          "oklch(0.25 0.12 3.958)",
+          "oklch(0.35 0.17 3.958)",
+          "oklch(0.45 0.21 3.958)",
+          "oklch(0.525 0.223 3.958)",
+          "oklch(0.65 0.2 3.958)",
+          "oklch(0.78 0.16 3.958)",
+          "oklch(0.9 0.08 3.958)"
+        ]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Theme Secondary",
+        "canonical": "oklch(0.967 0.001 286.375)",
+        "tonalRamp": [
+          "oklch(0.2 0.006 286.375)",
+          "oklch(0.3 0.006 286.375)",
+          "oklch(0.45 0.005 286.375)",
+          "oklch(0.6 0.004 286.375)",
+          "oklch(0.75 0.003 286.375)",
+          "oklch(0.85 0.002 286.375)",
+          "oklch(0.92 0.0015 286.375)",
+          "oklch(0.967 0.001 286.375)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Theme Muted",
+        "canonical": "oklch(0.97 0 0)",
+        "tonalRamp": [
+          "oklch(0.18 0 0)",
+          "oklch(0.28 0 0)",
+          "oklch(0.38 0 0)",
+          "oklch(0.5 0 0)",
+          "oklch(0.65 0 0)",
+          "oklch(0.78 0 0)",
+          "oklch(0.88 0 0)",
+          "oklch(0.97 0 0)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Theme Border",
+        "canonical": "oklch(0.922 0 0)",
+        "tonalRamp": [
+          "oklch(0.2 0 0)",
+          "oklch(0.32 0 0)",
+          "oklch(0.45 0 0)",
+          "oklch(0.58 0 0)",
+          "oklch(0.7 0 0)",
+          "oklch(0.8 0 0)",
+          "oklch(0.88 0 0)",
+          "oklch(0.922 0 0)"
+        ]
+      },
+      "ring": {
+        "role": "neutral",
+        "displayName": "Theme Ring",
+        "canonical": "oklch(0.708 0 0)",
+        "tonalRamp": [
+          "oklch(0.22 0 0)",
+          "oklch(0.32 0 0)",
+          "oklch(0.42 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.62 0 0)",
+          "oklch(0.708 0 0)",
+          "oklch(0.82 0 0)",
+          "oklch(0.92 0 0)"
+        ]
+      },
+      "destructive": {
+        "role": "accent",
+        "displayName": "Theme Destructive",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.2 0.08 27.325)",
+          "oklch(0.28 0.12 27.325)",
+          "oklch(0.38 0.17 27.325)",
+          "oklch(0.48 0.21 27.325)",
+          "oklch(0.577 0.245 27.325)",
+          "oklch(0.68 0.2 27.325)",
+          "oklch(0.8 0.14 27.325)",
+          "oklch(0.9 0.08 27.325)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Reserved for the existing font-heading touchpoints such as the wordmark, card titles, and sheet titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Carries nearly all product UI, post content, helper copy, and field text through Inter Variable."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Medium-weight control text for buttons, nav items, dropdown items, chips, and compact action surfaces."
+      }
+    },
+    "shadows": [
+      {
+        "name": "surface-line",
+        "value": "0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent)",
+        "purpose": "Default separation line on cards, popovers, menus, and sticky surfaces."
+      },
+      {
+        "name": "lift-sm",
+        "value": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
+        "purpose": "Light lift for cards and composer shells."
+      },
+      {
+        "name": "lift-md",
+        "value": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
+        "purpose": "Menu and popover elevation."
+      },
+      {
+        "name": "lift-lg",
+        "value": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+        "purpose": "Sheet and overlay elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default preset easing for transitions and enter or exit animations."
+      },
+      {
+        "name": "duration-standard",
+        "value": "150ms",
+        "purpose": "Default button, link, dropdown, and focus transition duration."
+      },
+      {
+        "name": "duration-overlay",
+        "value": "200ms",
+        "purpose": "Sheet transitions and higher-surface motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Use the preset primary button unchanged for main post, auth, and confirmation actions.",
+      "html": "<button class='ds-btn-primary'>Post</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;height:2rem;padding:0 0.625rem;border:1px solid transparent;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-family:var(--font-sans,'Inter Variable',sans-serif);font-size:0.875rem;font-weight:500;line-height:1.25rem;transition:background-color 150ms cubic-bezier(0.4,0,0.2,1),transform 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1);outline:none;cursor:pointer}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary) 80%,transparent)}.ds-btn-primary:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-btn-primary:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Use the preset outline button for secondary actions, quiet controls, and neutral utility actions.",
+      "html": "<button class='ds-btn-outline'>Load more</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;height:2rem;padding:0 0.625rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--background);color:var(--foreground);font-family:var(--font-sans,'Inter Variable',sans-serif);font-size:0.875rem;font-weight:500;line-height:1.25rem;transition:background-color 150ms cubic-bezier(0.4,0,0.2,1),color 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1);outline:none;cursor:pointer}.ds-btn-outline:hover{background:var(--muted);color:var(--foreground)}.ds-btn-outline:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Use the preset field shell for form entry. Keep the theme line, ring, and radius exactly as shipped.",
+      "html": "<label class='ds-field'><span class='ds-field-label'>Username</span><input class='ds-input' placeholder='your_handle' /></label>",
+      "css": ".ds-field{display:grid;gap:0.5rem;font-family:var(--font-sans,'Inter Variable',sans-serif)}.ds-field-label{font-size:0.875rem;font-weight:500;line-height:1.25rem;color:var(--foreground)}.ds-input{width:100%;min-width:0;height:2rem;padding:0 0.625rem;border:1px solid var(--input);border-radius:var(--radius);background:transparent;color:var(--foreground);font-family:inherit;font-size:0.875rem;line-height:1.25rem;outline:none;transition:border-color 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1)}.ds-input::placeholder{color:var(--muted-foreground)}.ds-input:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-input:disabled{background:color-mix(in oklab,var(--input) 50%,transparent);opacity:0.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Elevated Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Use the preset card shell for feed items, auth panels, and empty states. It keeps social content contained instead of flattening into timeline rows.",
+      "html": "<article class='ds-card'><h3 class='ds-card-title'>No posts yet</h3><p class='ds-card-body'>Your feed is ready. Create the first post to get things moving.</p></article>",
+      "css": ".ds-card{display:flex;flex-direction:column;gap:0.75rem;padding:1rem;border-radius:calc(var(--radius) * 1.4);background:var(--card);color:var(--card-foreground);box-shadow:0 0 0 1px color-mix(in oklab,var(--foreground) 10%,transparent),0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1);font-family:var(--font-sans,'Inter Variable',sans-serif)}.ds-card-title{margin:0;font-family:var(--font-heading,'Raleway Variable',sans-serif);font-size:1rem;font-weight:500;line-height:1.375;color:var(--foreground)}.ds-card-body{margin:0;font-size:0.875rem;line-height:1.5;color:var(--muted-foreground)}"
+    },
+    {
+      "name": "Active Nav Link",
+      "kind": "nav",
+      "refersTo": "button-outline",
+      "description": "Use the same compact label and muted active treatment as the app header. Navigation should feel framed, not loud.",
+      "html": "<a class='ds-nav-link ds-nav-link-active' href='#'>Home</a>",
+      "css": ".ds-nav-link{display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 0.75rem;border-radius:var(--radius);color:var(--muted-foreground);font-family:var(--font-sans,'Inter Variable',sans-serif);font-size:0.875rem;font-weight:500;line-height:1.25rem;text-decoration:none;transition:background-color 150ms cubic-bezier(0.4,0,0.2,1),color 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1);outline:none}.ds-nav-link:hover{color:var(--foreground)}.ds-nav-link:focus-visible{box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-nav-link-active{background:var(--muted);color:var(--foreground)}"
+    },
+    {
+      "name": "Feed Composer",
+      "kind": "custom",
+      "refersTo": "card-default",
+      "description": "Use an elevated composer card with one clear call to action. Posting should feel lightweight and contained.",
+      "html": "<section class='ds-composer'><div class='ds-composer-head'><span class='ds-composer-icon'><svg viewBox='0 0 256 256' aria-hidden='true'><path fill='currentColor' d='M227.31 73.37l-44.68-44.68a16 16 0 0 0-22.63 0L36.69 152a15.86 15.86 0 0 0-4.11 7.52L16.06 224.9A8 8 0 0 0 23.82 234a8.47 8.47 0 0 0 1.62-.16l65.38-16.5a15.94 15.94 0 0 0 7.53-4.11L227.31 96a16 16 0 0 0 0-22.63ZM86.82 201.66l-51 12.9 12.85-51L152 60.24 199.76 108ZM211.31 84.69 191.07 104.93 143.31 57.17l20.24-20.24Z'/></svg></span><div><h3 class='ds-composer-title'>Share a public post</h3><p class='ds-composer-copy'>Text only for now. Links keep their typed text and open safely.</p></div></div><textarea class='ds-composer-textarea' placeholder='What are you playing right now?'></textarea><div class='ds-composer-foot'><span class='ds-composer-count'>0 / 500</span><button class='ds-btn-primary'>Post</button></div></section>",
+      "css": ".ds-composer{display:flex;flex-direction:column;gap:1rem;padding:1rem;border-radius:calc(var(--radius) * 1.4);background:var(--card);color:var(--card-foreground);box-shadow:0 0 0 1px color-mix(in oklab,var(--foreground) 10%,transparent),0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1);font-family:var(--font-sans,'Inter Variable',sans-serif)}.ds-composer-head{display:flex;align-items:flex-start;gap:0.5rem}.ds-composer-icon{display:inline-flex;width:1.25rem;height:1.25rem;color:var(--primary)}.ds-composer-title{margin:0;font-size:1rem;font-weight:600;line-height:1.375;color:var(--foreground)}.ds-composer-copy{margin:0.125rem 0 0;font-size:0.875rem;line-height:1.5;color:var(--muted-foreground)}.ds-composer-textarea{min-height:8rem;width:100%;padding:0.5rem 0.625rem;border:1px solid var(--input);border-radius:var(--radius);background:transparent;color:var(--foreground);font-family:inherit;font-size:0.875rem;line-height:1.5;outline:none;resize:vertical;transition:border-color 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1)}.ds-composer-textarea::placeholder{color:var(--muted-foreground)}.ds-composer-textarea:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-composer-foot{display:flex;align-items:center;justify-content:space-between;gap:0.75rem}.ds-composer-count{font-size:0.875rem;line-height:1.25rem;color:var(--muted-foreground)}.ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;height:2rem;padding:0 0.625rem;border:1px solid transparent;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-family:var(--font-sans,'Inter Variable',sans-serif);font-size:0.875rem;font-weight:500;line-height:1.25rem;transition:background-color 150ms cubic-bezier(0.4,0,0.2,1),transform 150ms cubic-bezier(0.4,0,0.2,1),box-shadow 150ms cubic-bezier(0.4,0,0.2,1);outline:none;cursor:pointer}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary) 80%,transparent)}.ds-btn-primary:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.ds-btn-primary:active{transform:translateY(1px)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The social media for gamers",
+    "overview": "MyTuums uses the shipped ShadCN Radix Nova preset as its design system, not as raw material for a custom visual rewrite. The product can feel sharp, welcoming, and focused only if agents stop trying to out-design the preset. The correct move is to compose screens from the existing tokens and primitives already present in the repo.\n\nThis system separates MyTuums from Twitter/X through structure, not through decorative styling. Feeds are card-based, identity is framed, posting is presented as a clear action surface, and navigation lives in contained bars, menus, and sheets instead of collapsing into a flat text stream. Differentiation comes from composition and product behavior, not from custom palettes, altered radii, or new type systems.",
+    "keyCharacteristics": [
+      "ShadCN components and theme are the source of truth.",
+      "Preset tokens remain untouched: colors, fonts, radii, and spacing logic.",
+      "Surfaces are crisp, confident, and noticeably lifted.",
+      "Social features live in contained cards and panels, not divider-only timeline rows.",
+      "Visual consistency matters more than custom flair."
+    ],
+    "rules": [
+      {
+        "name": "The Preset Token Rule",
+        "body": "All color comes from the active ShadCN theme tokens. No custom hex values, no feed-specific accent experiments, no hand-painted brand ramps.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "The preset `primary` token is the only strong accent. If a screen needs more drama, solve it with layout and component hierarchy, not new colors.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Font Drift Rule",
+        "body": "Use the preset font families exactly as shipped. No custom brand font swaps, no extra display face, no mono detours.",
+        "section": "typography"
+      },
+      {
+        "name": "The Heading Restraint Rule",
+        "body": "`font-heading` is scarce. It marks structure, not spectacle.",
+        "section": "typography"
+      },
+      {
+        "name": "The Noticeable Lift Rule",
+        "body": "Surfaces may feel lifted, but only with the preset ring and shadow stack. No custom glows, no glass cards, no decorative light fields.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Blur Is For Overlays Rule",
+        "body": "Backdrop blur belongs to sticky headers and overlay backdrops only.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use ShadCN components and theme as the default vocabulary.",
+      "Do consume the existing tokens (`primary`, `background`, `card`, `border`, `ring`, `font-heading`, `font-sans`, `radius`) rather than redefining them.",
+      "Do keep social surfaces card-based and structurally separated, so the feed does not collapse into a Twitter/X-like text wall.",
+      "Do use the preset focus ring, shadow, and motion values exactly as they already exist.",
+      "Do keep components crisp and confident: compact controls, medium labels, clear active states."
+    ],
+    "donts": [
+      "Don't make the UI look too similar to Twitter/X.",
+      "Don't recreate the familiar text-wall timeline look, divider-heavy feed sameness, or generic social-media scaffolding that reads like a Twitter/X reskin.",
+      "Don't override ShadCN theme colors, border radius, fonts, spacing logic, or core component shapes.",
+      "Don't replace ShadCN primitives with bespoke buttons, cards, inputs, menus, or sheets when the preset already provides the pattern.",
+      "Don't introduce custom brand hexes, alternate radii, new font pairings, or decorative gradients and glassmorphism to force differentiation."
+    ]
+  }
+}

@@ -34,8 +34,12 @@ const modViewer: ViewerContext = {
 };
 
 const basePost = {
+  authorUsername: "bob",
+  authorDisplayName: "Bob",
   text: "hello",
   gameTagId: null,
+  gameTagSlug: null,
+  gameTagName: null,
   likeCount: 0,
   commentCount: 0,
   deletedAt: null,
@@ -55,6 +59,8 @@ function post(
     id: `id-${publicId}`,
     publicId,
     authorId,
+    authorUsername: authorId,
+    authorDisplayName: authorId.toUpperCase(),
     createdAt: new Date(createdAt),
     updatedAt: new Date(createdAt),
     ...overrides,
@@ -131,6 +137,43 @@ describe("feed visibility queries", () => {
     const page = await queries.discoverFeed(aliceViewer, { limit: 10 });
 
     expect(page.items.map((item) => item.publicId)).toEqual(["visible"]);
+  });
+
+  it("hides self-deleted posts from authors in normal feeds and detail views", async () => {
+    const queries = createInMemoryFeedVisibilityQueries({
+      posts: [
+        post("self-deleted", "alice", "2026-01-03T00:00:00Z", {
+          deletedAt: new Date("2026-01-03T00:01:00Z"),
+        }),
+        post("still-visible", "alice", "2026-01-02T00:00:00Z"),
+      ],
+      comments: [],
+      follows: [],
+    });
+
+    await expect(queries.forYouFeed(aliceViewer, { limit: 10 })).resolves.toMatchObject({
+      items: [{ publicId: "still-visible" }],
+    });
+    await expect(queries.profileFeed(aliceViewer, "alice", { limit: 10 })).resolves.toMatchObject({
+      items: [{ publicId: "still-visible" }],
+    });
+    await expect(queries.postDetail(aliceViewer, "self-deleted")).resolves.toBeNull();
+  });
+
+  it("still allows staff visibility for self-deleted posts in moderation context", async () => {
+    const queries = createInMemoryFeedVisibilityQueries({
+      posts: [
+        post("self-deleted", "alice", "2026-01-03T00:00:00Z", {
+          deletedAt: new Date("2026-01-03T00:01:00Z"),
+        }),
+      ],
+      comments: [],
+      follows: [],
+    });
+
+    await expect(queries.postDetail(modViewer, "self-deleted")).resolves.toMatchObject({
+      publicId: "self-deleted",
+    });
   });
 
   it("provides visible feed variants, post detail, and visible comment lists", async () => {

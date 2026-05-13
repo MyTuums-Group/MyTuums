@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, lt, notInArray, or } from "drizzle-orm";
-import { comment, db, follow, post, user } from "@workspace/db";
+import { comment, db, follow, game, post, profile, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
 import {
   canViewFeedComment,
@@ -94,7 +94,9 @@ function postBaseQuery(viewer: ViewerContext) {
   const query = db
     .select(postSelection)
     .from(post)
-    .innerJoin(user, eq(post.authorId, user.id));
+    .innerJoin(user, eq(post.authorId, user.id))
+    .innerJoin(profile, eq(post.authorId, profile.userId))
+    .leftJoin(game, eq(post.gameTagId, game.id));
 
   if (!viewer.userId) return query;
 
@@ -108,9 +110,13 @@ const postSelection = {
   id: post.id,
   publicId: post.publicId,
   authorId: post.authorId,
+  authorUsername: profile.username,
+  authorDisplayName: profile.displayName,
   authorAccountStatus: user.accountStatus,
   text: post.text,
   gameTagId: post.gameTagId,
+  gameTagSlug: game.slug,
+  gameTagName: game.name,
   likeCount: post.likeCount,
   commentCount: post.commentCount,
   deletedAt: post.deletedAt,
@@ -145,7 +151,10 @@ function postVisibilityPredicate(viewer: ViewerContext) {
   );
 
   if (!viewer.userId) return publicVisibility;
-  return or(eq(post.authorId, viewer.userId), publicVisibility);
+  return or(
+    and(eq(post.authorId, viewer.userId), isNull(post.deletedAt)),
+    publicVisibility,
+  );
 }
 
 function commentVisibilityPredicate(viewer: ViewerContext) {

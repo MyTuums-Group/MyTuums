@@ -126,6 +126,9 @@ importers:
       '@workspace/api-contract':
         specifier: workspace:^
         version: link:../../packages/api-contract
+      '@workspace/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui

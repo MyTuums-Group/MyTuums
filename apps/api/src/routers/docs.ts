@@ -39,6 +39,27 @@ export const docsRouter = router({
         rethrowDocsError(error);
       }
     }),
+
+  search: protectedProcedure
+    .input(
+      z.object({
+        query: z.string().max(200),
+        limit: z.number().int().min(1).max(25).default(10),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await docsService.search(
+          {
+            session: ctx.session,
+            account: ctx.accountLifecycle,
+          },
+          input,
+        );
+      } catch (error) {
+        rethrowDocsError(error);
+      }
+    }),
 });
 
 function rethrowDocsError(error: unknown): never {

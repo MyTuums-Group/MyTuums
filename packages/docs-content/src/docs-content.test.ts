@@ -152,9 +152,37 @@ describe("docs-content", () => {
         targetSourcePath: "docs/prd/v1-prd.md",
       },
     ]);
-    expect(result.artifact.searchIndex.some((entry) => entry.pageSlug === "orientation/context")).toBe(
-      true,
+    expect(result.artifact.searchIndex.map((entry) => entry.pageSlug)).toEqual(
+      expect.arrayContaining([
+        "orientation/context",
+        "orientation/team-conventions",
+        "requirements/product-requirements",
+      ]),
     );
+    expect(
+      result.artifact.searchIndex.every((entry) =>
+        result.artifact.pages.some((page) => page.slug === entry.pageSlug),
+      ),
+    ).toBe(true);
+    const contextPageEntry = result.artifact.searchIndex.find(
+      (entry) => entry.id === "page:orientation/context",
+    );
+    expect(contextPageEntry?.pageTitle).toBe("Context");
+    expect(contextPageEntry?.sectionTitle).toBe("Orientation");
+    expect(contextPageEntry?.headingId).toBeNull();
+    expect(contextPageEntry?.text).toContain("MyTuums is a social app.");
+
+    const conventionsHeadingEntry = result.artifact.searchIndex.find(
+      (entry) => entry.pageSlug === "orientation/team-conventions" && entry.headingId === "merge-policy",
+    );
+    expect(conventionsHeadingEntry?.headingText).toBe("Merge Policy");
+    expect(conventionsHeadingEntry?.text).toContain("All CI checks must pass.");
+
+    const requirementsHeadingEntry = result.artifact.searchIndex.find(
+      (entry) => entry.pageSlug === "requirements/product-requirements" && entry.headingId === "solution",
+    );
+    expect(requirementsHeadingEntry?.headingText).toBe("Solution");
+    expect(requirementsHeadingEntry?.text).toContain("Ship the docs content package.");
   });
 
   it("fails when a manifest source file is missing", async () => {

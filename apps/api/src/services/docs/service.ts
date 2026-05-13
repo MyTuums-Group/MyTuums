@@ -2,9 +2,14 @@ import type {
   DocsArtifact,
   DocsBuildMetadata,
   DocsPage,
+  DocsSearchEntry,
   DocsSection,
 } from "@workspace/docs-content";
 import type { AccountLifecycleSnapshot } from "../account-status/index.js";
+
+const DEFAULT_SEARCH_LIMIT = 10;
+const MAX_SEARCH_LIMIT = 25;
+const SEARCH_EXCERPT_LENGTH = 180;
 
 export interface DocsViewer {
   session:
@@ -23,6 +28,11 @@ export interface DocsPageInput {
   pageSlug: string;
 }
 
+export interface DocsSearchInput {
+  query: string;
+  limit?: number;
+}
+
 export interface DocsArtifactAdapter {
   readArtifact(): Promise<DocsArtifact>;
 }
@@ -32,9 +42,21 @@ export interface DocsPageResult {
   build: DocsBuildMetadata;
 }
 
+export interface DocsSearchResult {
+  id: string;
+  sectionSlug: string;
+  sectionTitle: string;
+  pageSlug: string;
+  pageTitle: string;
+  headingId: string | null;
+  headingText: string | null;
+  excerpt: string;
+}
+
 export interface DocsService {
   getNavigation(viewer: DocsViewer): Promise<DocsSection[]>;
   getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPageResult>;
+  search(viewer: DocsViewer, input: DocsSearchInput): Promise<DocsSearchResult[]>;
 }
 
 export class DocsAccessError extends Error {
@@ -116,6 +138,11 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
         build: artifact.build,
       };
     },
+
+    async search(viewer, input) {
+      assertCanReadDocs(viewer);
+      return searchDocsIndex((await adapter.readArtifact()).searchIndex, input);
+    },
   };
 }
 
@@ -125,4 +152,153 @@ export function createInMemoryDocsService(artifact: DocsArtifact): DocsService {
       return Promise.resolve(artifact);
     },
   });
+}
+
+interface RankedDocsSearchResult extends DocsSearchResult {
+  score: number;
+}
+
+function searchDocsIndex(
+  searchIndex: DocsSearchEntry[],
+  input: DocsSearchInput,
+): DocsSearchResult[] {
+  const normalizedQuery = normalizeSearchText(input.query);
+  if (normalizedQuery.length === 0) {
+    return [];
+  }
+
+  const terms = [...new Set(normalizedQuery.split(" "))];
+  const limit = clampSearchLimit(input.limit);
+  const rankedResults: RankedDocsSearchResult[] = [];
+
+  for (const entry of searchIndex) {
+    const score = scoreSearchEntry(entry, normalizedQuery, terms);
+    if (score === 0) {
+      continue;
+    }
+
+    rankedResults.push({
+      id: entry.id,
+      sectionSlug: entry.sectionId,
+      sectionTitle: entry.sectionTitle,
+      pageSlug: entry.pageSlug,
+      pageTitle: entry.pageTitle,
+      headingId: entry.headingId,
+      headingText: entry.headingText,
+      excerpt: createSearchExcerpt(entry.text, terms),
+      score,
+    });
+  }
+
+  return rankedResults
+    .sort(compareRankedResults)
+    .slice(0, limit)
+    .map(({ score: _score, ...result }) => result);
+}
+
+function clampSearchLimit(limit: number | undefined): number {
+  if (limit === undefined) {
+    return DEFAULT_SEARCH_LIMIT;
+  }
+
+  return Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.trunc(limit)));
+}
+
+function scoreSearchEntry(
+  entry: DocsSearchEntry,
+  normalizedQuery: string,
+  terms: string[],
+): number {
+  const normalizedFields = {
+    pageTitle: normalizeSearchText(entry.pageTitle),
+    sectionTitle: normalizeSearchText(entry.sectionTitle),
+    headingText: normalizeSearchText(entry.headingText ?? ""),
+    text: normalizeSearchText(entry.text),
+  };
+
+  const searchableText = Object.values(normalizedFields).join(" ");
+  if (!terms.every((term) => searchableText.includes(term))) {
+    return 0;
+  }
+
+  let score = entry.headingId === null ? 4 : 0;
+
+  if (normalizedFields.pageTitle === normalizedQuery) {
+    score += 120;
+  } else if (normalizedFields.pageTitle.includes(normalizedQuery)) {
+    score += 70;
+  }
+
+  if (normalizedFields.headingText === normalizedQuery) {
+    score += 90;
+  } else if (normalizedFields.headingText.includes(normalizedQuery)) {
+    score += 50;
+  }
+
+  if (normalizedFields.sectionTitle.includes(normalizedQuery)) {
+    score += 35;
+  }
+
+  if (normalizedFields.text.includes(normalizedQuery)) {
+    score += 20;
+  }
+
+  for (const term of terms) {
+    if (normalizedFields.pageTitle.includes(term)) {
+      score += 30;
+    }
+    if (normalizedFields.headingText.includes(term)) {
+      score += 20;
+    }
+    if (normalizedFields.sectionTitle.includes(term)) {
+      score += 12;
+    }
+    if (normalizedFields.text.includes(term)) {
+      score += 4;
+    }
+  }
+
+  return score;
+}
+
+function compareRankedResults(
+  left: RankedDocsSearchResult,
+  right: RankedDocsSearchResult,
+): number {
+  if (right.score !== left.score) {
+    return right.score - left.score;
+  }
+
+  return (
+    left.pageTitle.localeCompare(right.pageTitle) ||
+    (left.headingText ?? "").localeCompare(right.headingText ?? "") ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function createSearchExcerpt(text: string, terms: string[]): string {
+  const collapsedText = text.replace(/\s+/gu, " ").trim();
+  if (collapsedText.length <= SEARCH_EXCERPT_LENGTH) {
+    return collapsedText;
+  }
+
+  const lowerText = collapsedText.toLocaleLowerCase();
+  const firstMatchIndex = terms.reduce<number | null>((bestIndex, term) => {
+    const index = lowerText.indexOf(term);
+    if (index < 0) {
+      return bestIndex;
+    }
+
+    return bestIndex === null ? index : Math.min(bestIndex, index);
+  }, null);
+
+  const excerptStart = Math.max(0, (firstMatchIndex ?? 0) - 48);
+  const excerpt = collapsedText.slice(excerptStart, excerptStart + SEARCH_EXCERPT_LENGTH);
+  return `${excerptStart > 0 ? "..." : ""}${excerpt}${
+    excerptStart + SEARCH_EXCERPT_LENGTH < collapsedText.length ? "..." : ""
+  }`;
+}
+
+function normalizeSearchText(text: string): string {
+  return text.toLocaleLowerCase().replace(/\s+/gu, " ").trim();
 }

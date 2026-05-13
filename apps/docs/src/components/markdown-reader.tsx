@@ -21,15 +21,19 @@ export function DocsMarkdownReader({
   build: MarkdownBuild
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-      <article className="min-w-0 rounded-lg border border-border/70 bg-card text-card-foreground shadow-sm">
-        <header className="border-b border-border/70 px-5 py-5 sm:px-6">
-          <p className="text-sm font-medium text-primary">{page.sectionTitle}</p>
-          <h1 className="mt-2 font-heading text-3xl font-semibold tracking-normal text-foreground">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row lg:items-stretch">
+      <article className="min-w-0 flex-1 rounded-xl border border-border/70 bg-card text-card-foreground shadow-sm lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
+        <header className="border-b border-border/70 bg-muted/25 px-5 py-6 sm:px-7">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <p className="font-semibold text-primary">{page.sectionTitle}</p>
+            <span className="text-muted-foreground">/</span>
+            <p className="text-muted-foreground">{page.slug}</p>
+          </div>
+          <h1 className="mt-3 max-w-4xl font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {page.title}
           </h1>
           {page.summary ? (
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
               {page.summary}
             </p>
           ) : null}
@@ -38,7 +42,7 @@ export function DocsMarkdownReader({
         <DocsMarkdown page={page} />
       </article>
 
-      <aside className="grid gap-4 lg:sticky lg:top-24">
+      <aside className="grid w-full shrink-0 gap-4 lg:w-72 lg:min-h-0 lg:overflow-y-auto">
         <TableOfContents headings={page.headings} />
         <ProvenancePanel page={page} build={build} />
       </aside>
@@ -54,8 +58,8 @@ export function DocsMarkdown({
   const components = createMarkdownComponents(page)
 
   return (
-    <div className="px-5 py-6 sm:px-6">
-      <div className="docs-markdown max-w-none text-sm leading-7 text-foreground [&_.hljs-attr]:text-chart-3 [&_.hljs-built_in]:text-chart-4 [&_.hljs-comment]:text-muted-foreground [&_.hljs-keyword]:text-primary [&_.hljs-literal]:text-chart-2 [&_.hljs-number]:text-chart-2 [&_.hljs-string]:text-chart-5 [&_.hljs-title]:text-chart-1">
+    <div className="px-5 py-6 sm:px-7 sm:py-8">
+      <div className="docs-markdown max-w-3xl text-sm leading-7 text-foreground [&_.hljs-attr]:text-chart-3 [&_.hljs-built_in]:text-chart-4 [&_.hljs-comment]:text-muted-foreground [&_.hljs-keyword]:text-primary [&_.hljs-literal]:text-chart-2 [&_.hljs-number]:text-chart-2 [&_.hljs-string]:text-chart-5 [&_.hljs-title]:text-chart-1">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }]]}
@@ -125,16 +129,16 @@ function createMarkdownComponents(page: MarkdownPage): Components {
         {children}
       </a>
     ),
-    ul: ({ children }) => <ul className="my-4 list-disc space-y-2 pl-6">{children}</ul>,
-    ol: ({ children }) => <ol className="my-4 list-decimal space-y-2 pl-6">{children}</ol>,
+    ul: ({ children }) => <ul className="my-5 list-disc space-y-2 pl-6">{children}</ul>,
+    ol: ({ children }) => <ol className="my-5 list-decimal space-y-2 pl-6">{children}</ol>,
     li: ({ children }) => <li className="pl-1 leading-7">{children}</li>,
     blockquote: ({ children }) => (
-      <blockquote className="my-5 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&_strong:first-child]:text-primary">
+      <blockquote className="my-6 rounded-xl border border-border/70 bg-muted/45 px-4 py-3 text-sm leading-7 shadow-sm [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&_strong:first-child]:text-primary">
         {children}
       </blockquote>
     ),
     table: ({ children }) => (
-      <div className="my-5 overflow-x-auto rounded-lg border border-border/70">
+      <div className="my-6 overflow-x-auto rounded-xl border border-border/70 shadow-sm">
         <table className="w-full border-collapse text-left text-sm">{children}</table>
       </div>
     ),
@@ -148,7 +152,7 @@ function createMarkdownComponents(page: MarkdownPage): Components {
       <td className="border-t border-border/60 px-3 py-2 align-top">{children}</td>
     ),
     pre: ({ children }) => (
-      <pre className="my-5 overflow-x-auto rounded-lg border border-border/70 bg-muted/65 p-4 text-xs leading-6 shadow-inner">
+      <pre className="my-6 overflow-x-auto rounded-xl border border-border/70 bg-muted/65 p-4 text-xs leading-6 shadow-inner">
         {children}
       </pre>
     ),
@@ -224,7 +228,7 @@ function renderImageOrDiagram({
   return (
     <img
       alt={alt ?? ""}
-      className="my-5 max-w-full rounded-lg border border-border/70 shadow-sm"
+      className="my-6 max-w-full rounded-xl border border-border/70 shadow-sm"
       loading="lazy"
       src={src}
     />
@@ -234,9 +238,9 @@ function renderImageOrDiagram({
 function renderHeading(level: number, heading: MarkdownHeading | null, children: ReactNode) {
   const id = heading?.id
   const headingClasses = cn(
-    "group scroll-mt-24 font-heading font-semibold tracking-normal text-foreground",
+    "group scroll-mt-28 font-heading font-semibold tracking-tight text-foreground",
     level === 1 && "mb-4 mt-0 text-3xl",
-    level === 2 && "mb-3 mt-9 border-t border-border/70 pt-7 text-2xl",
+    level === 2 && "mb-3 mt-10 border-t border-border/70 pt-8 text-2xl",
     level === 3 && "mb-2 mt-7 text-xl",
     level === 4 && "mb-2 mt-6 text-lg",
     level >= 5 && "mb-2 mt-5 text-base"
@@ -299,8 +303,8 @@ function TableOfContents({ headings }: { headings: MarkdownHeading[] }) {
   const visibleHeadings = headings.filter((heading) => heading.level <= 3)
 
   return (
-    <section className="rounded-lg border border-border/70 bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="font-heading text-sm font-semibold tracking-normal">On This Page</h2>
+    <section className="rounded-xl border border-border/70 bg-card p-4 text-card-foreground shadow-sm">
+      <h2 className="font-heading text-sm font-semibold tracking-tight">On this page</h2>
       {visibleHeadings.length > 0 ? (
         <nav aria-label="Table of contents" className="mt-3 grid gap-2 text-sm">
           {visibleHeadings.map((heading) => (
@@ -308,7 +312,7 @@ function TableOfContents({ headings }: { headings: MarkdownHeading[] }) {
               key={heading.id}
               href={`#${heading.id}`}
               className={cn(
-                "text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
+                "rounded-md px-2 py-1 text-muted-foreground underline-offset-4 transition-colors hover:bg-muted hover:text-foreground hover:no-underline focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 heading.level === 3 && "pl-3"
               )}
             >
@@ -325,8 +329,8 @@ function TableOfContents({ headings }: { headings: MarkdownHeading[] }) {
 
 function ProvenancePanel({ page, build }: { page: MarkdownPage; build: MarkdownBuild }) {
   return (
-    <section className="rounded-lg border border-border/70 bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="font-heading text-sm font-semibold tracking-normal">Provenance</h2>
+    <section className="rounded-xl border border-border/70 bg-card p-4 text-card-foreground shadow-sm">
+      <h2 className="font-heading text-sm font-semibold tracking-tight">Provenance</h2>
       <dl className="mt-3 grid gap-3 text-sm">
         <MetadataItem label="Environment" value={build.environment} />
         <MetadataItem label="Source" value={page.sourcePath} />

@@ -69,14 +69,14 @@ export function DocsSearch() {
       <div className="relative">
         <MagnifyingGlass
           weight="bold"
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
           id={searchId}
           aria-label="Search docs"
           autoComplete="off"
-          className="h-9 bg-background/80 pr-9 pl-8 shadow-sm"
-          placeholder="Search docs"
+          className="h-10 bg-card pr-10 pl-9 shadow-sm"
+          placeholder="Search protected docs"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
@@ -86,7 +86,7 @@ export function DocsSearch() {
             variant="ghost"
             size="icon"
             aria-label="Clear docs search"
-            className="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+            className="absolute top-1/2 right-1.5 size-7 -translate-y-1/2"
             onClick={() => setQuery("")}
           >
             <X weight="bold" />
@@ -95,7 +95,7 @@ export function DocsSearch() {
       </div>
 
       {showPanel ? (
-        <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-lg">
+        <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-lg">
           <SearchPanel status={status} errorMessage={errorMessage} results={results} />
         </div>
       ) : null}
@@ -125,12 +125,12 @@ function SearchPanel({
   }
 
   return (
-    <ul className="max-h-96 overflow-y-auto p-1.5" aria-label="Docs search results">
+    <ul className="max-h-96 overflow-y-auto p-2" aria-label="Docs search results">
       {results.map((result) => (
         <li key={result.id}>
           <a
             href={getDocsSearchResultHref(result)}
-            className="group block rounded-md px-3 py-2.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
+            className="group block rounded-lg px-3 py-2.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <div className="flex min-w-0 items-center justify-between gap-3">
               <p className="min-w-0 truncate text-sm font-semibold">

@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "orientation",
+      "title": "Orientation",
+      "description": "Shared product, repo, and contributor context to read first.",
+      "pages": [
+        {
+          "slug": "orientation/context-map",
+          "title": "Context Map",
+          "sourcePath": "CONTEXT-MAP.md",
+          "kind": "context",
+          "summary": "A reading map for the focused domain docs."
+        },
+        {
+          "slug": "orientation/product-context",
+          "title": "MyTuums Context",
+          "sourcePath": "CONTEXT.md",
+          "kind": "context",
+          "summary": "Canonical product, architecture, and testing context."
+        },
+        {
+          "slug": "orientation/coding-practices",
+          "title": "Coding Practices Context",
+          "sourcePath": "docs/context/coding-practices/CONTEXT.md",
+          "kind": "context",
+          "summary": "Monorepo boundaries, seam rules, and implementation discipline."
+        },
+        {
+          "slug": "orientation/team-conventions",
+          "title": "Team Conventions",
+          "sourcePath": "docs/team-conventions.md",
+          "kind": "team-convention",
+          "summary": "Working agreements for CI, commits, and collaboration."
+        }
+      ]
+    },
+    {
+      "id": "requirements",
+      "title": "Requirements",
+      "description": "Product requirements and scope-defining source documents.",
+      "pages": [
+        {
+          "slug": "requirements/v1-product-requirements",
+          "title": "MyTuums v1 PRD",
+          "sourcePath": "docs/prd/v1-prd.md",
+          "kind": "prd",
+          "summary": "Core product requirements and implementation decisions for v1."
+        },
+        {
+          "slug": "requirements/v1-scope",
+          "title": "MyTuums v1 Scope",
+          "sourcePath": "docs/prd/v1-scope.md",
+          "kind": "prd",
+          "summary": "Detailed scope, rules, routes, and deployment boundaries for v1."
+        },
+        {
+          "slug": "requirements/legal-readiness-and-internationalization",
+          "title": "Legal Readiness And Internationalization PRD",
+          "sourcePath": "docs/prd/legal-i18n-prd.md",
+          "kind": "prd",
+          "summary": "Legal readiness, support, and internationalization requirements."
+        },
+        {
+          "slug": "requirements/developer-documentation-app",
+          "title": "Developer Documentation App PRD",
+          "sourcePath": "docs/prd/developer-documentation-app-prd.md",
+          "kind": "prd",
+          "summary": "Requirements for the protected developer documentation experience."
+        }
+      ]
+    },
+    {
+      "id": "decisions",
+      "title": "Architecture Decisions",
+      "description": "Durable architectural decisions captured as ADRs.",
+      "pages": [
+        {
+          "slug": "decisions/release-deleted-usernames-and-emails-after-7-days",
+          "title": "Release deleted usernames and emails after 7 days",
+          "sourcePath": "docs/adr/0001-release-deleted-usernames-after-30-days.md",
+          "kind": "adr",
+          "summary": "Shorten the hold period for deleted identities in v1."
+        },
+        {
+          "slug": "decisions/launch-public-media-without-automated-scanning",
+          "title": "Launch public media uploads without automated scanning in v1",
+          "sourcePath": "docs/adr/0002-launch-public-media-without-automated-scanning.md",
+          "kind": "adr",
+          "summary": "Ship public media in v1 without automated scanning and document the risk."
+        },
+        {
+          "slug": "decisions/custom-developer-documentation-app",
+          "title": "Build a custom developer documentation app",
+          "sourcePath": "docs/adr/0003-custom-developer-documentation-app.md",
+          "kind": "adr",
+          "summary": "Choose a custom protected docs app over a third-party wiki."
+        }
+      ]
+    },
+    {
+      "id": "agent-workflows",
+      "title": "Agent Workflows",
+      "description": "Repository-specific guidance for human and agent contributors.",
+      "pages": [
+        {
+          "slug": "agent-workflows/agent-instructions",
+          "title": "Repository Agent Instructions",
+          "sourcePath": "AGENTS.md",
+          "kind": "agent-doc",
+          "summary": "Repo-local instructions, issue tracker workflow, and design constraints."
+        },
+        {
+          "slug": "agent-workflows/domain-docs",
+          "title": "Domain Docs",
+          "sourcePath": "docs/agents/domain.md",
+          "kind": "agent-doc",
+          "summary": "How to use the repo's context map, focused context docs, and ADRs."
+        },
+        {
+          "slug": "agent-workflows/issue-tracker",
+          "title": "Issue Tracker",
+          "sourcePath": "docs/agents/issue-tracker.md",
+          "kind": "agent-doc",
+          "summary": "GitHub issue conventions and Kanban board synchronization rules."
+        },
+        {
+          "slug": "agent-workflows/triage-labels",
+          "title": "Triage Labels",
+          "sourcePath": "docs/agents/triage-labels.md",
+          "kind": "agent-doc",
+          "summary": "Canonical triage labels and how they map to workflow states."
+        },
+        {
+          "slug": "agent-workflows/db-import-seam",
+          "title": "DB Import Seam",
+          "sourcePath": "docs/agents/db-import-seam.md",
+          "kind": "agent-doc",
+          "summary": "Guardrails for database import boundaries across the monorepo."
+        }
+      ]
+    },
+    {
+      "id": "focused-contexts",
+      "title": "Focused Contexts",
+      "description": "Topical context docs that refine specific product areas.",
+      "pages": [
+        {
+          "slug": "contexts/documentation-app",
+          "title": "Documentation App Context",
+          "sourcePath": "docs/context/documentation-app/CONTEXT.md",
+          "kind": "context",
+          "summary": "Product boundary and delivery rules for the docs app."
+        },
+        {
+          "slug": "contexts/legal",
+          "title": "Legal Context",
+          "sourcePath": "docs/context/legal/CONTEXT.md",
+          "kind": "context",
+          "summary": "Launch posture and legal document handling rules."
+        }
+      ]
+    },
+    {
+      "id": "operations",
+      "title": "Operations",
+      "description": "CI, deployment, and runtime configuration notes.",
+      "pages": [
+        {
+          "slug": "operations/developer-docs-deployment",
+          "title": "Developer Docs Deployment",
+          "sourcePath": "docs/deployment/developer-docs.md",
+          "kind": "deployment-doc",
+          "summary": "Azure Static Web Apps and API boundary notes for the protected docs shell."
+        }
+      ]
+    }
+  ]
+}

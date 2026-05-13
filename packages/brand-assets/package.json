@@ -1,0 +1,18 @@
+{
+  "name": "@workspace/brand-assets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./vite-plugin": {
+      "types": "./vite-plugin.d.ts",
+      "default": "./vite-plugin.mjs"
+    }
+  },
+  "dependencies": {
+    "sirv": "^3.0.2"
+  },
+  "devDependencies": {
+    "vite": "^7.3.2"
+  }
+}

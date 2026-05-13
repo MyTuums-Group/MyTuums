@@ -7,15 +7,18 @@ import { createContext } from "./context";
 import { registerAuthRoutes } from "./auth/handler.js";
 import { registerProfileRoutes } from "./profile-routes.js";
 import { env } from "@workspace/config";
+import { getAllowedCorsOrigins } from "./cors-origins.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
 
   // CORS — allow web app origin
   await app.register(cors, {
-    origin: env.NODE_ENV === "production"
-      ? ["https://mytuums.com", "https://www.mytuums.com"]
-      : ["http://localhost:5173"],
+    origin: getAllowedCorsOrigins({
+      nodeEnv: env.NODE_ENV,
+      webAppUrl: env.NODE_ENV === "production" ? process.env.WEB_APP_URL : env.WEB_APP_URL,
+      docsAppUrl: env.NODE_ENV === "production" ? process.env.DOCS_APP_URL : env.DOCS_APP_URL,
+    }),
     credentials: true,
   });
 

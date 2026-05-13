@@ -23,6 +23,7 @@
     "@types/nodemailer": "^8.0.0",
     "@workspace/config": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/docs-content": "workspace:*",
     "@workspace/types": "workspace:*",
     "better-auth": "^1.3.4",
     "dotenv": "^17.4.2",

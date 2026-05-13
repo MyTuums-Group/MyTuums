@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { AuthError } from "@/lib/auth-client";
+import { getBrowserSafeReturnTo, getCurrentReturnToSearch } from "@/lib/return-to";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
+  const returnTo = getCurrentReturnToSearch();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +25,7 @@ function LoginPage() {
           password: form.get("password") as string,
         });
         if (result.ok) {
-          window.location.href = "/";
+          window.location.href = getBrowserSafeReturnTo(returnTo) ?? "/";
           return;
         }
         setError(getLoginErrorMessage(result.error));

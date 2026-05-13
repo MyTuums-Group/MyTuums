@@ -8,6 +8,8 @@ All pull requests must pass CI checks before merging. Agents must not merge PRs 
 
 Issues and PRDs are tracked in GitHub Issues using the `gh` CLI, and are also tracked in the GitHub org project `Kanban board` via its `Status` field. See `docs/agents/issue-tracker.md`.
 
+When an agent picks up an issue and starts work, it must update the matching `Kanban board` item `Status` to `In progress` before implementation begins.
+
 When an agent finishes an issue, it must close the GitHub issue and update the matching `Kanban board` item `Status` to `Done` in the same pass.
 
 ### Triage labels

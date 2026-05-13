@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import * as schema from "@workspace/db/schema";
 import { env } from "@workspace/config";
 import { sendEmail } from "./email.js";
+import { getAllowedCorsOrigins } from "./cors-origins.js";
 
 // ── BetterAuth configuration ─────────────────────────────────────────
 
@@ -63,10 +64,28 @@ export const auth = betterAuth({
 
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? [
-    "http://localhost:5173",
-  ],
+  trustedOrigins: getTrustedOrigins(),
 });
+
+function getTrustedOrigins(): string[] {
+  const configuredOrigins = parseOriginList(env.BETTER_AUTH_TRUSTED_ORIGINS);
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins;
+  }
+
+  return getAllowedCorsOrigins({
+    nodeEnv: env.NODE_ENV,
+    webAppUrl: env.NODE_ENV === "production" ? process.env.WEB_APP_URL : env.WEB_APP_URL,
+    docsAppUrl: env.NODE_ENV === "production" ? process.env.DOCS_APP_URL : env.DOCS_APP_URL,
+  });
+}
+
+function parseOriginList(value: string | undefined): string[] {
+  return value
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0) ?? [];
+}
 
 // ── Email templates ──────────────────────────────────────────────────
 

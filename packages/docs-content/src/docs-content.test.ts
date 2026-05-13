@@ -151,10 +151,16 @@ describe("docs-content", () => {
     const result = await buildDocsContent({
       rootDir: repoRoot,
       outputPath: "packages/docs-content/dist/generated/docs-content.json",
+      environment: "ci",
       generatedAt: "2026-05-13T00:00:00.000Z",
       commitSha: "deadbeef",
     });
 
+    expect(result.artifact.build).toEqual({
+      environment: "ci",
+      generatedAt: "2026-05-13T00:00:00.000Z",
+      commitSha: "deadbeef",
+    });
     expect(result.artifact.sections).toHaveLength(2);
     expect(result.artifact.pages.map((page) => page.slug)).toEqual([
       "orientation/context",

@@ -11,6 +11,7 @@ const artifact: DocsArtifact = {
   version: 1,
   manifestPath: "docs/docs-manifest.json",
   build: {
+    environment: "ci",
     generatedAt: "2026-05-13T00:00:00.000Z",
     commitSha: "abc1234",
   },

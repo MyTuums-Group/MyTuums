@@ -161,6 +161,20 @@
           "summary": "Launch posture and legal document handling rules."
         }
       ]
+    },
+    {
+      "id": "operations",
+      "title": "Operations",
+      "description": "CI, deployment, and runtime configuration notes.",
+      "pages": [
+        {
+          "slug": "operations/developer-docs-deployment",
+          "title": "Developer Docs Deployment",
+          "sourcePath": "docs/deployment/developer-docs.md",
+          "kind": "deployment-doc",
+          "summary": "Azure Static Web Apps and API boundary notes for the protected docs shell."
+        }
+      ]
     }
   ]
 }

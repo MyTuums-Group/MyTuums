@@ -328,8 +328,9 @@ function ProvenancePanel({ page, build }: { page: MarkdownPage; build: MarkdownB
     <section className="rounded-lg border border-border/70 bg-card p-4 text-card-foreground shadow-sm">
       <h2 className="font-heading text-sm font-semibold tracking-normal">Provenance</h2>
       <dl className="mt-3 grid gap-3 text-sm">
+        <MetadataItem label="Environment" value={build.environment} />
         <MetadataItem label="Source" value={page.sourcePath} />
-        <MetadataItem label="Generated" value={formatDateTime(build.generatedAt)} />
+        <MetadataItem label="Build time" value={formatDateTime(build.generatedAt)} />
         <MetadataItem label="Commit" value={build.commitSha ?? "Unknown"} />
       </dl>
     </section>

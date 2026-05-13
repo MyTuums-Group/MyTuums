@@ -19,6 +19,7 @@ import {
 } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
 import { type ReactNode } from "react"
+import { DocsSearch } from "@/components/docs-search"
 import { useTheme, type Theme } from "@/components/theme-provider"
 import { getDocsBuildMetadata } from "@/lib/docs-build-metadata"
 import type { DocsNavigation } from "@/lib/trpc"
@@ -69,6 +70,10 @@ function DocsHeader({ navigation }: { navigation: DocsNavigation }) {
         </div>
 
         <div className="flex flex-col gap-3 lg:items-end">
+          <div className="w-full min-w-0 lg:w-[28rem]">
+            <DocsSearch />
+          </div>
+
           <nav
             aria-label="Docs navigation"
             className="flex flex-wrap items-center gap-2"

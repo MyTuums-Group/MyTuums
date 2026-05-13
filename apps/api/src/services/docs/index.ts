@@ -1,6 +1,9 @@
 export type {
   DocsArtifactAdapter,
   DocsPageInput,
+  DocsPageResult,
+  DocsSearchInput,
+  DocsSearchResult,
   DocsService,
   DocsViewer,
 } from "./service.js";

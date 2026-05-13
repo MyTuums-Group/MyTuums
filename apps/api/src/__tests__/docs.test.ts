@@ -2,6 +2,7 @@ import type { DocsArtifact } from "@workspace/docs-content";
 import { describe, expect, it } from "vitest";
 import type { AccountLifecycleSnapshot } from "../services/account-status/index.js";
 import {
+  createDocsService,
   createInMemoryDocsService,
   DocsPageNotFoundError,
 } from "../services/docs/index.js";
@@ -173,7 +174,119 @@ describe("Docs service", () => {
       ).rejects.toMatchObject({
         kind: deniedCase.expectedKind,
       });
+
+      await expect(
+        service.search(deniedCase.viewer, {
+          query: "Protected",
+        }),
+      ).rejects.toMatchObject({
+        kind: deniedCase.expectedKind,
+      });
     }
+  });
+
+  it("searches generated docs index entries and returns stable slug targets", async () => {
+    const service = createInMemoryDocsService({
+      ...artifact,
+      searchIndex: [
+        ...artifact.searchIndex,
+        {
+          id: "platform-overview-heading",
+          pageSlug: "overview",
+          pageTitle: "Overview",
+          sectionId: "platform",
+          sectionTitle: "Platform",
+          headingId: "deployment-safety",
+          headingText: "Deployment Safety",
+          text: "Release gates keep docs deploys safe for internal maintainers.",
+        },
+        {
+          id: "platform-overview-body",
+          pageSlug: "overview",
+          pageTitle: "Overview",
+          sectionId: "platform",
+          sectionTitle: "Platform",
+          headingId: "body-copy",
+          headingText: "Body Copy",
+          text: "Searchable body text mentions generated documentation search.",
+        },
+        {
+          id: "platform-release-body",
+          pageSlug: "release-notes",
+          pageTitle: "Release Notes",
+          sectionId: "platform",
+          sectionTitle: "Platform",
+          headingId: "body-copy",
+          headingText: "Body Copy",
+          text: "Overview appears here only as body text.",
+        },
+      ],
+    });
+
+    await expect(
+      service.search(createViewer(), {
+        query: "deployment safety",
+      }),
+    ).resolves.toEqual([
+      {
+        id: "platform-overview-heading",
+        sectionSlug: "platform",
+        sectionTitle: "Platform",
+        pageSlug: "overview",
+        pageTitle: "Overview",
+        headingId: "deployment-safety",
+        headingText: "Deployment Safety",
+        excerpt: "Release gates keep docs deploys safe for internal maintainers.",
+      },
+    ]);
+
+    await expect(
+      service.search(createViewer(), {
+        query: "platform",
+        limit: 1,
+      }),
+    ).resolves.toMatchObject([
+      {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+      },
+    ]);
+
+    await expect(
+      service.search(createViewer(), {
+        query: "overview",
+        limit: 1,
+      }),
+    ).resolves.toMatchObject([
+      {
+        id: "platform-overview-root",
+        pageSlug: "overview",
+      },
+    ]);
+
+    await expect(
+      service.search(createViewer(), {
+        query: "generated documentation search",
+      }),
+    ).resolves.toMatchObject([
+      {
+        headingId: "body-copy",
+      },
+    ]);
+  });
+
+  it("does not read the search index before authorization succeeds", async () => {
+    const service = createDocsService({
+      readArtifact() {
+        throw new Error("Search index leaked to unauthorized caller.");
+      },
+    });
+
+    await expect(
+      service.search(createViewer({ session: null, account: null }), {
+        query: "Protected",
+      }),
+    ).rejects.toMatchObject({ kind: "unauthenticated" });
   });
 
   it("returns not found when the section and page do not match the artifact", async () => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "./trpc.js";
+import { docsRouter } from "./routers/docs.js";
 import { profileRouter } from "./routers/profile.js";
 import { postRouter } from "./routers/post.js";
 import { authorization } from "./authorization/index.js";
@@ -40,6 +41,7 @@ export const appRouter = router({
 
   profile: profileRouter,
   post: postRouter,
+  docs: docsRouter,
 });
 
 export type AppRouter = typeof appRouter;

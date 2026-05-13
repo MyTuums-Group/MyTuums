@@ -11,6 +11,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.string().url().default("http://localhost:4000"),
     BETTER_AUTH_TRUSTED_ORIGINS: z.string().optional(),
     WEB_APP_URL: z.string().url().default("http://localhost:5173"),
+    DOCS_APP_URL: z.string().url().default("http://localhost:5174"),
 
     // Email (Resend)
     RESEND_API_KEY: z.string().optional(),

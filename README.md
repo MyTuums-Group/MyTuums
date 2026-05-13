@@ -73,6 +73,7 @@ docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
 | `pnpm lint` | ESLint across all packages |
 | `pnpm format` | Prettier across all packages |
 | `pnpm typecheck` | TypeScript strict check |
+| `pnpm docs:validate` | Build and validate the docs-content artifact |
 | `pnpm test` | Vitest unit/integration tests |
 | `pnpm test:watch` | Vitest in watch mode |
 
@@ -87,6 +88,7 @@ docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
 ## Deployment
 
 - **Web**: Azure Static Web Apps (`mytuums.com`, `www.mytuums.com`)
+- **Docs**: Azure Static Web Apps (`docs.mytuums.com`)
 - **API**: Azure App Service (`api.mytuums.com`)
 - **Database**: Azure Database for PostgreSQL Flexible Server
 - **Media**: Azure Blob Storage

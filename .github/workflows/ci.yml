@@ -37,10 +37,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
-  build:
-    name: Build
+  docs-validation:
+    name: Docs Validation
     runs-on: ubuntu-latest
-    needs: [typecheck, lint]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -49,6 +48,41 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Prepare docs build metadata
+        run: |
+          build_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          {
+            echo "DOCS_ENVIRONMENT=ci"
+            echo "DOCS_BUILD_SHA=${GITHUB_SHA}"
+            echo "DOCS_BUILD_TIME=${build_time}"
+          } >> "$GITHUB_ENV"
+      - run: pnpm docs:validate
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, docs-validation]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare docs shell metadata
+        run: |
+          build_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          {
+            echo "DOCS_ENVIRONMENT=ci"
+            echo "DOCS_BUILD_SHA=${GITHUB_SHA}"
+            echo "DOCS_BUILD_TIME=${build_time}"
+            echo "VITE_DOCS_ENVIRONMENT=ci"
+            echo "VITE_DOCS_SITE_URL=https://docs.mytuums.com"
+            echo "VITE_DOCS_API_BASE_URL=https://api.mytuums.com"
+            echo "VITE_DOCS_BUILD_SHA=${GITHUB_SHA}"
+            echo "VITE_DOCS_BUILD_TIME=${build_time}"
+          } >> "$GITHUB_ENV"
       - run: pnpm build
 
   test:

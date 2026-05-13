@@ -5,6 +5,7 @@
     { "path": "./apps/web" },
     { "path": "./packages/db" },
     { "path": "./packages/config" },
+    { "path": "./packages/docs-content" },
     { "path": "./packages/types" },
     { "path": "./packages/api-contract" },
     { "path": "./packages/ui" }

@@ -14,9 +14,15 @@
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-router": "^1.132.0",
+    "@trpc/client": "^11.4.0",
+    "@workspace/api-contract": "workspace:^",
     "@workspace/ui": "workspace:*",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "superjson": "^2.2.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

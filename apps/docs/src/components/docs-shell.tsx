@@ -1,13 +1,11 @@
 import {
   Article,
   ArrowSquareOut,
-  CircleNotch,
   Clock,
   Desktop,
   FileDoc,
   Moon,
   Sun,
-  Warning,
 } from "@phosphor-icons/react"
 import { Link, useLocation } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
@@ -23,19 +21,20 @@ import { cn } from "@workspace/ui/lib/utils"
 import { type ReactNode } from "react"
 import { useTheme, type Theme } from "@/components/theme-provider"
 import { getDocsBuildMetadata } from "@/lib/docs-build-metadata"
+import type { DocsNavigation } from "@/lib/trpc"
 
 const metadata = getDocsBuildMetadata(import.meta.env)
 
-const NAV_ITEMS = [
-  { to: "/", label: "Overview", icon: FileDoc, exact: true },
-  { to: "/loading", label: "Loading Preview", icon: CircleNotch, exact: false },
-  { to: "/unavailable", label: "Unavailable Preview", icon: Warning, exact: false },
-] as const
-
-export function DocsShell({ children }: { children: ReactNode }) {
+export function DocsShell({
+  children,
+  navigation,
+}: {
+  children: ReactNode
+  navigation: DocsNavigation
+}) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <DocsHeader />
+      <DocsHeader navigation={navigation} />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start lg:gap-8">
         <section className="min-w-0 flex-1">{children}</section>
         <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:max-w-sm">
@@ -47,7 +46,7 @@ export function DocsShell({ children }: { children: ReactNode }) {
   )
 }
 
-function DocsHeader() {
+function DocsHeader({ navigation }: { navigation: DocsNavigation }) {
   const pathname = useLocation({ select: (location) => location.pathname })
   const { theme, setTheme } = useTheme()
 
@@ -71,27 +70,40 @@ function DocsHeader() {
 
         <div className="flex flex-col gap-3 lg:items-end">
           <nav
-            aria-label="Docs shell navigation"
+            aria-label="Docs navigation"
             className="flex flex-wrap items-center gap-2"
           >
-            {NAV_ITEMS.map((item) => {
-              const isActive = item.exact ? pathname === item.to : pathname.startsWith(item.to)
-              const Icon = item.icon
+            <Button variant={pathname === "/" ? "secondary" : "ghost"} size="sm" asChild>
+              <Link to="/" className="gap-2">
+                <FileDoc weight="bold" />
+                Overview
+              </Link>
+            </Button>
 
-              return (
-                <Button
-                  key={item.to}
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  asChild
-                >
-                  <Link to={item.to} className="gap-2">
-                    <Icon weight="bold" />
-                    {item.label}
-                  </Link>
-                </Button>
-              )
-            })}
+            {navigation.flatMap((section) =>
+              section.pages.map((page) => {
+                const isActive =
+                  pathname === `/docs/${section.id}/${page.slug}`
+
+                return (
+                  <Button
+                    key={`${section.id}:${page.slug}`}
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    asChild
+                  >
+                    <Link
+                      to="/docs/$sectionSlug/$pageSlug"
+                      params={{ sectionSlug: section.id, pageSlug: page.slug }}
+                      className="gap-2"
+                    >
+                      <Article weight="bold" />
+                      {page.title}
+                    </Link>
+                  </Button>
+                )
+              })
+            )}
           </nav>
 
           <ThemeMenu theme={theme} setTheme={setTheme} />
@@ -146,8 +158,8 @@ function BuildMetadataCard() {
       <CardHeader className="border-b border-border/70">
         <CardTitle>Build Metadata</CardTitle>
         <CardDescription>
-          Static shell metadata only. Protected docs content, search indexes, and
-          diagrams will stay behind authenticated API reads.
+          Shell metadata is public. Docs navigation loaded only after API
+          authorization succeeds.
         </CardDescription>
       </CardHeader>
 
@@ -174,8 +186,8 @@ function BuildMetadataCard() {
 
       <CardFooter className="flex-col items-start gap-3">
         <p className="text-sm text-muted-foreground">
-          This shell is safe to deploy separately because it ships only route
-          scaffolding, status previews, and deployment metadata.
+          Protected Markdown, search indexes, and diagram snapshots stay behind
+          credentialed API reads.
         </p>
         <Button variant="outline" size="sm" asChild>
           <a href={metadata.siteUrl} target="_blank" rel="noreferrer">
@@ -193,8 +205,8 @@ function DocsFooter() {
     <footer className="border-t border-border/70 bg-muted/35">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-5 text-sm text-muted-foreground sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <p>
-          MyTuums Docs shell stays presentation-only until later issues wire auth,
-          authorized reads, Markdown rendering, and search.
+          MyTuums Docs loads internal navigation only for verified active admins
+          and owners.
         </p>
         <p className="flex items-center gap-2">
           <Clock weight="bold" className="text-primary" />

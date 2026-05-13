@@ -26,8 +26,8 @@ function UnavailablePreviewPage() {
           <div>
             <CardTitle>Unavailable state preview</CardTitle>
             <CardDescription>
-              A dedicated fallback surface for missing auth, disabled docs access,
-              or temporarily unavailable docs infrastructure.
+              A dedicated fallback surface for temporarily unavailable docs
+              infrastructure.
             </CardDescription>
           </div>
         </div>
@@ -38,8 +38,8 @@ function UnavailablePreviewPage() {
           <ShieldWarning weight="bold" />
           <AlertTitle>Documentation is not available yet</AlertTitle>
           <AlertDescription>
-            This preview stands in for future access-denied and service-unavailable
-            handling once docs auth and API reads land in follow-up issues.
+            If the API cannot provide authorized docs navigation, the root route
+            keeps protected documentation hidden and shows a guarded fallback.
           </AlertDescription>
         </Alert>
       </CardContent>

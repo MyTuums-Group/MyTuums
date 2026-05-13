@@ -1,5 +1,23 @@
 # MyTuums v1 PRD
 
+## Section Index
+
+- [`Problem Statement`](#problem-statement): the user and business problem this release solves.
+- [`Solution`](#solution): the high-level product shape and release posture.
+- [`Companion Documents`](#companion-documents): the focused docs to read alongside this PRD.
+- [`User Stories`](#user-stories): the end-user and maintainer behaviors v1 must support.
+- [`Implementation Decisions`](#implementation-decisions): the product and technical decisions that constrain implementation.
+- [`Architecture Deepening`](#architecture-deepening): the required deep modules and seam discipline.
+- [`Architecture Deepening / P0 — Authorization & Visibility Module`](#p0--authorization--visibility-module-deepest-module-in-the-codebase): central visibility and access seam.
+- [`Architecture Deepening / P1 — Feed Engine Module`](#p1--feed-engine-module): shared feed query and pagination engine.
+- [`Architecture Deepening / P2 — Media Lifecycle Module`](#p2--media-lifecycle-module): upload state machine and attachment lifecycle.
+- [`Architecture Deepening / P3 — Moderation Module`](#p3--moderation-module): reporting, case handling, and action audit seam.
+- [`Architecture Deepening / Package Depth Requirements`](#package-depth-requirements): package-level depth and seam expectations.
+- [`Architecture Deepening / Build Order (Dependency Chain)`](#build-order-dependency-chain): recommended implementation sequence.
+- [`Testing Decisions`](#testing-decisions): the testing strategy and behavioral coverage expectations.
+- [`Out of Scope`](#out-of-scope): explicitly deferred features and approaches.
+- [`Further Notes`](#further-notes): important clarifications and durable reminders.
+
 ## Problem Statement
 
 Gamers need a focused place to share short gaming posts and clips, discover posts by game and people, and participate through lightweight social actions without the noise of livestreaming, private messaging, stat tracking, or recommendation-heavy media platforms.
@@ -22,10 +40,18 @@ V1 is intentionally simple:
 
 The product must be usable on desktop and mobile web, enforce the documented ShadCN preset/theme, and ship with enough safety, audit, test, and operational infrastructure to support public signup and media uploads.
 
+## Companion Documents
+
+- `CONTEXT-MAP.md` for the documentation split and reading order.
+- `DESIGN.md` for the canonical visual system and UI guardrails.
+- `docs/context/coding-practices/CONTEXT.md` for implementation guardrails and monorepo/package rules.
+- `docs/prd/developer-documentation-app-prd.md` for the separate docs web app.
+- `docs/prd/legal-i18n-prd.md` for legal, localization, and launch-readiness detail.
+
 ## User Stories
 
 1. As a new gamer, I want to register with email and password, so that I can create a MyTuums account.
-2. As a new gamer, I want to confirm I am at least 13, so that the platform can enforce its minimum-age requirement.
+2. As a new gamer, I want to confirm I am at least 15, so that the platform can enforce its minimum-age requirement.
 3. As a new gamer, I want to verify my email before onboarding, so that my account has a confirmed contact path.
 4. As a verified user, I want to choose a unique username, so that other users can find my public profile.
 5. As a verified user, I want reserved usernames to be blocked, so that platform, staff, legal, and impersonation-sensitive names are protected.
@@ -86,12 +112,12 @@ The product must be usable on desktop and mobile web, enforce the documented Sha
 60. As a user, I want to delete my account irreversibly, so that I can leave the platform.
 61. As a user deleting my account, I want my public profile, posts, comments, follows, and public like counts removed promptly, so that my public presence disappears.
 62. As a user deleting my account, I want email and username hold windows documented and enforced, so that reuse behavior is predictable.
-63. As a future username claimant, I want deleted usernames released after 30 days, so that the namespace is not permanently exhausted.
+63. As a future username claimant, I want deleted usernames released after 7 days, so that the namespace is not permanently exhausted.
 64. As staff, I want historical audit and moderation references to use internal IDs, so that username reuse does not rebind history.
 65. As a user, I want to submit the contact form while logged in or logged out, so that I can reach support.
 66. As a logged-out contact submitter, I want to provide an email address, so that staff can respond.
-67. As a user, I want legal, support, accessibility, cookies, privacy, terms, contact, and about pages, so that platform policies are available.
-68. As a user, I want launch-ready Terms, Privacy, and Cookies before public signup and media uploads are enabled, so that policy coverage exists before riskier features open.
+67. As a user, I want legal notice, support, accessibility, cookies, privacy, terms, contact, and about pages, so that platform policies are available.
+68. As a user, I want launch-ready Terms, Privacy, Cookies, and Legal Notice before public signup and media uploads are enabled, so that policy coverage exists before riskier features open.
 69. As a user, I want to report posts, comments, and profiles, so that I can flag unsafe or abusive content.
 70. As a reporter, I want my report identity and notes hidden from normal users, so that reporting does not expose me publicly.
 71. As a reporter, I accept not being notified of report resolution in v1, so that moderation scope stays focused.
@@ -152,7 +178,7 @@ The product must be usable on desktop and mobile web, enforce the documented Sha
 - Extract deep, testable backend modules for account status/session invalidation, username policy, feed queries, search, media lifecycle, content publishing, comments, likes, follows, blocks, notifications, reporting, moderation cases/actions, role hierarchy, rate limiting, contact submissions, and account deletion.
 - Centralize authorization and visibility policies for required session, staff access, block relationships, deleted/removed content, suspended/account-deleted users, moderation permissions, and public preview eligibility.
 - Store `User` and `Profile` separately. `User` owns auth/account/security role and status; `Profile` owns public identity fields.
-- Use immutable v1 usernames while an account is active. Release deleted emails after 3 days and deleted usernames after 30 days.
+- Use immutable v1 usernames while an account is active. Release deleted emails and deleted usernames after 7 days.
 - Ensure historical audit, moderation, and notification references use internal IDs and never rebind deleted-user history to a later username holder.
 - Use server-generated UUIDs internally and opaque public post IDs for `/post/{publicId}`.
 - Keep all posts public-only. Require non-empty text, allow at most one media attachment, and allow one optional seeded game tag.
@@ -354,8 +380,8 @@ No slice ships without crossing the Authorization seam. This is non-negotiable �
 ## Further Notes
 
 - The authoritative detailed source design remains `docs/prd/v1-scope.md`; this PRD summarizes it into an implementation-driving product requirements document.
-- ADR 0001 governs deleted username release after 30 days and deleted email release after 3 days.
+- ADR 0001 governs deleted username and email release after 7 days.
 - ADR 0002 governs the accepted v1 risk of launching public media uploads without automated scanning.
-- Public signup and media uploads must remain disabled until owner bootstrap, at least one additional moderator/admin, verified Resend sender/domain setup, support mailbox routing, and launch-ready legal pages are complete.
+- Public signup and media uploads must remain disabled until owner bootstrap, at least one additional moderator/admin, verified Resend sender/domain setup, support mailbox routing, and launch-ready legal pages including Legal Notice are complete.
 - Accessibility is an app-level requirement even when ShadCN/Radix primitives are used.
-- V1 is English-only, but implementation should avoid formatting and copy architecture that blocks later i18n.
+- V1 includes internationalization for the supported signup region. Product and legal copy must be localized for the launch locales selected for the EU, EEA, UK, and Switzerland.

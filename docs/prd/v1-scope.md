@@ -2,6 +2,55 @@
 
 MyTuums v1 is a web-first social platform for gamers to post, browse, and discuss short-form gaming content. The first release focuses on public posts, profiles, game-tagged discovery, and basic moderation. Messaging, live streaming, game tracking, native mobile apps, and recommendation systems are intentionally deferred.
 
+## Section Index
+
+- [`Companion Documents`](#companion-documents): the focused docs that refine this scope doc.
+- [`Product Goal`](#product-goal): the core user outcome v1 is meant to serve.
+- [`Target User`](#target-user): the primary audience and what v1 is not optimized for.
+- [`V1 Feature Scope`](#v1-feature-scope): the user-facing product scope and behavioral rules.
+- [`V1 Feature Scope / Authentication`](#authentication): auth model, age gate, sessions, and onboarding gate.
+- [`V1 Feature Scope / Onboarding`](#onboarding): profile creation and first-run flow.
+- [`V1 Feature Scope / Identity`](#identity): usernames, profile rules, and identity boundaries.
+- [`V1 Feature Scope / Posts`](#posts): post composition, limits, and public post behavior.
+- [`V1 Feature Scope / Media`](#media): upload/storage rules, limits, and lifecycle.
+- [`V1 Feature Scope / Feeds`](#feeds): For You, Following, Discover, and feed behavior.
+- [`V1 Feature Scope / Games`](#games): seeded catalog, tagging, and game-page behavior.
+- [`V1 Feature Scope / Comments`](#comments): comment model, limits, and ordering.
+- [`V1 Feature Scope / Likes`](#likes): post/comment like behavior.
+- [`V1 Feature Scope / Follows And Blocks`](#follows-and-blocks): relationship and safety rules.
+- [`V1 Feature Scope / Notifications`](#notifications): notification triggers, scope, and exclusions.
+- [`V1 Feature Scope / Search`](#search): discover/search rules and scope limits.
+- [`V1 Feature Scope / Logged-Out Access`](#logged-out-access): public preview behavior and auth boundaries.
+- [`V1 Feature Scope / Settings`](#settings): user settings surfaces and controls.
+- [`V1 Feature Scope / Account Deletion`](#account-deletion): deletion behavior, holds, and retention-adjacent rules.
+- [`V1 Feature Scope / Reporting And Moderation`](#reporting-and-moderation): reports, cases, staff actions, and account enforcement.
+- [`V1 Feature Scope / Support And Static Pages`](#support-and-static-pages): support, legal, and static route requirements.
+- [`V1 Feature Scope / Accessibility`](#accessibility): accessibility commitments and expectations.
+- [`V1 Feature Scope / Analytics And Monitoring`](#analytics-and-monitoring): monitoring posture and analytics exclusions.
+- [`Architecture`](#architecture): implementation structure, stack, and deployment decisions.
+- [`Architecture / Monorepo`](#monorepo): package layout and repository boundaries.
+- [`Architecture / Frontend`](#frontend): frontend stack and UI implementation rules.
+- [`Architecture / Backend`](#backend): backend stack, services, storage, and API rules.
+- [`Architecture / Rate Limiting`](#rate-limiting): abuse-control strategy.
+- [`Architecture / Deployment`](#deployment): environments, hosting, and release/deploy rules.
+- [`Core Data Entities`](#core-data-entities): expected entities and modeling boundaries.
+- [`Routes`](#routes): route layout across public, app, admin, and static surfaces.
+- [`Routes / Public Auth Routes`](#public-auth-routes): auth and account-entry routes.
+- [`Routes / Logged-In App Routes`](#logged-in-app-routes): main application routes.
+- [`Routes / Admin Routes`](#admin-routes): staff/admin surfaces.
+- [`Routes / Static Routes`](#static-routes): legal/support/static content routes.
+- [`Routes / Deferred Routes`](#deferred-routes): routes intentionally pushed out of v1.
+- [`Testing`](#testing): expected test coverage and quality bar.
+- [`Deferred Major Features`](#deferred-major-features): explicitly postponed feature areas.
+
+## Companion Documents
+
+- `CONTEXT-MAP.md` for the documentation split and reading order.
+- `DESIGN.md` for the canonical visual system and UI guardrails.
+- `docs/context/coding-practices/CONTEXT.md` for implementation guardrails and monorepo/package rules.
+- `docs/prd/developer-documentation-app-prd.md` for the separate docs web app.
+- `docs/prd/legal-i18n-prd.md` for legal, localization, and launch-readiness detail.
+
 ## Product Goal
 
 Build a focused MVP for gamers who want to share and discover gameplay posts and clips.
@@ -47,10 +96,10 @@ Included:
 - email verification
 - forgot/reset password
 - session management
-- minimum age confirmation: 13+
+- minimum age confirmation: 15+
 - roles: `user`, `moderator`, `admin`, `owner`
 
-The 13+ requirement is captured with a required registration checkbox and stored `ageConfirmedAt` timestamp. V1 does not collect or store birthdates.
+The 15+ requirement is captured with a required registration checkbox and stored `ageConfirmedAt` timestamp. V1 does not collect or store birthdates.
 
 Browser authentication uses secure httpOnly cookie sessions from the API origin with credentialed requests from configured web origins. V1 does not store bearer auth tokens in localStorage.
 
@@ -732,12 +781,15 @@ Behavior:
 - comments disappear from threads
 - follows are removed
 - the deleted user's post/comment likes no longer count publicly
-- email is held for 3 days after deletion, then released for reuse
-- username is held for 30 days after deletion, then released for reuse
+- email is held for 7 days after deletion, then released for reuse
+- username is held for 7 days after deletion, then released for reuse
 - after username reuse, `/@{username}` resolves to the current holder only
 - historical audit, moderation, and notification references use internal IDs and must not resolve deleted-user history to a new holder
 - display identity and media are anonymized or detached where appropriate
-- rows remain internally indefinitely for audit/legal/moderation with PII minimized after deletion hold windows
+- account-deleted internal rows are retained only under defined retention buckets, with direct PII minimized after the 7-day hold window
+- routine security and rate-limit logs are retained for 12 months
+- moderation cases, reports, and actions are retained for 3 years after case closure or account deletion unless a legal hold applies
+- legal, IP, and privacy complaints are retained while needed for the claim or dispute, then deleted or minimized
 - media blobs are cleaned up within 24 hours unless under moderation/legal hold
 
 Account deletion updates public visibility and denormalized counts synchronously. Blob cleanup remains scheduled through the cleanup command.
@@ -966,6 +1018,7 @@ Static pages:
 - `/terms`
 - `/privacy`
 - `/cookies`
+- `/legal-notice`
 - `/accessibility`
 - `/support`
 - `/contact`
@@ -994,7 +1047,9 @@ Support/contact:
 
 Legal/support links should always appear in the footer. On feed pages (`/` and `/discover`), they should also appear in a secondary sidebar/rail when there is enough screen width.
 
-Real launch-ready Terms, Privacy, and Cookies pages are required before public signup and media uploads are enabled. Placeholder legal pages are not acceptable for public v1 launch.
+Real launch-ready Terms, Privacy, Cookies, and Legal Notice pages are required before public signup and media uploads are enabled. Placeholder legal pages are not acceptable for public v1 launch.
+
+`/legal-notice` identifies the operating company, legal form, registration number, registered office, publication director, hosting/provider information, and legal contact details once the company exists.
 
 V1 content/community rules live in `/terms` and `/support`. There is no separate guidelines page.
 
@@ -1090,7 +1145,11 @@ Avoid a generic catch-all `shared` package.
 
 V1 is web-only with responsive mobile layouts.
 
-V1 is English-only, while avoiding formatting/copy architecture that blocks later i18n.
+V1 includes internationalization for the supported signup region. Product and legal copy must be localized for the launch locales selected for the EU, EEA, UK, and Switzerland, rather than hardcoded as English-only UI.
+
+V1 launch locales are `en`, `fr`, `de`, `es`, `it`, `nl`, `pt`, and `pl`. For legal pages, French is the authoritative version when the operator is France-based; other locale versions are translations for user convenience unless counsel requires otherwise.
+
+Locale defaults from the browser language when supported, can be changed by the user in settings, and is separate from signup country. Legal pages should have locale-specific routes such as `/fr/terms` and `/en/terms`.
 
 Frontend stack:
 
@@ -1328,6 +1387,7 @@ Not included:
 - `/terms`
 - `/privacy`
 - `/cookies`
+- `/legal-notice`
 - `/accessibility`
 - `/support`
 - `/contact`

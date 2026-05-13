@@ -6,7 +6,7 @@ All pull requests must pass CI checks before merging. Agents must not merge PRs 
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked in GitHub Issues using the `gh` CLI, and are also tracked in the GitHub org project `Kanban board` via its `Status` field. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

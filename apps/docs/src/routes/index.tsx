@@ -39,28 +39,28 @@ function DocsHomePage() {
       </Card>
 
       <Card>
-      <CardHeader>
-        <div className="flex size-10 items-center justify-center rounded-xl bg-muted ring-1 ring-foreground/10 shadow-sm">
+        <CardHeader>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-muted ring-1 ring-foreground/10 shadow-sm">
             <Article weight="bold" className="text-primary" />
-        </div>
-          <CardTitle className="pt-2">Open a docs route</CardTitle>
+          </div>
+          <CardTitle className="pt-2">Open product context</CardTitle>
           <CardDescription>
             The route body stays free of bundled protected content; page reads and
             rendering can build on the authorized shell.
           </CardDescription>
-      </CardHeader>
-      <CardFooter>
-        <Button size="sm" asChild>
+        </CardHeader>
+        <CardFooter>
+          <Button size="sm" asChild>
             <Link
               to="/docs/$sectionSlug/$pageSlug"
-              params={{ sectionSlug: "platform", pageSlug: "overview" }}
+              params={{ sectionSlug: "orientation", pageSlug: "orientation/product-context" }}
             >
-              Open platform overview
+              Open MyTuums context
               <ArrowRight weight="bold" />
             </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

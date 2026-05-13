@@ -1,6 +1,7 @@
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildDocsContent,
@@ -61,6 +62,44 @@ describe("docs-content", () => {
     expect(isEligibleDocsSource("deployment-doc", "docs/deployment/prod.md")).toBe(true);
     expect(isEligibleDocsSource("infrastructure-doc", "docs/infrastructure/azure.md")).toBe(true);
     expect(isEligibleDocsSource("context", "docs/plans/2026-05-13-plan.md")).toBe(false);
+  });
+
+  it("keeps the seeded repo manifest aligned with required developer docs", async () => {
+    const repoRoot = getRepoRoot();
+    const result = await buildDocsContent({
+      rootDir: repoRoot,
+      environment: "test",
+      generatedAt: "2026-05-13T00:00:00.000Z",
+      commitSha: null,
+    });
+
+    const sourcePaths = result.artifact.pages.map((page) => page.sourcePath);
+    const requiredSourcePaths = [
+      "AGENTS.md",
+      "CONTEXT-MAP.md",
+      "CONTEXT.md",
+      "docs/team-conventions.md",
+      ...(await listMarkdownFiles(path.join(repoRoot, "docs", "adr"), "docs/adr")),
+      ...(await listMarkdownFiles(path.join(repoRoot, "docs", "agents"), "docs/agents")),
+      ...(await listMarkdownFiles(path.join(repoRoot, "docs", "context"), "docs/context")),
+      ...(await listMarkdownFiles(path.join(repoRoot, "docs", "prd"), "docs/prd")),
+    ].sort();
+
+    expect(result.artifact.sections.map((section) => section.id)).toEqual([
+      "orientation",
+      "requirements",
+      "decisions",
+      "agent-workflows",
+      "focused-contexts",
+      "operations",
+    ]);
+    expect([...sourcePaths].sort()).toEqual(expect.arrayContaining(requiredSourcePaths));
+    expect(sourcePaths.every((sourcePath) => !sourcePath.startsWith("docs/plans/"))).toBe(true);
+    expect(
+      result.artifact.pages.every((page) =>
+        result.artifact.searchIndex.some((entry) => entry.pageSlug === page.slug),
+      ),
+    ).toBe(true);
   });
 
   it("builds a generated artifact with navigation, page content, and search entries", async () => {
@@ -445,5 +484,31 @@ async function createTempRepo(files: Record<string, string>): Promise<string> {
   }
 
   return repoRoot;
+}
+
+function getRepoRoot(): string {
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+}
+
+async function listMarkdownFiles(absoluteDirectory: string, repoRelativeDirectory: string): Promise<string[]> {
+  const entries = await readdir(absoluteDirectory, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const absolutePath = path.join(absoluteDirectory, entry.name);
+      const repoRelativePath = `${repoRelativeDirectory}/${entry.name}`;
+
+      if (entry.isDirectory()) {
+        return listMarkdownFiles(absolutePath, repoRelativePath);
+      }
+
+      if (entry.isFile() && entry.name.endsWith(".md")) {
+        return [repoRelativePath];
+      }
+
+      return [];
+    }),
+  );
+
+  return files.flat().sort();
 }
 

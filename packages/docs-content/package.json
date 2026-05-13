@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc && node dist/cli.js",
+    "validate": "tsc && node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.ts\""

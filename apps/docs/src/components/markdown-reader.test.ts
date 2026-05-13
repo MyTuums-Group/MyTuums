@@ -6,6 +6,7 @@ import type { DocsPageRead } from "../lib/trpc"
 
 const pageRead = {
   build: {
+    environment: "ci",
     generatedAt: "2026-05-13T12:00:00.000Z",
     commitSha: "abc1234",
   },
@@ -78,6 +79,7 @@ describe("DocsMarkdownReader", () => {
     expect(html).toContain('data-docs-diagram-id="platform-map"')
     expect(html).toContain("Platform Map")
     expect(html).toContain("hljs")
+    expect(html).toContain("ci")
     expect(html).toContain("CONTEXT.md")
     expect(html).toContain("abc1234")
   })

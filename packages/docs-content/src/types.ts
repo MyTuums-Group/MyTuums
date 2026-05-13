@@ -103,6 +103,7 @@ export interface DocsSearchEntry {
 }
 
 export interface DocsBuildMetadata {
+  environment: string;
   generatedAt: string;
   commitSha: string | null;
 }
@@ -127,6 +128,7 @@ export interface DocsBuildOptions {
   rootDir: string;
   manifestPath?: string;
   outputPath?: string;
+  environment?: string;
   generatedAt?: string;
   commitSha?: string | null;
   searchIndexBuilder?: SearchIndexBuilder;

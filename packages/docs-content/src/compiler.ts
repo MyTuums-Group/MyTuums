@@ -85,6 +85,7 @@ export async function buildDocsContent(options: DocsBuildOptions): Promise<DocsB
   const artifact = await compileDocsManifest(manifest, {
     rootDir,
     manifestPath,
+    environment: options.environment,
     generatedAt: options.generatedAt,
     commitSha: options.commitSha,
     searchIndexBuilder: options.searchIndexBuilder,
@@ -395,6 +396,7 @@ async function compileDocsManifest(
     version: 1,
     manifestPath: toRepoRelativePath(options.rootDir, options.manifestPath),
     build: {
+      environment: normalizeBuildMetadataValue(options.environment) ?? "local",
       generatedAt: options.generatedAt ?? new Date().toISOString(),
       commitSha: options.commitSha ?? resolveGitCommit(options.rootDir),
     },
@@ -652,6 +654,11 @@ function resolveGitCommit(rootDir: string): string | null {
   } catch {
     return null;
   }
+}
+
+function normalizeBuildMetadataValue(value: string | undefined): string | null {
+  const trimmedValue = value?.trim();
+  return trimmedValue ? trimmedValue : null;
 }
 
 function isExternalLink(href: string): boolean {

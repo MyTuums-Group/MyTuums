@@ -1,10 +1,15 @@
 import { z } from "zod";
 import {
   DocsAccessError,
+  DocsDiagramNotFoundError,
   DocsPageNotFoundError,
 } from "../services/docs/index.js";
 import { docsService } from "../services/docs/production.js";
-import { mapDocsAccessErrorToTRPC, mapDocsPageErrorToTRPC } from "../transport/docs-errors.js";
+import {
+  mapDocsAccessErrorToTRPC,
+  mapDocsDiagramErrorToTRPC,
+  mapDocsPageErrorToTRPC,
+} from "../transport/docs-errors.js";
 import { protectedProcedure, router } from "../trpc.js";
 
 export const docsRouter = router({
@@ -29,6 +34,28 @@ export const docsRouter = router({
     .query(async ({ ctx, input }) => {
       try {
         return await docsService.getPage(
+          {
+            session: ctx.session,
+            account: ctx.accountLifecycle,
+          },
+          input,
+        );
+      } catch (error) {
+        rethrowDocsError(error);
+      }
+    }),
+
+  diagram: protectedProcedure
+    .input(
+      z.object({
+        sectionSlug: z.string().min(1),
+        pageSlug: z.string().min(1),
+        diagramId: z.string().min(1),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await docsService.getDiagram(
           {
             session: ctx.session,
             account: ctx.accountLifecycle,
@@ -69,6 +96,10 @@ function rethrowDocsError(error: unknown): never {
 
   if (error instanceof DocsPageNotFoundError) {
     throw mapDocsPageErrorToTRPC(error);
+  }
+
+  if (error instanceof DocsDiagramNotFoundError) {
+    throw mapDocsDiagramErrorToTRPC(error);
   }
 
   throw error;

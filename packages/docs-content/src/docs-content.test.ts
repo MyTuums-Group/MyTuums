@@ -70,6 +70,8 @@ describe("docs-content", () => {
         "",
         "See [Scope](docs/prd/v1-prd.md#solution).",
         "",
+        "![Platform map](diagram:platform-map)",
+        "",
         "## Product",
         "",
         "MyTuums is a social app.",
@@ -101,6 +103,14 @@ describe("docs-content", () => {
                   title: "Context",
                   sourcePath: "CONTEXT.md",
                   kind: "context",
+                  diagrams: [
+                    {
+                      id: "platform-map",
+                      title: "Platform Map",
+                      sourcePath: "docs/diagrams/platform-map.tldr",
+                      description: "High-level architecture map",
+                    },
+                  ],
                 },
                 {
                   slug: "orientation/team-conventions",
@@ -127,6 +137,15 @@ describe("docs-content", () => {
         null,
         2,
       ),
+      "docs/diagrams/platform-map.tldr": JSON.stringify({
+        schemaVersion: 1,
+        store: {
+          "page:1": {
+            id: "page:1",
+            typeName: "page",
+          },
+        },
+      }),
     });
 
     const result = await buildDocsContent({
@@ -150,6 +169,24 @@ describe("docs-content", () => {
         targetSlug: "requirements/product-requirements",
         targetAnchorId: "solution",
         targetSourcePath: "docs/prd/v1-prd.md",
+      },
+    ]);
+    expect(result.artifact.sections[0]?.pages[0]?.diagramIds).toEqual(["platform-map"]);
+    expect(result.artifact.pages[0]?.diagrams).toEqual([
+      {
+        id: "platform-map",
+        title: "Platform Map",
+        sourcePath: "docs/diagrams/platform-map.tldr",
+        description: "High-level architecture map",
+        snapshot: {
+          schemaVersion: 1,
+          store: {
+            "page:1": {
+              id: "page:1",
+              typeName: "page",
+            },
+          },
+        },
       },
     ]);
     expect(result.artifact.searchIndex.map((entry) => entry.pageSlug)).toEqual(
@@ -317,6 +354,41 @@ describe("docs-content", () => {
         rootDir: repoRoot,
       }),
     ).rejects.toThrow(/Diagram snapshot "docs\/diagrams\/missing\.json" does not exist\./u);
+  });
+
+  it("fails when markdown embeds a diagram missing from the page manifest", async () => {
+    const repoRoot = await createTempRepo({
+      "CONTEXT.md": "# Context\n\n![Unknown diagram](diagram:missing-diagram)",
+      "docs/docs-manifest.json": JSON.stringify(
+        {
+          version: 1,
+          sections: [
+            {
+              id: "orientation",
+              title: "Orientation",
+              pages: [
+                {
+                  slug: "orientation/context",
+                  title: "Context",
+                  sourcePath: "CONTEXT.md",
+                  kind: "context",
+                },
+              ],
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    });
+
+    await expect(
+      buildDocsContent({
+        rootDir: repoRoot,
+      }),
+    ).rejects.toThrow(
+      /Diagram embed "missing-diagram" in "CONTEXT\.md" is not declared in that page's manifest\./u,
+    );
   });
 
   it("fails when search index generation throws", async () => {

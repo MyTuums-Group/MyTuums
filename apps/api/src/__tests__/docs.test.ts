@@ -102,7 +102,7 @@ describe("Docs service", () => {
         sectionSlug: "platform",
         pageSlug: "overview",
       }),
-    ).resolves.toEqual(artifact.pages[0]);
+    ).resolves.toEqual({ page: artifact.pages[0], build: artifact.build });
 
     await expect(
       service.getNavigation(

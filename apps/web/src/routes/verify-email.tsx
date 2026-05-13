@@ -1,11 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  buildAuthPathWithReturnTo,
+  getCurrentReturnToSearch,
+  normalizeOptionalSearchString,
+} from "@/lib/return-to";
 
 export const Route = createFileRoute("/verify-email")({
   component: VerifyEmailPage,
 });
 
 function VerifyEmailPage() {
-  const email = new URLSearchParams(window.location.search).get("email");
+  const searchParams = new URLSearchParams(window.location.search);
+  const email = normalizeOptionalSearchString(searchParams.get("email"));
+  const returnTo = getCurrentReturnToSearch();
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
@@ -37,12 +44,12 @@ function VerifyEmailPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Link
-            to="/login"
+          <a
+            href={buildAuthPathWithReturnTo("/login", returnTo)}
             className="bg-primary text-primary-foreground inline-flex flex-1 items-center justify-center rounded-md px-4 py-2 text-sm font-medium"
           >
             Go to login
-          </Link>
+          </a>
           <Link
             to="/register"
             className="border-input inline-flex flex-1 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium"

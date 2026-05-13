@@ -1,4 +1,9 @@
-import type { DocsArtifact, DocsPage, DocsSection } from "@workspace/docs-content";
+import type {
+  DocsArtifact,
+  DocsBuildMetadata,
+  DocsPage,
+  DocsSection,
+} from "@workspace/docs-content";
 import type { AccountLifecycleSnapshot } from "../account-status/index.js";
 
 export interface DocsViewer {
@@ -22,9 +27,14 @@ export interface DocsArtifactAdapter {
   readArtifact(): Promise<DocsArtifact>;
 }
 
+export interface DocsPageResult {
+  page: DocsPage;
+  build: DocsBuildMetadata;
+}
+
 export interface DocsService {
   getNavigation(viewer: DocsViewer): Promise<DocsSection[]>;
-  getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPage>;
+  getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPageResult>;
 }
 
 export class DocsAccessError extends Error {
@@ -101,7 +111,10 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
         throw new DocsPageNotFoundError(input.sectionSlug, input.pageSlug);
       }
 
-      return page;
+      return {
+        page,
+        build: artifact.build,
+      };
     },
   };
 }

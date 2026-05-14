@@ -34,7 +34,7 @@ export type { SignReadError } from "./media.policy.js";
 export type { MediaRow } from "./media.adapter.js";
 
 // ── Config (move to env/config package later) ────────────────────────
-const MEDIA_CONTAINER = "user-uploads";
+const MEDIA_CONTAINER = process.env.MEDIA_CONTAINER_NAME ?? "user-media";
 
 // ── createUploadIntent ───────────────────────────────────────────────
 
@@ -47,6 +47,7 @@ export interface CreateUploadIntentInput {
 export interface CreateUploadIntentOutput {
   mediaId: string;
   uploadUrl: string;
+  blobKey: string;
 }
 
 /**
@@ -94,7 +95,7 @@ export async function createUploadIntent(
     policy.UPLOAD_URL_LIFETIME_SECONDS,
   );
 
-  return { ok: true, value: { mediaId, uploadUrl } };
+  return { ok: true, value: { mediaId, uploadUrl, blobKey } };
 }
 
 // ── reissueUploadUrl ─────────────────────────────────────────────────
@@ -230,6 +231,20 @@ export async function attachMedia(
 
   await adapter.markAttached(mediaId);
 
+  return { ok: true, value: { mediaId } };
+}
+
+export async function abandonMedia(
+  mediaId: string,
+  userId: string,
+): Promise<Result<{ mediaId: string }, policy.AttachmentError>> {
+  const row = await adapter.findById(mediaId);
+  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  if (row.ownerId !== userId) return { ok: false, error: { kind: "wrong_owner" } };
+  if (row.status === "attached") {
+    return { ok: false, error: { kind: "already_attached" } };
+  }
+  await adapter.markDeleted(mediaId);
   return { ok: true, value: { mediaId } };
 }
 

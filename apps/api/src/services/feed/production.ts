@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, lt, notInArray, or } from "drizzle-orm";
-import { comment, db, follow, game, post, profile, user } from "@workspace/db";
+import { comment, db, follow, game, media, post, profile, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
 import {
   canViewFeedComment,
@@ -96,7 +96,8 @@ function postBaseQuery(viewer: ViewerContext) {
     .from(post)
     .innerJoin(user, eq(post.authorId, user.id))
     .innerJoin(profile, eq(post.authorId, profile.userId))
-    .leftJoin(game, eq(post.gameTagId, game.id));
+    .leftJoin(game, eq(post.gameTagId, game.id))
+    .leftJoin(media, eq(post.mediaAttachmentId, media.id));
 
   if (!viewer.userId) return query;
 
@@ -117,6 +118,11 @@ const postSelection = {
   gameTagId: post.gameTagId,
   gameTagSlug: game.slug,
   gameTagName: game.name,
+  mediaAttachmentId: post.mediaAttachmentId,
+  mediaMimeType: media.mimeType,
+  mediaBlobKey: media.blobKey,
+  mediaStorageContainer: media.storageContainer,
+  mediaStatus: media.status,
   likeCount: post.likeCount,
   commentCount: post.commentCount,
   deletedAt: post.deletedAt,

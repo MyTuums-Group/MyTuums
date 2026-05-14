@@ -7,6 +7,7 @@ export type PostRecord = {
   authorId: string;
   text: string;
   gameTagId: string | null;
+  mediaAttachmentId: string | null;
   likeCount: number;
   commentCount: number;
   deletedAt: Date | null;
@@ -20,11 +21,13 @@ export type PostCreateInput = {
   authorId: string;
   text: string;
   gameTagId?: string | null;
+  mediaAttachmentId?: string | null;
 };
 
 export type CreatePostError =
   | { kind: "invalid_post_body"; message: string }
-  | { kind: "invalid_game_tag" };
+  | { kind: "invalid_game_tag" }
+  | { kind: "invalid_media_attachment" };
 
 export type DeleteOwnPostError =
   | { kind: "not_found" }
@@ -43,6 +46,7 @@ export type PostRepository = {
     authorId: string;
     text: PostBody;
     gameTagId: string | null;
+    mediaAttachmentId: string | null;
   }): Promise<PostRecord>;
   findPostByPublicId(publicId: string): Promise<PostRecord | null>;
   markPostDeleted(values: {
@@ -82,11 +86,20 @@ export function createPostService(repository: PostRepository): PostService {
         }
       }
 
-      const row = await repository.createPost({
-        authorId: input.authorId,
-        text: validatedBody.value,
-        gameTagId,
-      });
+      let row: PostRecord;
+      try {
+        row = await repository.createPost({
+          authorId: input.authorId,
+          text: validatedBody.value,
+          gameTagId,
+          mediaAttachmentId: input.mediaAttachmentId ?? null,
+        });
+      } catch (error) {
+        if (isInvalidMediaAttachment(error)) {
+          return { ok: false, error: { kind: "invalid_media_attachment" } };
+        }
+        throw error;
+      }
 
       return { ok: true, value: row };
     },
@@ -124,6 +137,17 @@ export function createPostService(repository: PostRepository): PostService {
   };
 }
 
+function isInvalidMediaAttachment(
+  error: unknown,
+): error is { code: "INVALID_MEDIA_ATTACHMENT" } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "INVALID_MEDIA_ATTACHMENT"
+  );
+}
+
 export function createInMemoryPostService(state: {
   posts: PostRecord[];
   games: Array<ActiveGameRecord & { isActive: boolean }>;
@@ -152,6 +176,7 @@ export function createInMemoryPostService(state: {
         authorId: values.authorId,
         text: values.text,
         gameTagId: values.gameTagId,
+        mediaAttachmentId: values.mediaAttachmentId,
         likeCount: 0,
         commentCount: 0,
         deletedAt: null,

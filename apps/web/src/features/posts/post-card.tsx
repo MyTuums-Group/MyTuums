@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import {
   ArrowUpRight,
   ChatCircleDots,
@@ -35,6 +35,7 @@ type PostCardProps = {
 
 export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
   const authorName = post.author.displayName ?? `@${post.author.username}`
+  const [isLightboxOpen, setLightboxOpen] = useState(false)
   const utils = trpc.useUtils()
   const deleteMutation = trpc.post.deleteOwn.useMutation({
     async onMutate() {
@@ -196,6 +197,31 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
             </span>
           </div>
         )}
+
+        {post.media && (
+          <div className="overflow-hidden rounded-xl border border-border bg-muted/40">
+            {post.media.kind === "video" ? (
+              <video
+                src={post.media.url}
+                controls
+                preload="metadata"
+                className="max-h-[32rem] w-full bg-black object-contain"
+              />
+            ) : (
+              <button
+                type="button"
+                className="block w-full focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                onClick={() => setLightboxOpen(true)}
+              >
+                <img
+                  src={post.media.url}
+                  alt="Post image attachment"
+                  className="max-h-[32rem] w-full object-contain"
+                />
+              </button>
+            )}
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="flex flex-wrap items-center justify-between gap-3">
@@ -226,6 +252,29 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
           </time>
         )}
       </CardFooter>
+
+      {isLightboxOpen && post.media?.kind === "image" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Post image preview"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4 backdrop-blur"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-border"
+            onClick={() => setLightboxOpen(false)}
+          >
+            Close
+          </button>
+          <img
+            src={post.media.url}
+            alt="Post image attachment"
+            className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
+          />
+        </div>
+      )}
     </Card>
   )
 }

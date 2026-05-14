@@ -26,6 +26,13 @@ export function mapCreatePostErrorToTransport(
         publicCode: "invalid_game_tag",
         message: "Game tag must reference an active game.",
       };
+    case "invalid_media_attachment":
+      return {
+        trpcCode: "CONFLICT",
+        httpStatus: 409,
+        publicCode: "invalid_media_attachment",
+        message: "Media must be ready, owned by you, and available for post attachment.",
+      };
   }
 }
 

@@ -63,6 +63,7 @@ export {
   reissueUploadUrl,
   confirmUpload,
   attachMedia,
+  abandonMedia,
   signReadUrl,
   computeCleanupCandidates,
   type CreateUploadIntentInput,

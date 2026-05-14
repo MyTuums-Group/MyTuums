@@ -14,6 +14,8 @@ import {
   createPost as createPostRecord,
   deleteOwnPost,
 } from "../services/post/index.js";
+import { signReadUrl } from "../services/media/index.js";
+import { createBlobStorageAdapter } from "../services/media/azure-blob-storage.adapter.js";
 import { getOwnerByUsername } from "../services/profile/index.js";
 import { mapProfileAccessErrorToTRPC } from "../transport/profile-errors.js";
 import {
@@ -25,6 +27,7 @@ import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 50;
 const PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
+const storage = createBlobStorageAdapter();
 
 const publicIdSchema = z
   .string()
@@ -98,6 +101,7 @@ export const postRouter = router({
       z.object({
         text: z.string(),
         gameTagId: z.string().uuid().nullable().optional(),
+        mediaAttachmentId: z.string().uuid().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -113,6 +117,7 @@ export const postRouter = router({
         authorId: ctx.user.id,
         text: input.text,
         gameTagId: input.gameTagId ?? null,
+        mediaAttachmentId: input.mediaAttachmentId ?? null,
       });
 
       if (!created.ok) {
@@ -213,12 +218,12 @@ async function getViewerFromContext(ctx: {
   );
 }
 
-function toFeedResponse(
+async function toFeedResponse(
   viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
   page: FeedPage<FeedPostRow>,
 ) {
   return {
-    items: page.items.map((row) => toPostView(viewer, row)),
+    items: await Promise.all(page.items.map((row) => toPostView(viewer, row))),
     nextCursor:
       page.nextCursor && page.items.length > 0
         ? encodeCursor(page.items[page.items.length - 1]!)
@@ -226,7 +231,7 @@ function toFeedResponse(
   };
 }
 
-function toPostView(
+async function toPostView(
   viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
   row: FeedPostRow,
 ) {
@@ -246,11 +251,24 @@ function toPostView(
             name: row.gameTagName,
           }
         : null,
-    media: null,
+    media: await toMediaView(row),
     likeCount: row.likeCount,
     commentCount: row.commentCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     canDelete: viewer.userId === row.authorId && row.deletedAt === null,
+  };
+}
+
+async function toMediaView(row: FeedPostRow) {
+  if (!row.mediaAttachmentId || !row.mediaStatus) return null;
+  const signed = await signReadUrl(row.mediaAttachmentId, storage);
+  if (!signed.ok) return null;
+
+  return {
+    id: row.mediaAttachmentId,
+    kind: row.mediaMimeType?.startsWith("video/") ? "video" : "image",
+    mimeType: row.mediaMimeType ?? "application/octet-stream",
+    url: signed.value.readUrl,
   };
 }

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -244,6 +245,18 @@ export const game = pgTable(
   (table) => [
     uniqueIndex("game_slug_unique").on(table.slug),
     index("game_slug_idx").on(table.slug),
+    index("game_slug_search_trgm_idx").using(
+      "gin",
+      sql`(public.immutable_unaccent(lower(${table.slug}))) gin_trgm_ops`,
+    ),
+    index("game_name_search_trgm_idx").using(
+      "gin",
+      sql`(public.immutable_unaccent(lower(${table.name}))) gin_trgm_ops`,
+    ),
+    index("game_aliases_search_trgm_idx").using(
+      "gin",
+      sql`(public.immutable_unaccent(lower(coalesce(${table.aliases}::text, '')))) gin_trgm_ops`,
+    ),
   ],
 );
 
@@ -314,6 +327,14 @@ export const profile = pgTable(
     uniqueIndex("profile_user_id_unique").on(table.userId),
     uniqueIndex("profile_username_unique").on(table.username),
     index("profile_username_idx").on(table.username),
+    index("profile_username_search_trgm_idx").using(
+      "gin",
+      sql`(public.immutable_unaccent(lower(${table.username}))) gin_trgm_ops`,
+    ),
+    index("profile_display_name_search_trgm_idx").using(
+      "gin",
+      sql`(public.immutable_unaccent(lower(coalesce(${table.displayName}, '')))) gin_trgm_ops`,
+    ),
   ],
 );
 

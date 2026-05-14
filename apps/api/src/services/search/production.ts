@@ -1,14 +1,24 @@
 import { db, game, profile, user } from "@workspace/db";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, or, sql, type SQL } from "drizzle-orm";
 import type { SearchQueryAdapter } from "./index.js";
+
+function escapeLikeWildcards(term: string): string {
+  return term.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+/** Substring match on an expression; pattern must use `escape '\\'`. */
+function exprLikeContains(expression: SQL, term: string): SQL {
+  const pattern = `%${escapeLikeWildcards(term)}%`;
+  return sql`(${expression} like ${pattern} escape '\\')`;
+}
 
 export const searchQueries: SearchQueryAdapter = {
   async searchProfiles({ viewer: _viewer, terms, limit }) {
     if (terms.length === 0) return [];
 
     const clauses = terms.flatMap((term) => [
-      sql`(position(${term} in lower(${profile.username})) > 0)`,
-      sql`(position(${term} in lower(coalesce(${profile.displayName}, ''))) > 0)`,
+      exprLikeContains(sql`public.immutable_unaccent(lower(${profile.username}))`, term),
+      exprLikeContains(sql`public.immutable_unaccent(lower(coalesce(${profile.displayName}, '')))`, term),
     ]);
 
     const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses);
@@ -31,9 +41,9 @@ export const searchQueries: SearchQueryAdapter = {
     if (terms.length === 0) return [];
 
     const clauses = terms.flatMap((term) => [
-      sql`(position(${term} in lower(${game.slug})) > 0)`,
-      sql`(position(${term} in lower(${game.name})) > 0)`,
-      sql`(position(${term} in lower(coalesce(${game.aliases}::text, ''))) > 0)`,
+      exprLikeContains(sql`public.immutable_unaccent(lower(${game.slug}))`, term),
+      exprLikeContains(sql`public.immutable_unaccent(lower(${game.name}))`, term),
+      exprLikeContains(sql`public.immutable_unaccent(lower(coalesce(${game.aliases}::text, '')))`, term),
     ]);
 
     const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses);

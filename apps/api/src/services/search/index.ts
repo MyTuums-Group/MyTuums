@@ -32,9 +32,20 @@ export interface SearchGameRow {
   isActive: boolean;
 }
 
+export interface SearchProfilesParams {
+  viewer: ViewerContext;
+  terms: string[];
+  limit: number;
+}
+
+export interface SearchGamesParams {
+  terms: string[];
+  limit: number;
+}
+
 export interface SearchQueryAdapter {
-  profiles(): Promise<SearchProfileRow[]>;
-  games(): Promise<SearchGameRow[]>;
+  searchProfiles(params: SearchProfilesParams): Promise<SearchProfileRow[]>;
+  searchGames(params: SearchGamesParams): Promise<SearchGameRow[]>;
 }
 
 export interface SearchService {
@@ -54,6 +65,11 @@ type RankedSearchItem = AppSearchResultItem & {
 
 type SearchRank = 0 | 1 | 2;
 
+/** Caps how many rows each adapter query may return before service-side ranking and filtering. */
+function searchAdapterCandidateLimit(requestedLimit: number): number {
+  return Math.min(5000, Math.max(200, requestedLimit * 100));
+}
+
 export function createSearchService(adapter: SearchQueryAdapter): SearchService {
   return {
     async appSearch(viewer, input) {
@@ -64,9 +80,11 @@ export function createSearchService(adapter: SearchQueryAdapter): SearchService 
       const terms = normalizeQuery(input.query);
       if (terms.length === 0) return { results: [] };
 
+      const candidateLimit = searchAdapterCandidateLimit(input.limit);
+
       const [profiles, games] = await Promise.all([
-        adapter.profiles(),
-        adapter.games(),
+        adapter.searchProfiles({ viewer, terms, limit: candidateLimit }),
+        adapter.searchGames({ terms, limit: candidateLimit }),
       ]);
 
       const rankedItems = [
@@ -94,11 +112,13 @@ export function createInMemorySearchService(state: {
   games: SearchGameRow[];
 }): SearchService {
   return createSearchService({
-    profiles() {
-      return Promise.resolve(state.profiles);
+    searchProfiles({ terms, limit }) {
+      const matched = state.profiles.filter((row) => profileMatchesAnySearchTerm(row, terms));
+      return Promise.resolve(matched.slice(0, limit));
     },
-    games() {
-      return Promise.resolve(state.games);
+    searchGames({ terms, limit }) {
+      const matched = state.games.filter((row) => gameMatchesAnySearchTerm(row, terms));
+      return Promise.resolve(matched.slice(0, limit));
     },
   });
 }
@@ -126,6 +146,22 @@ function canSearchProfile(viewer: ViewerContext, profile: SearchProfileRow): boo
 
 function canSearchGame(game: SearchGameRow): boolean {
   return game.isActive;
+}
+
+function profileMatchesAnySearchTerm(profile: SearchProfileRow, terms: string[]): boolean {
+  const item = toProfileSearchItem(profile);
+  const exactTexts = item.exactTexts.map(normalizeForSearch);
+  const prefixTexts = item.prefixTexts.map(normalizeForSearch);
+  const normalizedText = normalizeForSearch(item.searchableText);
+  return terms.some((term) => rankTerm(term, exactTexts, prefixTexts, normalizedText) !== null);
+}
+
+function gameMatchesAnySearchTerm(game: SearchGameRow, terms: string[]): boolean {
+  const item = toGameSearchItem(game);
+  const exactTexts = item.exactTexts.map(normalizeForSearch);
+  const prefixTexts = item.prefixTexts.map(normalizeForSearch);
+  const normalizedText = normalizeForSearch(item.searchableText);
+  return terms.some((term) => rankTerm(term, exactTexts, prefixTexts, normalizedText) !== null);
 }
 
 function toProfileSearchItem(profile: SearchProfileRow): SearchCandidate {

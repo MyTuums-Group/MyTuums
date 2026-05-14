@@ -19,6 +19,7 @@ import type {
   AuthorizationAdapter,
 } from "@workspace/types";
 import type { UserRole, AccountStatus } from "@workspace/types";
+import { canViewTarget } from "../services/visibility/memory.js";
 
 // ── Internal state (plain objects, no Map/Set for CI compatibility) ──
 
@@ -119,18 +120,7 @@ export function createTestAdapter(): AuthorizationAdapter & {
   }
 
   function canView(ctx: ViewerContext, target: TargetRef): boolean {
-    switch (target.type) {
-      case "user":
-        return canViewUser(ctx, target.userId);
-      case "profile":
-        return canViewProfile(ctx, target.userId);
-      case "post":
-        return canViewPost(ctx, target);
-      case "comment":
-        return canViewComment(ctx, target);
-      default:
-        return false;
-    }
+    return canViewTarget(ctx, target);
   }
 
   function filterVisible(
@@ -138,62 +128,6 @@ export function createTestAdapter(): AuthorizationAdapter & {
     targets: TargetRef[],
   ): TargetRef[] {
     return targets.filter((t) => canView(ctx, t));
-  }
-
-  // ── Private helpers (mirror production logic) ────────────────────
-
-  function isStaff(ctx: ViewerContext): boolean {
-    if (!ctx.isAuthenticated || !ctx.role) return false;
-    return (
-      ctx.role === "moderator" ||
-      ctx.role === "admin" ||
-      ctx.role === "owner"
-    );
-  }
-
-  function canViewUser(ctx: ViewerContext, targetUserId: string): boolean {
-    if (ctx.userId === targetUserId) return true;
-    if (isStaff(ctx)) return true;
-    if (ctx.blockedUserIds.includes(targetUserId)) return false;
-    if (ctx.blockedByUserIds.includes(targetUserId)) return false;
-    return true;
-  }
-
-  function canViewProfile(
-    ctx: ViewerContext,
-    profileUserId: string,
-  ): boolean {
-    if (ctx.userId === profileUserId) return true;
-    if (isStaff(ctx)) return true;
-    if (ctx.blockedUserIds.includes(profileUserId)) return false;
-    if (ctx.blockedByUserIds.includes(profileUserId)) return false;
-    return true;
-  }
-
-  function canViewPost(
-    ctx: ViewerContext,
-    t: TargetRef & { type: "post" },
-  ): boolean {
-    if (ctx.userId === t.authorId) return true;
-    if (isStaff(ctx)) return true;
-    if (ctx.blockedUserIds.includes(t.authorId)) return false;
-    if (ctx.blockedByUserIds.includes(t.authorId)) return false;
-    if (t.deletedAt) return false;
-    if (t.removedAt) return false;
-    return true;
-  }
-
-  function canViewComment(
-    ctx: ViewerContext,
-    t: TargetRef & { type: "comment" },
-  ): boolean {
-    if (ctx.userId === t.authorId) return true;
-    if (isStaff(ctx)) return true;
-    if (ctx.blockedUserIds.includes(t.authorId)) return false;
-    if (ctx.blockedByUserIds.includes(t.authorId)) return false;
-    if (t.deletedAt) return false;
-    if (t.removedAt) return false;
-    return true;
   }
 
   return { getViewerContext, canView, filterVisible, addUser, addBlock, reset };

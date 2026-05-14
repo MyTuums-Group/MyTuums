@@ -3,15 +3,7 @@ import { z } from "zod";
 import type { Context } from "../context.js";
 import { protectedProcedure, router } from "../trpc.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
-import {
-  abandonMedia,
-  confirmUpload,
-  createUploadIntent,
-  reissueUploadUrl,
-} from "../services/media/index.js";
-import { createBlobStorageAdapter } from "../services/media/azure-blob-storage.adapter.js";
-
-const storage = createBlobStorageAdapter();
+import { mediaService } from "../services/media/media-service.production.js";
 
 const mediaIdSchema = z.string().uuid();
 
@@ -28,7 +20,7 @@ export const mediaRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertCanUpload(ctx);
-      const result = await createUploadIntent(ctx.user.id, input, storage);
+      const result = await mediaService.createUploadIntent(ctx.user.id, input);
       if (!result.ok) throw mediaError(result.error.kind);
       return result.value;
     }),
@@ -36,7 +28,7 @@ export const mediaRouter = router({
   confirmUpload: protectedProcedure
     .input(z.object({ mediaId: mediaIdSchema }))
     .mutation(async ({ ctx, input }) => {
-      const result = await confirmUpload(input.mediaId, ctx.user.id, storage);
+      const result = await mediaService.confirmUpload(input.mediaId, ctx.user.id);
       if (!result.ok) throw mediaError(result.error.kind);
       return result.value;
     }),
@@ -44,7 +36,7 @@ export const mediaRouter = router({
   retryUpload: protectedProcedure
     .input(z.object({ mediaId: mediaIdSchema }))
     .mutation(async ({ ctx, input }) => {
-      const result = await reissueUploadUrl(input.mediaId, ctx.user.id, storage);
+      const result = await mediaService.reissueUploadUrl(input.mediaId, ctx.user.id);
       if (!result.ok) throw mediaError(result.error.kind);
       return result.value;
     }),
@@ -52,7 +44,7 @@ export const mediaRouter = router({
   removeUpload: protectedProcedure
     .input(z.object({ mediaId: mediaIdSchema }))
     .mutation(async ({ ctx, input }) => {
-      const result = await abandonMedia(input.mediaId, ctx.user.id);
+      const result = await mediaService.abandonMedia(input.mediaId, ctx.user.id);
       if (!result.ok) throw mediaError(result.error.kind);
       return result.value;
     }),

@@ -1,20 +1,18 @@
-import { Buffer } from "node:buffer";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authorization } from "../authorization/index.js";
-import {
-  type FeedCursor,
-  type FeedPage,
-  type FeedPageInput,
-  type FeedPostRow,
-} from "../services/feed/index.js";
+import type { FeedPageInput } from "../services/feed/index.js";
 import { feedVisibilityQueries } from "../services/feed/production.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
 import {
   createPost as createPostRecord,
   deleteOwnPost,
 } from "../services/post/index.js";
-import { mediaService } from "../services/media/media-service.production.js";
+import {
+  InvalidFeedCursorError,
+  postPublicIdSchema,
+} from "../services/post/presentation.js";
+import { postPresentation } from "../services/post/presentation.production.js";
 import { getOwnerByUsername } from "../services/profile/index.js";
 import { mapProfileAccessErrorToTRPC } from "../transport/profile-errors.js";
 import {
@@ -25,19 +23,10 @@ import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 50;
-const PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const publicIdSchema = z
-  .string()
-  .regex(PUBLIC_ID_PATTERN, "Invalid post ID.");
 
 const feedPageSchema = z.object({
   cursor: z.string().optional(),
   limit: z.number().int().min(1).max(MAX_PAGE_LIMIT).default(DEFAULT_PAGE_LIMIT),
-});
-
-const cursorPayloadSchema = z.object({
-  createdAt: z.string().datetime(),
-  publicId: publicIdSchema,
 });
 
 export const postRouter = router({
@@ -47,9 +36,9 @@ export const postRouter = router({
       const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
       const page = await feedVisibilityQueries.forYouFeed(
         viewer,
-        await toFeedPageInput(viewer, input),
+        await toFeedPageInputOrThrow(viewer, input),
       );
-      return toFeedResponse(viewer, page);
+      return postPresentation.toFeedResponse(viewer, page);
     }),
 
   profileFeed: publicProcedure
@@ -68,16 +57,16 @@ export const postRouter = router({
       const page = await feedVisibilityQueries.profileFeed(
         viewer,
         owner.value.userId,
-        await toFeedPageInput(viewer, input),
+        await toFeedPageInputOrThrow(viewer, input),
       );
 
-      return toFeedResponse(viewer, page);
+      return postPresentation.toFeedResponse(viewer, page);
     }),
 
   detail: publicProcedure
     .input(
       z.object({
-        publicId: publicIdSchema,
+        publicId: postPublicIdSchema,
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -90,7 +79,7 @@ export const postRouter = router({
         });
       }
 
-      return toPostView(viewer, row);
+      return postPresentation.toPostView(viewer, row);
     }),
 
   create: protectedProcedure
@@ -131,13 +120,13 @@ export const postRouter = router({
         });
       }
 
-      return toPostView(viewer, row);
+      return postPresentation.toPostView(viewer, row);
     }),
 
   deleteOwn: protectedProcedure
     .input(
       z.object({
-        publicId: publicIdSchema,
+        publicId: postPublicIdSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -154,57 +143,21 @@ export const postRouter = router({
     }),
 });
 
-async function toFeedPageInput(
+async function toFeedPageInputOrThrow(
   viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
   input: z.infer<typeof feedPageSchema>,
 ): Promise<FeedPageInput> {
-  return {
-    limit: input.limit,
-    cursor: input.cursor ? await resolveCursor(viewer, input.cursor) : null,
-  };
-}
-
-async function resolveCursor(
-  viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
-  cursor: string,
-): Promise<FeedCursor> {
-  const payload = decodeCursor(cursor);
-  const row = await feedVisibilityQueries.postDetail(viewer, payload.publicId);
-  if (!row || row.createdAt.toISOString() !== payload.createdAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Invalid feed cursor.",
-    });
-  }
-
-  return {
-    createdAt: row.createdAt,
-    id: row.id,
-  };
-}
-
-function decodeCursor(cursor: string): z.infer<typeof cursorPayloadSchema> {
   try {
-    const parsed = JSON.parse(
-      Buffer.from(cursor, "base64url").toString("utf8"),
-    ) as unknown;
-    return cursorPayloadSchema.parse(parsed);
-  } catch {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Invalid feed cursor.",
-    });
+    return await postPresentation.toFeedPageInput(viewer, input);
+  } catch (error) {
+    if (error instanceof InvalidFeedCursorError) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: error.message,
+      });
+    }
+    throw error;
   }
-}
-
-function encodeCursor(row: FeedPostRow): string {
-  return Buffer.from(
-    JSON.stringify({
-      createdAt: row.createdAt.toISOString(),
-      publicId: row.publicId,
-    }),
-    "utf8",
-  ).toString("base64url");
 }
 
 async function getViewerFromContext(ctx: {
@@ -213,59 +166,4 @@ async function getViewerFromContext(ctx: {
   return authorization.getViewerContext(
     ctx.session ? { userId: ctx.session.user.id } : null,
   );
-}
-
-async function toFeedResponse(
-  viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
-  page: FeedPage<FeedPostRow>,
-) {
-  return {
-    items: await Promise.all(page.items.map((row) => toPostView(viewer, row))),
-    nextCursor:
-      page.nextCursor && page.items.length > 0
-        ? encodeCursor(page.items[page.items.length - 1]!)
-        : null,
-  };
-}
-
-async function toPostView(
-  viewer: Awaited<ReturnType<typeof getViewerFromContext>>,
-  row: FeedPostRow,
-) {
-  return {
-    publicId: row.publicId,
-    text: row.text,
-    author: {
-      username: row.authorUsername,
-      displayName: row.authorDisplayName,
-      avatarUrl: null,
-    },
-    gameTag:
-      row.gameTagId && row.gameTagSlug && row.gameTagName
-        ? {
-            id: row.gameTagId,
-            slug: row.gameTagSlug,
-            name: row.gameTagName,
-          }
-        : null,
-    media: await toMediaView(row),
-    likeCount: row.likeCount,
-    commentCount: row.commentCount,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    canDelete: viewer.userId === row.authorId && row.deletedAt === null,
-  };
-}
-
-async function toMediaView(row: FeedPostRow) {
-  if (!row.mediaAttachmentId || !row.mediaStatus) return null;
-  const signed = await mediaService.signReadUrl(row.mediaAttachmentId);
-  if (!signed.ok) return null;
-
-  return {
-    id: row.mediaAttachmentId,
-    kind: row.mediaMimeType?.startsWith("video/") ? "video" : "image",
-    mimeType: row.mediaMimeType ?? "application/octet-stream",
-    url: signed.value.readUrl,
-  };
 }

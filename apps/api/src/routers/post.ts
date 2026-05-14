@@ -14,8 +14,7 @@ import {
   createPost as createPostRecord,
   deleteOwnPost,
 } from "../services/post/index.js";
-import { signReadUrl } from "../services/media/index.js";
-import { createBlobStorageAdapter } from "../services/media/azure-blob-storage.adapter.js";
+import { mediaService } from "../services/media/media-service.production.js";
 import { getOwnerByUsername } from "../services/profile/index.js";
 import { mapProfileAccessErrorToTRPC } from "../transport/profile-errors.js";
 import {
@@ -27,8 +26,6 @@ import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 50;
 const PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const storage = createBlobStorageAdapter();
-
 const publicIdSchema = z
   .string()
   .regex(PUBLIC_ID_PATTERN, "Invalid post ID.");
@@ -262,7 +259,7 @@ async function toPostView(
 
 async function toMediaView(row: FeedPostRow) {
   if (!row.mediaAttachmentId || !row.mediaStatus) return null;
-  const signed = await signReadUrl(row.mediaAttachmentId, storage);
+  const signed = await mediaService.signReadUrl(row.mediaAttachmentId);
   if (!signed.ok) return null;
 
   return {

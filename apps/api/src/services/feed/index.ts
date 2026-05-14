@@ -1,4 +1,5 @@
 import type { AccountStatus, ViewerContext } from "@workspace/types";
+import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
 
 export interface FeedCursor {
   createdAt: Date;
@@ -160,34 +161,6 @@ export function createInMemoryFeedVisibilityQueries(
   };
 }
 
-export function canViewFeedPost(
-  viewer: ViewerContext,
-  post: FeedPostRow,
-): boolean {
-  if (isStaff(viewer)) return true;
-  if (viewer.blockedUserIds.includes(post.authorId)) return false;
-  if (viewer.blockedByUserIds.includes(post.authorId)) return false;
-  if (post.authorAccountStatus !== "active") return false;
-  if (post.deletedAt) return false;
-  if (viewer.userId === post.authorId) return true;
-  if (post.removedAt) return false;
-  return true;
-}
-
-export function canViewFeedComment(
-  viewer: ViewerContext,
-  comment: FeedCommentRow,
-): boolean {
-  if (viewer.userId === comment.authorId) return true;
-  if (isStaff(viewer)) return true;
-  if (viewer.blockedUserIds.includes(comment.authorId)) return false;
-  if (viewer.blockedByUserIds.includes(comment.authorId)) return false;
-  if (comment.authorAccountStatus !== "active") return false;
-  if (comment.deletedAt) return false;
-  if (comment.removedAt) return false;
-  return true;
-}
-
 function paginateByCreatedAt<T extends { id: string; createdAt: Date }>(
   rows: T[],
   page: FeedPageInput,
@@ -228,12 +201,4 @@ function isOlderThanCursor(
 
 function toCursor(row: { id: string; createdAt: Date }): FeedCursor {
   return { id: row.id, createdAt: row.createdAt };
-}
-
-function isStaff(viewer: ViewerContext): boolean {
-  return (
-    viewer.role === "moderator" ||
-    viewer.role === "admin" ||
-    viewer.role === "owner"
-  );
 }

@@ -20,7 +20,7 @@ describe("DocsSearch", () => {
     const html = renderToStaticMarkup(createElement(DocsSearch))
 
     expect(html).toContain('aria-label="Search docs"')
-    expect(html).toContain('placeholder="Search docs"')
+    expect(html).toContain('placeholder="Search protected docs"')
     expect(html).not.toContain("All CI checks must pass")
   })
 

@@ -194,6 +194,7 @@ describe("post service", () => {
           authorId: "alice",
           text: "Deleted already",
           gameTagId: null,
+          mediaAttachmentId: null,
           likeCount: 0,
           commentCount: 0,
           deletedAt,

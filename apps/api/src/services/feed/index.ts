@@ -26,6 +26,11 @@ export interface FeedPostRow {
   gameTagId: string | null;
   gameTagSlug: string | null;
   gameTagName: string | null;
+  mediaAttachmentId: string | null;
+  mediaMimeType: string | null;
+  mediaBlobKey: string | null;
+  mediaStorageContainer: string | null;
+  mediaStatus: string | null;
   likeCount: number;
   commentCount: number;
   deletedAt: Date | null;

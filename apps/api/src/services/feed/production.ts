@@ -1,13 +1,13 @@
-import { and, desc, eq, isNull, lt, notInArray, or } from "drizzle-orm";
+import { and, desc, eq, lt, or } from "drizzle-orm";
 import { comment, db, follow, game, media, post, profile, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
-import {
-  canViewFeedComment,
-  canViewFeedPost,
-  type FeedPage,
-  type FeedPageInput,
-  type FeedPostRow,
-  type FeedVisibilityQueryAdapter,
+import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
+import { feedCommentSqlPredicate, feedPostSqlPredicate } from "../visibility/sql-feed.production.js";
+import type {
+  FeedPage,
+  FeedPageInput,
+  FeedPostRow,
+  FeedVisibilityQueryAdapter,
 } from "./index.js";
 
 const DEFAULT_LIMIT = 20;
@@ -39,8 +39,13 @@ export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
   },
 
   async postDetail(viewer, publicId) {
+    const sqlPred = feedPostSqlPredicate(viewer);
     const rows = await postBaseQuery(viewer)
-      .where(and(eq(post.publicId, publicId), postVisibilityPredicate(viewer)))
+      .where(
+        sqlPred
+          ? and(eq(post.publicId, publicId), sqlPred)
+          : eq(post.publicId, publicId),
+      )
       .limit(1);
 
     const row = rows[0];
@@ -50,6 +55,7 @@ export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
 
   async commentList(viewer, postId, page) {
     const limit = clampLimit(page.limit);
+    const sqlPred = feedCommentSqlPredicate(viewer);
     const rows = await db
       .select(commentSelection)
       .from(comment)
@@ -57,7 +63,7 @@ export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
       .where(
         and(
           eq(comment.postId, postId),
-          commentVisibilityPredicate(viewer),
+          sqlPred,
           cursorPredicate(comment, page),
         ),
       )
@@ -77,10 +83,9 @@ async function visiblePostPage(
   extraPredicate?: ReturnType<typeof eq>,
 ): Promise<FeedPage<FeedPostRow>> {
   const limit = clampLimit(page.limit);
+  const sqlPred = feedPostSqlPredicate(viewer);
   const rows = await postBaseQuery(viewer)
-    .where(
-      and(postVisibilityPredicate(viewer), cursorPredicate(post, page), extraPredicate),
-    )
+    .where(and(sqlPred, cursorPredicate(post, page), extraPredicate))
     .orderBy(desc(post.createdAt), desc(post.id))
     .limit(limit + 1);
 
@@ -146,53 +151,6 @@ const commentSelection = {
   updatedAt: comment.updatedAt,
 };
 
-function postVisibilityPredicate(viewer: ViewerContext) {
-  if (isStaff(viewer)) return undefined;
-
-  const publicVisibility = and(
-    eq(user.accountStatus, "active"),
-    isNull(post.deletedAt),
-    isNull(post.removedAt),
-    blockedAuthorPredicate(viewer),
-  );
-
-  if (!viewer.userId) return publicVisibility;
-  return or(
-    and(eq(post.authorId, viewer.userId), isNull(post.deletedAt)),
-    publicVisibility,
-  );
-}
-
-function commentVisibilityPredicate(viewer: ViewerContext) {
-  if (isStaff(viewer)) return undefined;
-
-  const publicVisibility = and(
-    eq(user.accountStatus, "active"),
-    isNull(comment.deletedAt),
-    isNull(comment.removedAt),
-    blockedCommentAuthorPredicate(viewer),
-  );
-
-  if (!viewer.userId) return publicVisibility;
-  return or(eq(comment.authorId, viewer.userId), publicVisibility);
-}
-
-function blockedAuthorPredicate(viewer: ViewerContext) {
-  const blockedIds = blockedPairIds(viewer);
-  if (blockedIds.length === 0) return undefined;
-  return notInArray(post.authorId, blockedIds);
-}
-
-function blockedCommentAuthorPredicate(viewer: ViewerContext) {
-  const blockedIds = blockedPairIds(viewer);
-  if (blockedIds.length === 0) return undefined;
-  return notInArray(comment.authorId, blockedIds);
-}
-
-function blockedPairIds(viewer: ViewerContext): string[] {
-  return [...new Set([...viewer.blockedUserIds, ...viewer.blockedByUserIds])];
-}
-
 function cursorPredicate(
   table: Pick<typeof post, "createdAt" | "id"> | Pick<typeof comment, "createdAt" | "id">,
   page: FeedPageInput,
@@ -220,12 +178,4 @@ function toPage<T extends { id: string; createdAt: Date }>(
 function clampLimit(limit: number): number {
   if (!Number.isFinite(limit)) return DEFAULT_LIMIT;
   return Math.min(Math.max(Math.trunc(limit), 0), MAX_LIMIT);
-}
-
-function isStaff(viewer: ViewerContext): boolean {
-  return (
-    viewer.role === "moderator" ||
-    viewer.role === "admin" ||
-    viewer.role === "owner"
-  );
 }

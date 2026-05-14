@@ -1,9 +1,9 @@
 /**
  * Media policy — pure validation functions and business rules.
  *
- * No DB access, no IO, no transport types. Callers compose these
- * with adapters in media.ts. Post/Profile modules import from here
- * only through the public media service API.
+ * No DB access, no IO, no transport types. The media service composes these
+ * with persistence and blob storage adapters; app code uses `MediaService`
+ * from `services/media` rather than calling policy helpers directly.
  */
 
 import {

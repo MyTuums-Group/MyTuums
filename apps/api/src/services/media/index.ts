@@ -1,13 +1,11 @@
 /**
- * Media service — public API surface.
+ * Media module — public API for routers and other app layers.
  *
- * Routers and REST endpoints import from here.
- * Policy, adapter, and blob-storage adapter are internal implementation details.
- * Post/Profile modules import attachMedia and signReadUrl from here — they
- * do NOT implement raw media lifecycle rules (CONTEXT.md, issue #28).
+ * Use `createMediaService({ adapter, storage })` in tests or alternate wiring.
+ * Production HTTP handlers import `mediaService` from `media-service.production.js`.
  */
 
-// Policy lookup tables (needed by schema and other modules)
+// Policy lookup tables and time windows (needed by schema and transport)
 export {
   MEDIA_PURPOSES,
   MEDIA_STATUSES,
@@ -16,7 +14,6 @@ export {
   ALLOWED_MEDIA_MIME_TYPES,
 } from "./media.policy.js";
 
-// Policy time constants
 export {
   PENDING_EXPIRY_SECONDS,
   UPLOAD_URL_LIFETIME_SECONDS,
@@ -24,24 +21,7 @@ export {
   UNATTACHED_CLEANUP_SECONDS,
 } from "./media.policy.js";
 
-// Pure policy validation functions (for callers that need fine-grained checks)
-export {
-  validateUploadIntent,
-  validateAttachment,
-  validateStatusTransition,
-  validateCanSignReadUrl,
-  validatePendingForConfirmation,
-  validatePendingForReissue,
-  isCleanupEligible,
-  canTransition,
-  mediaKind,
-  maxBytesForKind,
-  computePendingExpiry,
-  computeCleanupDeadline,
-  isPendingExpired,
-} from "./media.policy.js";
-
-// Error types
+// Error types (discriminated unions returned from service methods)
 export type {
   UploadIntentError,
   ConfirmError,
@@ -50,22 +30,11 @@ export type {
   SignReadError,
 } from "./media.policy.js";
 
-// Blob storage adapter interface + fake (for tests)
-export {
-  type BlobStorageAdapter,
-  type StoredBlob,
-  FakeBlobStorageAdapter,
-} from "./blob-storage.adapter.js";
+export type { MediaRow } from "./media.adapter.js";
 
-// Service use cases
 export {
-  createUploadIntent,
-  reissueUploadUrl,
-  confirmUpload,
-  attachMedia,
-  abandonMedia,
-  signReadUrl,
-  computeCleanupCandidates,
+  createMediaService,
+  type MediaService,
   type CreateUploadIntentInput,
   type CreateUploadIntentOutput,
   type ReissueUploadUrlOutput,
@@ -73,5 +42,4 @@ export {
   type AttachMediaOutput,
   type SignReadUrlOutput,
   type CleanupCandidate,
-  type MediaRow,
 } from "./media.js";

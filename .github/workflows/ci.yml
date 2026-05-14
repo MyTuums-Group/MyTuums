@@ -115,3 +115,4 @@ jobs:
         env:
           DATABASE_URL: postgresql://mytuums:mytuums_test@localhost:5432/mytuums_test
           BETTER_AUTH_SECRET: ci-test-secret-at-least-32-characters-long
+          RUN_PG_INTEGRATION_TESTS: "true"

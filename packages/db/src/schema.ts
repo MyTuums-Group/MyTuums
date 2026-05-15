@@ -115,6 +115,8 @@ const CONTACT_EMAIL_STATUSES = [
   "failed",
 ] as const satisfies readonly ContactEmailStatus[]
 
+const THEME_PREFERENCES = ["system", "light", "dark"] as const
+
 // ─────────────────────────────────────────────────────────────────────
 // BetterAuth tables
 //
@@ -522,6 +524,23 @@ export const favoriteGame = pgTable(
     index("favorite_game_profile_id_idx").on(table.profileId),
   ]
 )
+
+export const userPreference = pgTable("user_preference", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  theme: text("theme", {
+    enum: THEME_PREFERENCES,
+  })
+    .notNull()
+    .default("system"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
 
 export const notification = pgTable(
   "notification",

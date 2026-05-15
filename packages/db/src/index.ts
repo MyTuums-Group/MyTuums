@@ -1,5 +1,5 @@
-export { db } from "./client.js";
-export type { Database, Transaction } from "./client.js";
+export { db } from "./client.js"
+export type { Database, Transaction } from "./client.js"
 
 // All tables — import as `import { user, post, ... } from "@workspace/db"`
 export {
@@ -19,6 +19,7 @@ export {
   follow,
   block,
   favoriteGame,
+  userPreference,
   notification,
   moderationCase,
   report,
@@ -26,4 +27,4 @@ export {
   roleChangeAudit,
   rateLimit,
   contactSubmission,
-} from "./schema.js";
+} from "./schema.js"

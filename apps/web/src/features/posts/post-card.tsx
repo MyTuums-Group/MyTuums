@@ -255,9 +255,13 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
 
         {!post.moderationRemoval && post.gameTag && (
           <div>
-            <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 ring-inset">
+            <Link
+              to="/game/$slug"
+              params={{ slug: post.gameTag.slug }}
+              className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 transition-colors ring-inset hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
               {post.gameTag.name}
-            </span>
+            </Link>
           </div>
         )}
 

@@ -1,1 +1,2 @@
 export const DEFAULT_POST_PAGE_LIMIT = 20;
+export const DEFAULT_COMMENT_PAGE_LIMIT = 20;

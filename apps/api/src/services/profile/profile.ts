@@ -6,7 +6,13 @@ import type { ViewerContext, AuthorizationAdapter } from "@workspace/types";
 import { createProfileService, type ProfileOnboardingInput } from "./profile.core.js";
 import * as adapter from "./profile.adapter.js";
 
-const service = createProfileService(adapter);
+async function signMediaReadUrl(mediaId: string): Promise<string | null> {
+  const { mediaService } = await import("../media/media-service.production.js");
+  const result = await mediaService.signReadUrl(mediaId);
+  return result.ok ? result.value.readUrl : null;
+}
+
+const service = createProfileService({ adapter, signMediaReadUrl });
 
 export type {
   OnboardingError,

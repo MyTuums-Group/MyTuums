@@ -83,6 +83,8 @@ describe("Profile access module", () => {
         followerCount: 0,
         followingCount: 0,
         createdAt: profileRow.createdAt,
+        avatarUrl: null,
+        bannerUrl: null,
       },
     });
     expect(authorization.canView).not.toHaveBeenCalled();

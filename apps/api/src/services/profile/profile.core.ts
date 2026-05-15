@@ -17,6 +17,8 @@ export type ProfileRow = {
   username: string;
   displayName: string | null;
   bio: string | null;
+  avatarMediaId: string | null;
+  bannerMediaId: string | null;
   followerCount: number;
   followingCount: number;
   createdAt: Date;
@@ -29,6 +31,16 @@ export type PublicProfile = {
   followerCount: number;
   followingCount: number;
   createdAt: Date;
+  /** Signed read URL when profile has avatar media; otherwise null */
+  avatarUrl: string | null;
+  /** Signed read URL when profile has banner media; otherwise null */
+  bannerUrl: string | null;
+};
+
+export type ProfileServiceDeps = {
+  adapter: ProfileOnboardingAdapter;
+  /** When set, public profile responses include time-limited blob read URLs */
+  signMediaReadUrl?: (mediaId: string) => Promise<string | null>;
 };
 
 export type ProfileOnboardingInput = {
@@ -70,7 +82,12 @@ export type ProfileService = {
   checkProfileExists(userId: string): Promise<{ hasProfile: boolean }>;
 };
 
-export function createProfileService(adapter: ProfileOnboardingAdapter): ProfileService {
+export function createProfileService(
+  deps: ProfileOnboardingAdapter | ProfileServiceDeps,
+): ProfileService {
+  const adapter = "adapter" in deps ? deps.adapter : deps;
+  const signMediaReadUrl = "adapter" in deps ? deps.signMediaReadUrl : undefined;
+
   return {
     async submitOnboarding(userId, input) {
       const validated = validateOnboardingInput(input);
@@ -103,7 +120,7 @@ export function createProfileService(adapter: ProfileOnboardingAdapter): Profile
             position: index + 1,
           })),
         });
-        return { ok: true, value: toPublicProfile(row) };
+        return { ok: true, value: await toPublicProfile(row, signMediaReadUrl) };
       } catch (err) {
         if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "23505") {
           return { ok: false, error: { kind: "username_taken" } };
@@ -114,7 +131,7 @@ export function createProfileService(adapter: ProfileOnboardingAdapter): Profile
 
     async getMyProfile(userId) {
       const row = await adapter.findByUserId(userId);
-      return row ? toPublicProfile(row) : null;
+      return row ? await toPublicProfile(row, signMediaReadUrl) : null;
     },
 
     async getByUsername(username, viewerCtx, authorization) {
@@ -123,7 +140,7 @@ export function createProfileService(adapter: ProfileOnboardingAdapter): Profile
       if (viewerCtx && !authorization.canView(viewerCtx, { type: "profile", userId: row.userId })) {
         return { ok: false, error: { kind: "not_visible" } };
       }
-      return { ok: true, value: toPublicProfile(row) };
+      return { ok: true, value: await toPublicProfile(row, signMediaReadUrl) };
     },
 
     async getOwnerByUsername(username, viewerCtx, authorization) {
@@ -171,6 +188,8 @@ export function createInMemoryProfileOnboardingService(state: {
         username: values.username,
         displayName: values.displayName,
         bio: values.bio,
+        avatarMediaId: null,
+        bannerMediaId: null,
         followerCount: 0,
         followingCount: 0,
         createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -194,14 +213,26 @@ export function createInMemoryProfileOnboardingService(state: {
     },
   };
   return {
-    ...createProfileService(adapter),
+    ...createProfileService({ adapter }),
     snapshot() {
       return { profiles: [...state.profiles], favoriteGames: [...state.favoriteGames] };
     },
   };
 }
 
-function toPublicProfile(row: ProfileRow): PublicProfile {
+async function toPublicProfile(
+  row: ProfileRow,
+  signMediaReadUrl?: (mediaId: string) => Promise<string | null>,
+): Promise<PublicProfile> {
+  const [avatarUrl, bannerUrl] = await Promise.all([
+    row.avatarMediaId && signMediaReadUrl
+      ? signMediaReadUrl(row.avatarMediaId)
+      : Promise.resolve(null),
+    row.bannerMediaId && signMediaReadUrl
+      ? signMediaReadUrl(row.bannerMediaId)
+      : Promise.resolve(null),
+  ]);
+
   return {
     username: row.username,
     displayName: row.displayName,
@@ -209,5 +240,7 @@ function toPublicProfile(row: ProfileRow): PublicProfile {
     followerCount: row.followerCount,
     followingCount: row.followingCount,
     createdAt: row.createdAt,
+    avatarUrl,
+    bannerUrl,
   };
 }

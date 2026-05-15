@@ -140,7 +140,7 @@ function AppHeader() {
   const username = profile?.username
   const displayName =
     profile?.displayName ?? user?.name ?? user?.email ?? username ?? "Player"
-  const avatarUrl = user?.image ?? undefined
+  const avatarUrl = profile?.avatarUrl ?? user?.image ?? undefined
 
   const handleLogout = async () => {
     if (isLoggingOut) return

@@ -15,6 +15,7 @@
     "infra:reset": "docker compose down -v",
     "db:migrate": "pnpm --filter @workspace/db db:migrate",
     "db:push": "pnpm --filter @workspace/db db:push",
+    "seed:games": "pnpm --filter @workspace/api seed:games",
     "test": "vitest run",
     "test:watch": "vitest",
     "doctor": "react-doctor . --verbose --yes"

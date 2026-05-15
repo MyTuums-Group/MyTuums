@@ -99,7 +99,7 @@ function DiscoverPage() {
                 {searchQuery.data.results.map((item) => (
                   <a
                     key={`${item.type}-${item.id}`}
-                    href={discoverSearchResultHref(item, q)}
+                    href={item.href}
                     className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     <span className="font-medium">{item.label}</span>
@@ -219,21 +219,6 @@ function navigateToDiscover(query: string, game: string) {
   if (trimmedGame) search.set("game", trimmedGame);
   const suffix = search.toString();
   window.location.href = suffix ? `/discover?${suffix}` : "/discover";
-}
-
-function discoverSearchResultHref(
-  item: { type: "user" | "game"; href: string },
-  query: string,
-) {
-  if (item.type === "user") return item.href;
-
-  const slug = item.href.split("/").filter(Boolean).at(-1);
-  if (!slug) return "/discover";
-
-  const search = new URLSearchParams();
-  if (query.trim()) search.set("q", query.trim());
-  search.set("game", slug);
-  return `/discover?${search.toString()}`;
 }
 
 function getErrorMessage(error: unknown): string {

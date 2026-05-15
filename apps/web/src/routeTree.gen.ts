@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AtChar123usernameChar125RouteImport } from './routes/@{$username}'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PostPublicIdRouteImport } from './routes/post.$publicId'
+import { Route as GameSlugRouteImport } from './routes/game.$slug'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AccountStatusRouteImport } from './routes/account.status'
@@ -86,6 +87,11 @@ const PostPublicIdRoute = PostPublicIdRouteImport.update({
   path: '/post/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GameSlugRoute = GameSlugRouteImport.update({
+  id: '/game/$slug',
+  path: '/game/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/account/status': typeof AccountStatusRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/game/$slug': typeof GameSlugRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRoutesByTo {
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/account/status': typeof AccountStatusRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/game/$slug': typeof GameSlugRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRoutesById {
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/account/status': typeof AccountStatusRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/game/$slug': typeof GameSlugRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRouteTypes {
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/account/status'
     | '/admin/reports'
     | '/admin/users'
+    | '/game/$slug'
     | '/post/$publicId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/account/status'
     | '/admin/reports'
     | '/admin/users'
+    | '/game/$slug'
     | '/post/$publicId'
   id:
     | '__root__'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/account/status'
     | '/admin/reports'
     | '/admin/users'
+    | '/game/$slug'
     | '/post/$publicId'
   fileRoutesById: FileRoutesById
 }
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   AccountStatusRoute: typeof AccountStatusRoute
+  GameSlugRoute: typeof GameSlugRoute
   PostPublicIdRoute: typeof PostPublicIdRoute
 }
 
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/game/$slug': {
+      id: '/game/$slug'
+      path: '/game/$slug'
+      fullPath: '/game/$slug'
+      preLoaderRoute: typeof GameSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -359,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   AccountStatusRoute: AccountStatusRoute,
+  GameSlugRoute: GameSlugRoute,
   PostPublicIdRoute: PostPublicIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { cn } from "@workspace/ui/lib/utils";
 import { PostCard } from "@/features/posts/post-card";
 import { DEFAULT_POST_PAGE_LIMIT } from "@/features/posts/constants";
 import { removePostFromFeedPage } from "@/features/posts/post-cache";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/discover")({
 });
 
 function DiscoverPage() {
+  const navigate = useNavigate();
   const { q, game } = Route.useSearch();
   const [client] = useState(() => createTrpcClient());
   const [queryDraft, setQueryDraft] = useState(q);
@@ -28,6 +30,36 @@ function DiscoverPage() {
   const [extraPages, setExtraPages] = useState<PostFeedPage[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+
+  const gamesQuery = trpc.game.listActive.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    setQueryDraft(q);
+  }, [q]);
+
+  useEffect(() => {
+    setGameDraft(game);
+  }, [game]);
+
+  useEffect(() => {
+    setExtraPages([]);
+    setLoadMoreError(null);
+  }, [game, q]);
+
+  useEffect(() => {
+    if (gamesQuery.status !== "success") return;
+    const allowed = new Set(gamesQuery.data.map((g) => g.slug));
+    if (game && !allowed.has(game)) {
+      void navigate({
+        to: "/discover",
+        search: { q, game: "" },
+        replace: true,
+      });
+    }
+  }, [game, gamesQuery.data, gamesQuery.status, navigate, q]);
 
   const searchQuery = trpc.search.useQuery(
     { query: q, limit: 8 },
@@ -45,6 +77,13 @@ function DiscoverPage() {
       ? extraPages[extraPages.length - 1]?.nextCursor ?? null
       : feedQuery.data?.nextCursor ?? null;
 
+  const allowedSlugs =
+    gamesQuery.status === "success" ? new Set(gamesQuery.data.map((g) => g.slug)) : null;
+  const selectValue =
+    gameDraft === "" || !allowedSlugs ? gameDraft : allowedSlugs.has(gameDraft) ? gameDraft : "";
+
+  const activeGameName = gamesQuery.data?.find((g) => g.slug === game)?.name;
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
       <Card className="border-border/70 shadow-sm">
@@ -53,10 +92,10 @@ function DiscoverPage() {
         </CardHeader>
         <CardContent>
           <form
-            className="grid gap-3 sm:grid-cols-[1fr_12rem_auto]"
+            className="grid gap-3 sm:grid-cols-[1fr_minmax(10rem,14rem)_auto]"
             onSubmit={(event) => {
               event.preventDefault();
-              navigateToDiscover(queryDraft, gameDraft);
+              applyDiscoverSearch(navigate, queryDraft, gameDraft);
             }}
           >
             <Input
@@ -65,12 +104,24 @@ function DiscoverPage() {
               placeholder="Search players and games"
               aria-label="Search players and games"
             />
-            <Input
-              value={gameDraft}
+            <select
+              className={cn(
+                "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none md:text-sm",
+                "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
+              )}
+              value={selectValue}
               onChange={(event) => setGameDraft(event.target.value)}
-              placeholder="game-slug"
-              aria-label="Filter posts by game slug"
-            />
+              disabled={gamesQuery.isLoading || gamesQuery.isError}
+              aria-label="Filter posts by game"
+            >
+              <option value="">All games</option>
+              {gamesQuery.data?.map((catalogGame) => (
+                <option key={catalogGame.id} value={catalogGame.slug}>
+                  {catalogGame.name}
+                </option>
+              ))}
+            </select>
             <Button type="submit">
               <MagnifyingGlass weight="bold" />
               Search
@@ -120,7 +171,11 @@ function DiscoverPage() {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
-          <CardTitle>{game ? `Latest posts tagged ${game}` : "Latest posts"}</CardTitle>
+          <CardTitle>
+            {game
+              ? `Latest posts tagged ${activeGameName ?? game}`
+              : "Latest posts"}
+          </CardTitle>
         </CardHeader>
       </Card>
 
@@ -211,14 +266,19 @@ function DiscoverFeedSkeleton() {
   );
 }
 
-function navigateToDiscover(query: string, game: string) {
-  const search = new URLSearchParams();
+type DiscoverNavigate = ReturnType<typeof useNavigate>;
+
+function applyDiscoverSearch(
+  navigate: DiscoverNavigate,
+  query: string,
+  gameSlug: string,
+) {
   const trimmedQuery = query.trim();
-  const trimmedGame = game.trim();
-  if (trimmedQuery) search.set("q", trimmedQuery);
-  if (trimmedGame) search.set("game", trimmedGame);
-  const suffix = search.toString();
-  window.location.href = suffix ? `/discover?${suffix}` : "/discover";
+  const trimmedGame = gameSlug.trim();
+  void navigate({
+    to: "/discover",
+    search: { q: trimmedQuery, game: trimmedGame },
+  });
 }
 
 function getErrorMessage(error: unknown): string {

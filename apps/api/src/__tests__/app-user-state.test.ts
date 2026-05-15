@@ -54,12 +54,14 @@ describe("Current app user state policy", () => {
           followerCount: 0,
           followingCount: 0,
           createdAt: new Date("2026-01-01"),
+          avatarUrl: null,
+          bannerUrl: null,
         },
       }),
     ).toEqual({
       kind: "active_onboarded_profile",
       user: { id: "user-1", email: "alice@example.com", emailVerified: true },
-      profile: { username: "alice", displayName: "Alice" },
+      profile: { username: "alice", displayName: "Alice", avatarUrl: null },
     });
   });
 
@@ -87,6 +89,8 @@ describe("Current app user state policy", () => {
           followerCount: 0,
           followingCount: 0,
           createdAt: new Date("2026-01-01"),
+          avatarUrl: null,
+          bannerUrl: null,
         },
       }),
     ).toEqual({

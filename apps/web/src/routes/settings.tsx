@@ -139,7 +139,11 @@ function SettingsPage() {
       })
       setProfileMessage("Profile saved.")
       setProfileError(null)
-      await utils.settings.get.invalidate()
+      await Promise.all([
+        utils.settings.get.invalidate(),
+        utils.currentAppUser.invalidate(),
+        utils.profile.getByUsername.invalidate({ username: profile.username }),
+      ])
     },
   })
   const updateThemeMutation = trpc.settings.updateThemePreference.useMutation({

@@ -17,7 +17,7 @@ export type CurrentAppUserState =
   | {
       kind: "active_onboarded_profile";
       user: AppUser;
-      profile: Pick<PublicProfile, "username" | "displayName">;
+      profile: Pick<PublicProfile, "username" | "displayName" | "avatarUrl">;
     }
   | {
       kind: "limited_account";
@@ -68,6 +68,7 @@ export function buildCurrentAppUserState(
     profile: {
       username: input.profile.username,
       displayName: input.profile.displayName,
+      avatarUrl: input.profile.avatarUrl,
     },
   };
 }

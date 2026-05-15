@@ -6,6 +6,11 @@ import { PostCard } from "@/features/posts/post-card";
 import { DEFAULT_POST_PAGE_LIMIT } from "@/features/posts/constants";
 import { removePostFromFeedPage } from "@/features/posts/post-cache";
 import type { PostFeedPage } from "@/features/posts/types";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -16,6 +21,7 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { ReportSheet } from "@/features/moderation/report-sheet";
+import { cn } from "@workspace/ui/lib/utils";
 
 export const Route = createFileRoute("/@{$username}")({
   component: ProfilePage,
@@ -128,13 +134,45 @@ function ProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-1">
-            <CardTitle className="text-2xl">@{profile.username}</CardTitle>
-            {profile.displayName && (
-              <p className="text-lg font-semibold">{profile.displayName}</p>
+      <Card className="overflow-hidden">
+        {profile.bannerUrl ? (
+          <div className="aspect-[5/2] w-full bg-muted">
+            <img
+              src={profile.bannerUrl}
+              alt=""
+              className="size-full object-cover"
+            />
+          </div>
+        ) : null}
+        <CardHeader
+          className={cn(profile.bannerUrl && "-mt-10 gap-4 sm:-mt-12")}
+        >
+          <div
+            className={cn(
+              "flex gap-4",
+              profile.bannerUrl ? "items-end" : "items-center",
             )}
+          >
+            <Avatar
+              size="lg"
+              className={cn(
+                profile.bannerUrl && "ring-4 ring-background sm:size-20",
+              )}
+            >
+              <AvatarImage
+                src={profile.avatarUrl ?? undefined}
+                alt=""
+              />
+              <AvatarFallback className="text-lg font-semibold uppercase">
+                {profile.username.slice(0, 1)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 space-y-1 pb-0.5">
+              <CardTitle className="text-2xl">@{profile.username}</CardTitle>
+              {profile.displayName ? (
+                <p className="text-lg font-semibold">{profile.displayName}</p>
+              ) : null}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

@@ -33,6 +33,7 @@ export interface FeedPostRow {
   mediaStorageContainer: string | null;
   mediaStatus: string | null;
   likeCount: number;
+  likedByViewer?: boolean;
   commentCount: number;
   deletedAt: Date | null;
   removedAt: Date | null;

@@ -4,6 +4,7 @@ import type { Result, ViewerContext } from "@workspace/types";
 import type { FeedContext, FeedCursor, FeedPage, FeedPageInput, FeedPostRow } from "../feed/index.js";
 import type { MediaService, SignReadUrlOutput } from "../media/media.js";
 import type { SignReadError } from "../media/media.policy.js";
+import { isStaff } from "../visibility/memory.js";
 
 export const POST_PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 
@@ -70,6 +71,11 @@ export type PostViewModel = {
   createdAt: Date;
   updatedAt: Date;
   canDelete: boolean;
+  moderationRemoval: {
+    publicReason: string | null;
+    removedAt: Date;
+    supportPath: "/contact";
+  } | null;
 };
 
 export type FeedPageViewModel = {
@@ -93,9 +99,10 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
   }
 
   async function toPostView(viewer: ViewerContext, row: FeedPostRow): Promise<PostViewModel> {
+    const showRemovedPlaceholder = row.removedAt !== null && !isStaff(viewer);
     return {
       publicId: row.publicId,
-      text: row.text,
+      text: showRemovedPlaceholder ? "" : row.text,
       author: {
         username: row.authorUsername,
         displayName: row.authorDisplayName,
@@ -109,13 +116,24 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
               name: row.gameTagName,
             }
           : null,
-      media: await toMediaView(media, row),
+      media: showRemovedPlaceholder ? null : await toMediaView(media, row),
       likeCount: row.likeCount,
       likedByViewer: row.likedByViewer ?? false,
       commentCount: row.commentCount,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      canDelete: viewer.userId === row.authorId && row.deletedAt === null,
+      canDelete:
+        viewer.userId === row.authorId &&
+        row.deletedAt === null &&
+        row.removedAt === null,
+      moderationRemoval:
+        showRemovedPlaceholder && row.removedAt
+          ? {
+              publicReason: row.removalPublicReason,
+              removedAt: row.removedAt,
+              supportPath: "/contact",
+            }
+          : null,
     };
   }
 

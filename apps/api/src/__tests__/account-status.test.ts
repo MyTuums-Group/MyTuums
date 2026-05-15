@@ -136,13 +136,17 @@ describe("Account Status policy", () => {
     ).toEqual({ status: "account_deleted", expiredTemporarySuspension: false });
   });
 
-  it("allows suspended accounts only account/status/support/logout actions", () => {
-    const allowed: AccountAction[] = ["view_account_status", "contact_support", "logout"];
+  it("allows suspended accounts only account/status/support/delete/logout actions", () => {
+    const allowed: AccountAction[] = [
+      "view_account_status",
+      "contact_support",
+      "delete_account",
+      "logout",
+    ];
     const blocked: AccountAction[] = [
       "protected_action",
       "create_post",
       "update_profile",
-      "delete_account",
     ];
 
     for (const action of allowed) {

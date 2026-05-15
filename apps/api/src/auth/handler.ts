@@ -8,6 +8,7 @@
 import type { FastifyInstance } from "fastify";
 import { auth } from "../auth.js";
 import { fromNodeHeaders } from "better-auth/node";
+import { launchReadinessService } from "../services/launch-readiness/launch-readiness.production.js";
 
 /**
  * Register BetterAuth's catch-all handler under /api/auth/*.
@@ -20,6 +21,17 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     async handler(request, reply) {
       try {
         const url = new URL(request.url, `http://${request.headers.host}`);
+        if (request.method === "POST" && url.pathname.endsWith("/sign-up/email")) {
+          const launchReadiness = await launchReadinessService.getReadiness();
+          if (!launchReadiness.publicSignupEnabled) {
+            return reply.status(403).send({
+              code: "PUBLIC_SIGNUP_DISABLED",
+              message: "Public signup is disabled until staff launch readiness is complete.",
+              status: 403,
+            });
+          }
+        }
+
         const headers = fromNodeHeaders(request.headers);
 
         const req = new Request(url.toString(), {
@@ -33,7 +45,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         reply.status(response.status);
         response.headers.forEach((value, key) => reply.header(key, value));
         const body = response.body ? await response.text() : null;
-        void reply.send(body ? (body.startsWith("{") ? JSON.parse(body) : body) : null);
+        void reply.send(body);
         return;
       } catch (error) {
         app.log.error(`Auth error: ${String(error)}`);

@@ -1,12 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
 function RegisterPage() {
+  const launchReadiness = trpc.launchReadiness.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const signupDisabled =
+    launchReadiness.isLoading ||
+    launchReadiness.data?.publicSignupEnabled === false;
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (signupDisabled) return;
+    setErrorMessage(null);
     void (async () => {
       const form = new FormData(e.currentTarget);
       const { signUpEmail } = await import("@/lib/auth-client");
@@ -20,6 +33,8 @@ function RegisterPage() {
       });
       if (result.ok) {
         window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+      } else {
+        setErrorMessage(result.error.message);
       }
     })();
   };
@@ -29,10 +44,15 @@ function RegisterPage() {
       <div className="w-full max-w-sm space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Create your account</h1>
-          <p className="text-muted-foreground text-sm">
-            Join the gaming community.
-          </p>
-        </div>
+            <p className="text-muted-foreground text-sm">
+              Join the gaming community.
+            </p>
+            {launchReadiness.data?.publicSignupEnabled === false ? (
+              <p className="text-destructive mt-3 text-sm">
+                Public signup is temporarily disabled.
+              </p>
+            ) : null}
+          </div>
 
         <form
           className="space-y-4"
@@ -83,10 +103,14 @@ function RegisterPage() {
           </div>
           <button
             type="submit"
+            disabled={signupDisabled}
             className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
           >
             Create account
           </button>
+          {errorMessage ? (
+            <p className="text-destructive text-sm">{errorMessage}</p>
+          ) : null}
         </form>
 
         <div className="text-sm text-center">

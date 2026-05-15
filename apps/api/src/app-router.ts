@@ -5,7 +5,9 @@ import { engagementRouter } from "./routers/engagement.js";
 import { mediaRouter } from "./routers/media.js";
 import { profileRouter } from "./routers/profile.js";
 import { postRouter } from "./routers/post.js";
+import { staffRouter } from "./routers/staff.js";
 import { authorization } from "./authorization/index.js";
+import { launchReadinessService } from "./services/launch-readiness/launch-readiness.production.js";
 import { getCurrentAppUserState } from "./services/app-user-state/index.js";
 import { createSearchService, type AppSearchInput } from "./services/search/index.js";
 import { searchQueries } from "./services/search/production.js";
@@ -19,6 +21,8 @@ export const appRouter = router({
   })),
 
   currentAppUser: publicProcedure.query(({ ctx }) => getCurrentAppUserState(ctx)),
+
+  launchReadiness: publicProcedure.query(() => launchReadinessService.getReadiness()),
 
   me: protectedProcedure.query(({ ctx }) => ({
     user: ctx.user,
@@ -46,6 +50,7 @@ export const appRouter = router({
   engagement: engagementRouter,
   media: mediaRouter,
   docs: docsRouter,
+  staff: staffRouter,
 });
 
 export type AppRouter = typeof appRouter;

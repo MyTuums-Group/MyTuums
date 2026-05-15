@@ -19,6 +19,7 @@ import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as AtChar123usernameChar125RouteImport } from './routes/@{$username}'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PostPublicIdRouteImport } from './routes/post.$publicId'
+import { Route as AccountStatusRouteImport } from './routes/account.status'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -71,6 +72,11 @@ const PostPublicIdRoute = PostPublicIdRouteImport.update({
   path: '/post/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountStatusRoute = AccountStatusRouteImport.update({
+  id: '/account/status',
+  path: '/account/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/status': typeof AccountStatusRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRoutesByTo {
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/status': typeof AccountStatusRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRoutesById {
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/status': typeof AccountStatusRoute
   '/post/$publicId': typeof PostPublicIdRoute
 }
 export interface FileRouteTypes {
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/account/status'
     | '/post/$publicId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/account/status'
     | '/post/$publicId'
   id:
     | '__root__'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/account/status'
     | '/post/$publicId'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  AccountStatusRoute: typeof AccountStatusRoute
   PostPublicIdRoute: typeof PostPublicIdRoute
 }
 
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/status': {
+      id: '/account/status'
+      path: '/account/status'
+      fullPath: '/account/status'
+      preLoaderRoute: typeof AccountStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  AccountStatusRoute: AccountStatusRoute,
   PostPublicIdRoute: PostPublicIdRoute,
 }
 export const routeTree = rootRouteImport

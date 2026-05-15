@@ -3,6 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "./trpc.js"
 import { docsRouter } from "./routers/docs.js"
 import { engagementRouter } from "./routers/engagement.js"
 import { mediaRouter } from "./routers/media.js"
+import { moderationRouter } from "./routers/moderation.js"
 import { notificationRouter } from "./routers/notification.js"
 import { profileRouter } from "./routers/profile.js"
 import { postRouter } from "./routers/post.js"
@@ -53,6 +54,7 @@ export const appRouter = router({
   post: postRouter,
   engagement: engagementRouter,
   media: mediaRouter,
+  moderation: moderationRouter,
   notification: notificationRouter,
   docs: docsRouter,
 })

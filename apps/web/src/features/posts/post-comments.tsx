@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { createTrpcClient, trpc } from "@/lib/trpc";
+import { ReportSheet } from "@/features/moderation/report-sheet";
 import { DEFAULT_COMMENT_PAGE_LIMIT } from "./constants";
 import { getCommentTextState } from "./comment-text";
 import { linkifyText } from "./linkify";
@@ -403,23 +404,30 @@ function CommentRow({
             </time>
           </div>
 
-          <div className="text-sm leading-6 break-words whitespace-pre-wrap text-foreground">
-            {linkifyText(comment.text).map((part, index) =>
-              part.type === "link" ? (
-                <a
-                  key={`${part.href}-${index}`}
-                  href={part.href}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer"
-                  className="rounded-sm text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                >
-                  {part.text}
-                </a>
-              ) : (
-                <span key={`${part.text}-${index}`}>{part.text}</span>
-              ),
-            )}
-          </div>
+          {comment.moderationRemoval ? (
+            <RemovedCommentPlaceholder
+              publicReason={comment.moderationRemoval.publicReason}
+              removedAt={comment.moderationRemoval.removedAt}
+            />
+          ) : (
+            <div className="text-sm leading-6 break-words whitespace-pre-wrap text-foreground">
+              {linkifyText(comment.text).map((part, index) =>
+                part.type === "link" ? (
+                  <a
+                    key={`${part.href}-${index}`}
+                    href={part.href}
+                    target="_blank"
+                    rel="nofollow noopener noreferrer"
+                    className="rounded-sm text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    {part.text}
+                  </a>
+                ) : (
+                  <span key={`${part.text}-${index}`}>{part.text}</span>
+                ),
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <CommentAction
@@ -451,6 +459,10 @@ function CommentRow({
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
             )}
+            <ReportSheet
+              target={{ type: "comment", commentId: comment.id }}
+              buttonClassName="h-8 px-2 text-muted-foreground hover:text-foreground"
+            />
           </div>
         </div>
       </div>
@@ -487,6 +499,30 @@ function CommentAction({
       {icon}
       <span>{label}</span>
     </Button>
+  );
+}
+
+function RemovedCommentPlaceholder({
+  publicReason,
+  removedAt,
+}: {
+  publicReason: string | null;
+  removedAt: Date;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+      <p className="font-medium text-foreground">This comment was removed.</p>
+      <p className="mt-1">
+        Reason: {formatPublicReason(publicReason)} ·{" "}
+        {formatAbsoluteTimestamp(removedAt)}
+      </p>
+      <a
+        href="/contact"
+        className="mt-2 inline-flex rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        Contact support
+      </a>
+    </div>
   );
 }
 
@@ -589,6 +625,14 @@ function formatAbsoluteTimestamp(value: Date): string {
 function formatCountLabel(value: number, noun: string): string {
   const count = new Intl.NumberFormat("en").format(value);
   return `${count} ${noun}${value === 1 ? "" : "s"}`;
+}
+
+function formatPublicReason(value: string | null): string {
+  if (!value) return "Moderation decision";
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function formatRelativeTimestamp(value: Date): string {

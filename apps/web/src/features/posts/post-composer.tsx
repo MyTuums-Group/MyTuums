@@ -64,6 +64,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         createdAt: new Date(),
         updatedAt: new Date(),
         canDelete: true,
+        moderationRemoval: null,
       };
 
       await Promise.all([

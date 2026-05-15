@@ -1,0 +1,86 @@
+import type { SeedGame } from "./game.seed.js";
+
+const DEFAULT_COVER_IMAGE_URL = "/game-covers/default.svg";
+
+export const GAME_SEED_DATA: SeedGame[] = [
+  {
+    slug: "minecraft",
+    name: "Minecraft",
+    description: "Sandbox building, survival, and multiplayer creativity.",
+    aliases: ["mc"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "fortnite",
+    name: "Fortnite",
+    description: "Battle royale, creator islands, and live-service events.",
+    aliases: ["fn"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "valorant",
+    name: "Valorant",
+    description: "Tactical hero shooter built around precise team play.",
+    aliases: ["val"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "league-of-legends",
+    name: "League of Legends",
+    description: "Team-based MOBA matches, champions, and ranked play.",
+    aliases: ["lol", "league"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "apex-legends",
+    name: "Apex Legends",
+    description: "Squad-based battle royale with movement-focused legends.",
+    aliases: ["apex"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "rocket-league",
+    name: "Rocket League",
+    description: "Car soccer, aerial plays, and short competitive matches.",
+    aliases: ["rl"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "stardew-valley",
+    name: "Stardew Valley",
+    description: "Farming, crafting, fishing, and cozy town life.",
+    aliases: ["sdv"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "elden-ring",
+    name: "Elden Ring",
+    description: "Open-world action RPG exploration and boss fights.",
+    aliases: ["er"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "helldivers-2",
+    name: "Helldivers 2",
+    description: "Co-op extraction missions with chaotic friendly fire.",
+    aliases: ["hd2", "helldivers"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+  {
+    slug: "animal-crossing-new-horizons",
+    name: "Animal Crossing: New Horizons",
+    description: "Island life, collecting, decorating, and gentle routines.",
+    aliases: ["acnh", "animal crossing"],
+    coverImageUrl: DEFAULT_COVER_IMAGE_URL,
+    isActive: true,
+  },
+];

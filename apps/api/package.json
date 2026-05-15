@@ -11,6 +11,7 @@
     "dev": "tsx watch --env-file ../../.env src/index.ts",
     "build": "tsc",
     "start": "node --env-file ../../.env dist/index.js",
+    "seed:games": "tsx --env-file ../../.env src/services/game/seed-games.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.ts\""

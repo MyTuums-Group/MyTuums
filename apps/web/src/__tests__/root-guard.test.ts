@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { decideRootNavigation, type RootGuardSession } from "../routes/-root-guard";
+import {
+  decideRootNavigation,
+  type RootGuardSession,
+} from "../routes/-root-guard";
 
 const session = {
   user: {
@@ -27,55 +30,97 @@ const unverifiedState = { kind: "authenticated_unverified" } as const;
 describe("decideRootNavigation", () => {
   it("allows guest-only routes for logged-out users", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/login", session: null, appUserState: null }),
+      decideRootNavigation({
+        pathname: "/login",
+        session: null,
+        appUserState: null,
+      })
     ).resolves.toEqual({ kind: "allow" });
   });
 
   it("redirects authenticated profileless users to onboarding", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/", session, appUserState: () => Promise.resolve(profilelessState) }),
+      decideRootNavigation({
+        pathname: "/",
+        session,
+        appUserState: () => Promise.resolve(profilelessState),
+      })
     ).resolves.toEqual({ kind: "redirect", to: "/onboarding" });
   });
 
   it("allows authenticated profileless users to stay on onboarding", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/onboarding", session, appUserState: () => Promise.resolve(profilelessState) }),
+      decideRootNavigation({
+        pathname: "/onboarding",
+        session,
+        appUserState: () => Promise.resolve(profilelessState),
+      })
     ).resolves.toEqual({ kind: "allow" });
   });
 
   it("allows authenticated users with profiles to reach the home page", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/", session, appUserState: () => Promise.resolve(onboardedState) }),
+      decideRootNavigation({
+        pathname: "/",
+        session,
+        appUserState: () => Promise.resolve(onboardedState),
+      })
     ).resolves.toEqual({ kind: "allow" });
   });
 
   it("allows logged-out users to view public profile pages", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/@alice", session: null, appUserState: null }),
+      decideRootNavigation({
+        pathname: "/@alice",
+        session: null,
+        appUserState: null,
+      })
     ).resolves.toEqual({ kind: "allow" });
   });
 
   it("allows logged-out users to view public post pages", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/post/abc123xyZ_", session: null, appUserState: null }),
+      decideRootNavigation({
+        pathname: "/post/abc123xyZ_",
+        session: null,
+        appUserState: null,
+      })
+    ).resolves.toEqual({ kind: "allow" });
+  });
+
+  it("allows logged-out users to view public game pages", async () => {
+    await expect(
+      decideRootNavigation({
+        pathname: "/game/stardew-valley",
+        session: null,
+        appUserState: null,
+      })
     ).resolves.toEqual({ kind: "allow" });
   });
 
   it("still redirects logged-out users away from protected home", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/", session: null, appUserState: null }),
+      decideRootNavigation({ pathname: "/", session: null, appUserState: null })
     ).resolves.toEqual({ kind: "redirect", to: "/login" });
   });
 
   it("still redirects logged-out users away from malformed post paths", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/post/short", session: null, appUserState: null }),
+      decideRootNavigation({
+        pathname: "/post/short",
+        session: null,
+        appUserState: null,
+      })
     ).resolves.toEqual({ kind: "redirect", to: "/login" });
   });
 
   it("redirects authenticated unverified users to email verification", async () => {
     await expect(
-      decideRootNavigation({ pathname: "/", session, appUserState: () => Promise.resolve(unverifiedState) }),
+      decideRootNavigation({
+        pathname: "/",
+        session,
+        appUserState: () => Promise.resolve(unverifiedState),
+      })
     ).resolves.toEqual({ kind: "redirect", to: "/verify-email" });
   });
 });

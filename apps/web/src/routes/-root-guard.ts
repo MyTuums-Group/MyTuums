@@ -33,6 +33,7 @@ const PUBLIC_SET = new Set(PUBLIC_PATHS);
 const GUEST_ONLY_SET = new Set(GUEST_ONLY_PATHS);
 const PUBLIC_PROFILE_PATH_PATTERN = /^\/@[a-z][a-z0-9_]{2,19}$/;
 const PUBLIC_POST_PATH_PATTERN = /^\/post\/[A-Za-z0-9_-]{8,64}$/;
+const PUBLIC_GAME_PATH_PATTERN = /^\/game\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function isPublicProfilePath(pathname: string): boolean {
   return PUBLIC_PROFILE_PATH_PATTERN.test(pathname);
@@ -40,6 +41,10 @@ export function isPublicProfilePath(pathname: string): boolean {
 
 export function isPublicPostPath(pathname: string): boolean {
   return PUBLIC_POST_PATH_PATTERN.test(pathname);
+}
+
+export function isPublicGamePath(pathname: string): boolean {
+  return PUBLIC_GAME_PATH_PATTERN.test(pathname);
 }
 
 export async function decideRootNavigation(input: {
@@ -51,7 +56,9 @@ export async function decideRootNavigation(input: {
 
   if (
     !input.session &&
-    (isPublicProfilePath(input.pathname) || isPublicPostPath(input.pathname))
+    (isPublicProfilePath(input.pathname) ||
+      isPublicPostPath(input.pathname) ||
+      isPublicGamePath(input.pathname))
   ) {
     return { kind: "allow" };
   }

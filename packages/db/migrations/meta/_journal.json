@@ -29,6 +29,13 @@
       "when": 1778811841571,
       "tag": "0003_adorable_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778866657375,
+      "tag": "0004_perpetual_mephisto",
+      "breakpoints": true
     }
   ]
 }

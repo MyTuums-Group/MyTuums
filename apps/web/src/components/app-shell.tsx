@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <AppHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 bg-muted/15">{children}</main>
       <AppFooter />
     </div>
   )
@@ -254,7 +254,7 @@ function AppHeader() {
 
 function AppFooter() {
   return (
-    <footer className="border-t border-border/70 bg-muted/35">
+    <footer className="border-t border-border/70 bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-md">

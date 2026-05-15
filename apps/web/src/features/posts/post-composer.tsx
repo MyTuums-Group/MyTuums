@@ -176,19 +176,21 @@ export function PostComposer({ onCreated }: PostComposerProps) {
   });
 
   return (
-    <Card className="border-border/70 shadow-sm">
-      <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-        <PenNib weight="bold" className="text-primary size-5" />
-        <div>
-          <p className="font-semibold">Share a public post</p>
-          <p className="text-muted-foreground text-sm">
-            Text only for now. Links keep their typed text and open safely.
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-1">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+          <PenNib weight="bold" className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-semibold leading-5">Share a public post</p>
+          <p className="text-sm text-muted-foreground">
+            Start a thread, drop a clip, or call out what you are playing.
           </p>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <form
-          className="space-y-4"
+          className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (
@@ -214,7 +216,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             }}
             disabled={createMutation.isPending}
             placeholder="What are you playing right now?"
-            className="min-h-32 resize-y"
+            className="min-h-28 resize-y bg-muted/20 text-base sm:text-sm"
           />
 
           <div
@@ -226,12 +228,12 @@ export function PostComposer({ onCreated }: PostComposerProps) {
               const file = event.dataTransfer.files.item(0);
               if (file) void startUpload(file);
             }}
-            className="rounded-lg border border-dashed border-border bg-muted/30 p-3"
+            className="rounded-lg border border-dashed border-border bg-muted/25 p-3 transition-colors hover:bg-muted/40"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <ImageSquare className="size-4" weight="bold" />
-                <span>Add an image or short video</span>
+                <span>Attach an image or short video</span>
               </div>
               <Button
                 type="button"
@@ -305,7 +307,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 pt-1">
             <p
               className={`text-sm ${
                 state.isTooLong ? "text-destructive" : "text-muted-foreground"

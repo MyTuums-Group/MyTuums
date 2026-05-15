@@ -72,6 +72,8 @@ export type ContactCategory =
   | "general_support"
   | "other";
 
+export type ContactEmailStatus = "pending" | "sent" | "failed";
+
 // ── Constants ───────────────────────────────────────────────────────
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 20;

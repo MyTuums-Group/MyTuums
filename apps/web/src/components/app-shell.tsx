@@ -42,6 +42,7 @@ import { useState, type ReactNode } from "react"
 import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
 import { getApiBase, trpc } from "@/lib/trpc"
+import { FOOTER_STATIC_LINKS } from "@/routes/-static-pages"
 
 type PrimaryNavItem = {
   href: "/" | "/discover"
@@ -96,21 +97,15 @@ const FOOTER_SECTIONS = [
   },
   {
     title: "Support",
-    links: [
-      { href: "/about", label: "About" },
-      { href: "/support", label: "Support" },
-      { href: "/contact", label: "Contact" },
-      { href: "/accessibility", label: "Accessibility" },
-    ],
+    links: FOOTER_STATIC_LINKS.filter((link) =>
+      ["/about", "/support", "/contact", "/accessibility"].includes(link.href)
+    ),
   },
   {
     title: "Legal",
-    links: [
-      { href: "/privacy", label: "Privacy" },
-      { href: "/terms", label: "Terms" },
-      { href: "/cookies", label: "Cookies" },
-      { href: "/legal-notice", label: "Legal notice" },
-    ],
+    links: FOOTER_STATIC_LINKS.filter((link) =>
+      ["/terms", "/privacy", "/cookies", "/legal-notice"].includes(link.href)
+    ),
   },
 ]
 

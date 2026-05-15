@@ -9,16 +9,19 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
+    "smoke": "playwright test --project=chromium",
+    "axe:smoke": "playwright test --grep @axe --project=chromium",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@workspace/brand-assets": "workspace:^",
     "@phosphor-icons/react": "^2.1.10",
+    "@sentry/react": "^10.53.1",
     "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-router": "^1.132.0",
     "@trpc/client": "^11.4.0",
     "@trpc/react-query": "^11.17.0",
     "@workspace/api-contract": "workspace:^",
+    "@workspace/brand-assets": "workspace:^",
     "@workspace/types": "workspace:*",
     "@workspace/ui": "workspace:*",
     "drizzle-kit": "^0.31.5",
@@ -27,7 +30,9 @@
     "superjson": "^2.2.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/router-devtools": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",

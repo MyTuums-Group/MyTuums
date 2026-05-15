@@ -8,9 +8,13 @@ import { registerAuthRoutes } from "./auth/handler.js";
 import { registerProfileRoutes } from "./profile-routes.js";
 import { env } from "@workspace/config";
 import { getAllowedCorsOrigins } from "./cors-origins.js";
+import { initApiMonitoring, registerApiMonitoring } from "./monitoring.js";
+
+initApiMonitoring();
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
+  registerApiMonitoring(app);
 
   // CORS — allow web app origin
   await app.register(cors, {

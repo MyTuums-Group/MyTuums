@@ -8,6 +8,7 @@
 import type { FastifyInstance } from "fastify";
 import { auth } from "../auth.js";
 import { fromNodeHeaders } from "better-auth/node";
+import { env } from "@workspace/config";
 
 /**
  * Register BetterAuth's catch-all handler under /api/auth/*.
@@ -20,6 +21,15 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     async handler(request, reply) {
       try {
         const url = new URL(request.url, `http://${request.headers.host}`);
+        if (!env.PUBLIC_SIGNUP_ENABLED && isSignUpRequest(url)) {
+          return reply.status(403).send({
+            code: "PUBLIC_SIGNUP_DISABLED",
+            message:
+              "Public signup is disabled until MyTuums launch readiness gates are complete.",
+            status: 403,
+          });
+        }
+
         const headers = fromNodeHeaders(request.headers);
 
         const req = new Request(url.toString(), {
@@ -41,4 +51,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       }
     },
   });
+}
+
+function isSignUpRequest(url: URL): boolean {
+  return url.pathname === "/api/auth/sign-up/email";
 }

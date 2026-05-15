@@ -27,7 +27,9 @@ function getTransport() {
 export async function sendEmail(opts: {
   to: string;
   subject: string;
+  text?: string;
   html: string;
+  replyTo?: string;
 }): Promise<void> {
   const transport = getTransport();
   await transport.sendMail({

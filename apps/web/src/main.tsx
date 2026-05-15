@@ -6,7 +6,13 @@ import { trpc, createTrpcClient } from "@/lib/trpc";
 
 import "@workspace/ui/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import {
+  initFrontendMonitoring,
+  SentryErrorBoundary,
+} from "@/lib/sentry";
 import { routeTree } from "./routeTree.gen";
+
+initFrontendMonitoring();
 
 const queryClient = new QueryClient();
 const trpcClient = createTrpcClient();
@@ -24,7 +30,15 @@ createRoot(document.getElementById("root")!).render(
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <RouterProvider router={router} />
+          <SentryErrorBoundary
+            fallback={
+              <div role="alert" className="p-6 text-sm">
+                MyTuums hit an unexpected error.
+              </div>
+            }
+          >
+            <RouterProvider router={router} />
+          </SentryErrorBoundary>
         </ThemeProvider>
       </QueryClientProvider>
     </trpc.Provider>

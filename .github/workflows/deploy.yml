@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          VITE_API_URL: ${{ vars.STAGING_API_URL }}
+          VITE_PUBLIC_SIGNUP_ENABLED: ${{ vars.STAGING_PUBLIC_SIGNUP_ENABLED || 'false' }}
+          VITE_SENTRY_DSN: ${{ secrets.STAGING_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          DOCS_ENVIRONMENT: staging
+          DOCS_BUILD_SHA: ${{ github.sha }}
+          DOCS_BUILD_TIME: ${{ github.run_id }}
+      - name: Run staging migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      - name: Deploy staging web
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.STAGING_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: apps/web
+          output_location: dist
+          skip_app_build: true
+      - name: Deploy staging API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.STAGING_API_APP_NAME }}
+          publish-profile: ${{ secrets.STAGING_API_PUBLISH_PROFILE }}
+          package: apps/api
+      - name: Staging smoke
+        run: |
+          curl --fail --retry 5 --retry-delay 10 "${{ vars.STAGING_WEB_URL }}/terms"
+          curl --fail --retry 5 --retry-delay 10 "${{ vars.STAGING_API_URL }}/healthz"
+
+  production:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    needs: [staging]
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          VITE_API_URL: ${{ vars.PRODUCTION_API_URL }}
+          VITE_PUBLIC_SIGNUP_ENABLED: ${{ vars.PRODUCTION_PUBLIC_SIGNUP_ENABLED || 'false' }}
+          VITE_SENTRY_DSN: ${{ secrets.PRODUCTION_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          DOCS_ENVIRONMENT: production
+          DOCS_BUILD_SHA: ${{ github.sha }}
+          DOCS_BUILD_TIME: ${{ github.run_id }}
+      - name: Run production migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      - name: Deploy production web
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.PRODUCTION_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: apps/web
+          output_location: dist
+          skip_app_build: true
+      - name: Deploy production API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.PRODUCTION_API_APP_NAME }}
+          publish-profile: ${{ secrets.PRODUCTION_API_PUBLISH_PROFILE }}
+          package: apps/api
+      - name: Production smoke
+        run: |
+          curl --fail --retry 5 --retry-delay 10 "${{ vars.PRODUCTION_WEB_URL }}/terms"
+          curl --fail --retry 5 --retry-delay 10 "${{ vars.PRODUCTION_API_URL }}/healthz"

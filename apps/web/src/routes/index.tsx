@@ -64,14 +64,7 @@ function HomePage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:py-8">
-      <PostComposer
-        onCreated={() => {
-          setExtraPages({ for_you: [], following: [] });
-          setLoadMoreError(null);
-        }}
-      />
-
-      <section className="space-y-3" aria-labelledby="home-feed-heading">
+      <section className="space-y-4" aria-labelledby="home-feed-heading">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
           <div className="min-w-0">
             <h1
@@ -149,6 +142,13 @@ function HomePage() {
             </CardContent>
           </Card>
         )}
+
+        <PostComposer
+          onCreated={() => {
+            setExtraPages({ for_you: [], following: [] });
+            setLoadMoreError(null);
+          }}
+        />
 
         <div className="space-y-3">
           {activeQuery.isLoading && !activeQuery.data ? (

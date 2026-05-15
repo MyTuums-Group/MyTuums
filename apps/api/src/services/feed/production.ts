@@ -1,11 +1,22 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
-import { comment, db, follow, game, media, post, profile, user } from "@workspace/db";
+import { and, asc, desc, eq, gt, lt, or, sql } from "drizzle-orm";
+import {
+  comment,
+  commentLike,
+  db,
+  follow,
+  game,
+  media,
+  post,
+  profile,
+  user,
+} from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
 import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
 import { feedCommentSqlPredicate, feedPostSqlPredicate } from "../visibility/sql-feed.production.js";
 import type {
   FeedPage,
   FeedPageInput,
+  FeedCommentRow,
   FeedPostRow,
   FeedVisibilityQueryAdapter,
 } from "./index.js";
@@ -57,20 +68,21 @@ export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
     const limit = clampLimit(page.limit);
     const sqlPred = feedCommentSqlPredicate(viewer);
     const rows = await db
-      .select(commentSelection)
+      .select(commentSelection(viewer))
       .from(comment)
       .innerJoin(user, eq(comment.authorId, user.id))
+      .innerJoin(profile, eq(comment.authorId, profile.userId))
       .where(
         and(
           eq(comment.postId, postId),
           sqlPred,
-          cursorPredicate(comment, page),
+          commentCursorPredicate(page),
         ),
       )
-      .orderBy(desc(comment.createdAt), desc(comment.id))
+      .orderBy(desc(comment.likeCount), asc(comment.createdAt), asc(comment.id))
       .limit(limit + 1);
 
-    return toPage(
+    return toCommentPage(
       rows.filter((row) => canViewFeedComment(viewer, row)),
       limit,
     );
@@ -137,19 +149,31 @@ const postSelection = {
   updatedAt: post.updatedAt,
 };
 
-const commentSelection = {
-  id: comment.id,
-  postId: comment.postId,
-  authorId: comment.authorId,
-  authorAccountStatus: user.accountStatus,
-  text: comment.text,
-  likeCount: comment.likeCount,
-  deletedAt: comment.deletedAt,
-  removedAt: comment.removedAt,
-  removalPublicReason: comment.removalPublicReason,
-  createdAt: comment.createdAt,
-  updatedAt: comment.updatedAt,
-};
+function commentSelection(viewer: ViewerContext) {
+  return {
+    id: comment.id,
+    postId: comment.postId,
+    authorId: comment.authorId,
+    authorUsername: profile.username,
+    authorDisplayName: profile.displayName,
+    authorAccountStatus: user.accountStatus,
+    text: comment.text,
+    likeCount: comment.likeCount,
+    viewerHasLiked: viewer.userId
+      ? sql<boolean>`exists (
+          select 1
+          from ${commentLike}
+          where ${commentLike.commentId} = ${comment.id}
+            and ${commentLike.userId} = ${viewer.userId}
+        )`
+      : sql<boolean>`false`,
+    deletedAt: comment.deletedAt,
+    removedAt: comment.removedAt,
+    removalPublicReason: comment.removalPublicReason,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+  };
+}
 
 function cursorPredicate(
   table: Pick<typeof post, "createdAt" | "id"> | Pick<typeof comment, "createdAt" | "id">,
@@ -173,6 +197,43 @@ function toPage<T extends { id: string; createdAt: Date }>(
       : null;
 
   return { items, nextCursor };
+}
+
+function toCommentPage<T extends FeedCommentRow>(
+  rows: T[],
+  limit: number,
+): FeedPage<T> {
+  const items = rows.slice(0, limit);
+  const nextCursor =
+    rows.length > limit && items.length > 0
+      ? {
+          id: items[items.length - 1]!.id,
+          createdAt: items[items.length - 1]!.createdAt,
+          likeCount: items[items.length - 1]!.likeCount,
+        }
+      : null;
+
+  return { items, nextCursor };
+}
+
+function commentCursorPredicate(page: FeedPageInput) {
+  if (!page.cursor) return undefined;
+  if (typeof page.cursor.likeCount !== "number") {
+    return cursorPredicate(comment, page);
+  }
+
+  return or(
+    lt(comment.likeCount, page.cursor.likeCount),
+    and(
+      eq(comment.likeCount, page.cursor.likeCount),
+      gt(comment.createdAt, page.cursor.createdAt),
+    ),
+    and(
+      eq(comment.likeCount, page.cursor.likeCount),
+      eq(comment.createdAt, page.cursor.createdAt),
+      gt(comment.id, page.cursor.id),
+    ),
+  );
 }
 
 function clampLimit(limit: number): number {

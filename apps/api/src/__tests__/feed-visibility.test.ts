@@ -83,8 +83,11 @@ function comment(
     id,
     postId,
     authorId,
+    authorUsername: authorId,
+    authorDisplayName: authorId.toUpperCase(),
     text: "reply",
     likeCount: 0,
+    viewerHasLiked: false,
     deletedAt: null,
     removedAt: null,
     removalPublicReason: null,
@@ -213,6 +216,33 @@ describe("feed visibility queries", () => {
     await expect(queries.commentList(aliceViewer, visiblePost.id, { limit: 10 })).resolves.toMatchObject({
       items: [{ id: "comment-visible" }],
     });
+  });
+
+  it("orders comments by like count descending with oldest-first ties", async () => {
+    const visiblePost = post("visible-post", "bob", "2026-01-04T00:00:00Z");
+    const queries = createInMemoryFeedVisibilityQueries({
+      posts: [visiblePost],
+      comments: [
+        comment("one-like-newer", visiblePost.id, "carol", "2026-01-04T00:00:00Z", {
+          likeCount: 1,
+        }),
+        comment("two-likes", visiblePost.id, "dave", "2026-01-03T00:00:00Z", {
+          likeCount: 2,
+        }),
+        comment("one-like-older", visiblePost.id, "erin", "2026-01-02T00:00:00Z", {
+          likeCount: 1,
+        }),
+      ],
+      follows: [],
+    });
+
+    const page = await queries.commentList(aliceViewer, visiblePost.id, { limit: 10 });
+
+    expect(page.items.map((item) => item.id)).toEqual([
+      "two-likes",
+      "one-like-older",
+      "one-like-newer",
+    ]);
   });
 
   it("lets staff query moderation-visible content while public feed queries hide it", async () => {

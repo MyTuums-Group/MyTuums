@@ -5,6 +5,15 @@ import type { FeedPageInput } from "../services/feed/index.js";
 import { feedVisibilityQueries } from "../services/feed/production.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
 import {
+  createComment as createCommentRecord,
+  deleteOwnComment,
+  toggleCommentLike,
+} from "../services/comment/index.js";
+import {
+  createCommentPresentation,
+  InvalidCommentCursorError,
+} from "../services/comment/presentation.js";
+import {
   createPost as createPostRecord,
   deleteOwnPost,
 } from "../services/post/index.js";
@@ -19,10 +28,16 @@ import {
   mapCreatePostErrorToTRPC,
   mapDeleteOwnPostErrorToTRPC,
 } from "../transport/post-errors.js";
+import {
+  mapCreateCommentErrorToTRPC,
+  mapDeleteOwnCommentErrorToTRPC,
+  mapToggleCommentLikeErrorToTRPC,
+} from "../transport/comment-errors.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 50;
+const commentPresentation = createCommentPresentation();
 
 const feedPageSchema = z.object({
   cursor: z.string().optional(),
@@ -140,6 +155,124 @@ export const postRouter = router({
       }
 
       return deleted.value;
+    }),
+
+  comments: publicProcedure
+    .input(
+      z.object({
+        publicId: postPublicIdSchema,
+        cursor: z.string().optional(),
+        limit: z.number().int().min(1).max(MAX_PAGE_LIMIT).default(DEFAULT_PAGE_LIMIT),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const viewer = await getViewerFromContext(ctx);
+      const row = await feedVisibilityQueries.postDetail(viewer, input.publicId);
+      if (!row) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This post is not available.",
+        });
+      }
+
+      try {
+        const page = await feedVisibilityQueries.commentList(
+          viewer,
+          row.id,
+          commentPresentation.toCommentPageInput(input),
+        );
+        return commentPresentation.toCommentPageResponse(viewer, page);
+      } catch (error) {
+        if (error instanceof InvalidCommentCursorError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+    }),
+
+  createComment: protectedProcedure
+    .input(
+      z.object({
+        publicId: postPublicIdSchema,
+        text: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUserState = await getCurrentAppUserState(ctx);
+      if (appUserState.kind !== "active_onboarded_profile") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You need a verified onboarded profile to comment.",
+        });
+      }
+
+      const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
+      const postRow = await feedVisibilityQueries.postDetail(viewer, input.publicId);
+      if (!postRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This post is not available.",
+        });
+      }
+
+      const created = await createCommentRecord({
+        publicId: input.publicId,
+        authorId: ctx.user.id,
+        text: input.text,
+      });
+
+      if (!created.ok) {
+        throw mapCreateCommentErrorToTRPC(created.error);
+      }
+
+      return commentPresentation.toCommentView(viewer, {
+        ...created.value,
+        authorUsername: appUserState.profile.username,
+        authorDisplayName: appUserState.profile.displayName,
+        authorAccountStatus: "active",
+        viewerHasLiked: false,
+      });
+    }),
+
+  deleteOwnComment: protectedProcedure
+    .input(
+      z.object({
+        commentId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const deleted = await deleteOwnComment({
+        commentId: input.commentId,
+        authorId: ctx.user.id,
+      });
+
+      if (!deleted.ok) {
+        throw mapDeleteOwnCommentErrorToTRPC(deleted.error);
+      }
+
+      return deleted.value;
+    }),
+
+  toggleCommentLike: protectedProcedure
+    .input(
+      z.object({
+        commentId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const toggled = await toggleCommentLike({
+        commentId: input.commentId,
+        userId: ctx.user.id,
+      });
+
+      if (!toggled.ok) {
+        throw mapToggleCommentLikeErrorToTRPC(toggled.error);
+      }
+
+      return toggled.value;
     }),
 });
 

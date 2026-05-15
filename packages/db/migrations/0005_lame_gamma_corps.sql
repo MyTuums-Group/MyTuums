@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "suspension_public_reason" text;

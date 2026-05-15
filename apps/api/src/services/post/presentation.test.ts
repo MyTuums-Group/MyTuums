@@ -27,6 +27,15 @@ const viewerBob: ViewerContext = {
   isAuthenticated: true,
 };
 
+const staffViewer: ViewerContext = {
+  userId: "mod",
+  role: "moderator",
+  accountStatus: "active",
+  blockedUserIds: [],
+  blockedByUserIds: [],
+  isAuthenticated: true,
+};
+
 function baseRow(overrides: Partial<FeedPostRow> = {}): FeedPostRow {
   const createdAt = new Date("2024-01-15T12:00:00.000Z");
   return {
@@ -158,6 +167,40 @@ describe("post presentation", () => {
         }),
       ),
     ).toMatchObject({ gameTag: null });
+  });
+
+  it("shows removed posts to authors as placeholders but keeps staff moderation context complete", async () => {
+    const p = createPostPresentation({
+      media: createStubMediaService(() => Promise.resolve({ ok: true, value: { readUrl: "https://cdn.example/signed" } })),
+      loadPostDetail: () => Promise.resolve(null),
+    });
+    const removedAt = new Date("2026-01-02T00:00:00.000Z");
+    const row = baseRow({
+      removedAt,
+      removalPublicReason: "harassment",
+      mediaAttachmentId: "m-1",
+      mediaMimeType: "image/png",
+      mediaStatus: "ready",
+    });
+
+    await expect(p.toPostView(viewerAlice, row)).resolves.toMatchObject({
+      text: "",
+      media: null,
+      canDelete: false,
+      moderationRemoval: {
+        publicReason: "harassment",
+        removedAt,
+        supportPath: "/contact",
+      },
+    });
+
+    await expect(p.toPostView(staffViewer, row)).resolves.toMatchObject({
+      text: "Hello world",
+      media: {
+        id: "m-1",
+      },
+      moderationRemoval: null,
+    });
   });
 
   it("encodeCursor and decodeCursor round-trip", () => {

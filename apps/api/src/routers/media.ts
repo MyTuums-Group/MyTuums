@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { env } from "@workspace/config";
 import type { Context } from "../context.js";
 import { protectedProcedure, router } from "../trpc.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
+import { launchReadinessService } from "../services/launch-readiness/launch-readiness.production.js";
 import { mediaService } from "../services/media/media-service.production.js";
 
 const mediaIdSchema = z.string().uuid();
@@ -52,7 +52,8 @@ export const mediaRouter = router({
 });
 
 async function assertCanUpload(ctx: Pick<Context, "session" | "accountLifecycle">) {
-  if (!env.MEDIA_UPLOADS_ENABLED) {
+  const launchReadiness = await launchReadinessService.getReadiness();
+  if (!launchReadiness.mediaUploadsEnabled) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Media uploads are disabled until launch readiness gates pass.",

@@ -1,42 +1,60 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState } from "react"
+import { trpc } from "@/lib/trpc"
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
-});
+})
 
 function RegisterPage() {
-  const isPublicSignupEnabled = getPublicSignupEnabled();
+  const launchReadiness = trpc.launchReadiness.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const signupDisabled =
+    launchReadiness.isLoading ||
+    launchReadiness.data?.publicSignupEnabled === false
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!isPublicSignupEnabled) return;
+    e.preventDefault()
+    if (signupDisabled) return
+    setErrorMessage(null)
     void (async () => {
-      const form = new FormData(e.currentTarget);
-      const { signUpEmail } = await import("@/lib/auth-client");
-      const email = form.get("email") as string;
+      const form = new FormData(e.currentTarget)
+      const { signUpEmail } = await import("@/lib/auth-client")
+      const email = form.get("email") as string
       const result = await signUpEmail({
         email,
         password: form.get("password") as string,
         // Better Auth requires a name, but MyTuums profile identity is chosen
         // during onboarding. Do not collect a misleading display name here.
         name: email,
-      });
+      })
       if (result.ok) {
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`
+      } else {
+        setErrorMessage(result.error.message)
       }
-    })();
-  };
+    })()
+  }
+
+  const signupDisabledMessage =
+    launchReadiness.data?.publicSignupEnabled === false
+      ? "MyTuums is completing legal, staff, support, email, monitoring, and deployment readiness before public signup opens."
+      : null
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">
-            {isPublicSignupEnabled ? "Create your account" : "Signup is not open yet"}
+            {signupDisabledMessage
+              ? "Signup is not open yet"
+              : "Create your account"}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {isPublicSignupEnabled
-              ? "Join the gaming community."
-              : "MyTuums is completing legal, staff, support, email, monitoring, and deployment readiness before public signup opens."}
+            {signupDisabledMessage ?? "Join the gaming community."}
           </p>
         </div>
 
@@ -89,11 +107,14 @@ function RegisterPage() {
           </div>
           <button
             type="submit"
-            disabled={!isPublicSignupEnabled}
+            disabled={signupDisabled}
             className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
           >
-            {isPublicSignupEnabled ? "Create account" : "Signup disabled"}
+            {signupDisabled ? "Signup disabled" : "Create account"}
           </button>
+          {errorMessage ? (
+            <p className="text-destructive text-sm">{errorMessage}</p>
+          ) : null}
         </form>
 
         <div className="text-sm text-center">
@@ -103,16 +124,5 @@ function RegisterPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function getPublicSignupEnabled() {
-  try {
-    const env = (import.meta as unknown as {
-      env: { VITE_PUBLIC_SIGNUP_ENABLED?: string };
-    }).env;
-    return env?.VITE_PUBLIC_SIGNUP_ENABLED === "true";
-  } catch {
-    return false;
-  }
+  )
 }

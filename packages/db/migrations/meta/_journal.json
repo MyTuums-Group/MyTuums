@@ -33,8 +33,22 @@
     {
       "idx": 4,
       "version": "7",
-      "when": 1778866603261,
-      "tag": "0004_bitter_quicksilver",
+      "when": 1778866477916,
+      "tag": "0004_organic_norrin_radd",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778881762363,
+      "tag": "0005_lame_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778882607432,
+      "tag": "0006_panoramic_genesis",
       "breakpoints": true
     }
   ]

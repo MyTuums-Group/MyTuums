@@ -7,9 +7,15 @@ import { DEFAULT_POST_PAGE_LIMIT } from "@/features/posts/constants";
 import { removePostFromFeedPage } from "@/features/posts/post-cache";
 import type { PostFeedPage } from "@/features/posts/types";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
+import { ReportSheet } from "@/features/moderation/report-sheet";
 
 export const Route = createFileRoute("/@{$username}")({
   component: ProfilePage,
@@ -23,6 +29,14 @@ function ProfilePage() {
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const utils = trpc.useUtils();
   const query = trpc.profile.getByUsername.useQuery({ username });
+  const favoritesQuery = trpc.game.profileFavorites.useQuery(
+    { username },
+    {
+      enabled: query.data !== undefined,
+      retry: false,
+      refetchOnWindowFocus: false,
+    }
+  );
   const currentAppUser = trpc.currentAppUser.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -37,7 +51,7 @@ function ProfilePage() {
       enabled: canUseProfileActions,
       retry: false,
       refetchOnWindowFocus: false,
-    },
+    }
   );
   const followMutation = trpc.engagement.toggleFollow.useMutation({
     async onSuccess(result) {
@@ -49,7 +63,7 @@ function ProfilePage() {
               followingCount: result.followingCount,
               isFollowing: result.following,
             }
-          : current,
+          : current
       );
       await Promise.all([
         utils.engagement.profileState.invalidate({ username }),
@@ -66,7 +80,7 @@ function ProfilePage() {
               isFollowing: false,
               isBlocked: true,
             }
-          : current,
+          : current
       );
     },
   });
@@ -78,7 +92,7 @@ function ProfilePage() {
               ...current,
               isBlocked: false,
             }
-          : current,
+          : current
       );
       await utils.engagement.profileState.invalidate({ username });
     },
@@ -104,15 +118,16 @@ function ProfilePage() {
   const followingCount = engagement?.followingCount ?? profile.followingCount;
   const isFollowing = engagement?.isFollowing ?? false;
   const isBlocked = engagement?.isBlocked ?? false;
+  const favoriteGames = favoritesQuery.data ?? [];
   const pages = postsQuery.data ? [postsQuery.data, ...extraPages] : extraPages;
   const posts = pages.flatMap((page) => page.items);
   const nextCursor =
     extraPages.length > 0
-      ? extraPages[extraPages.length - 1]?.nextCursor ?? null
-      : postsQuery.data?.nextCursor ?? null;
+      ? (extraPages[extraPages.length - 1]?.nextCursor ?? null)
+      : (postsQuery.data?.nextCursor ?? null);
 
   return (
-    <div className="mx-auto max-w-2xl p-4 flex flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-1">
@@ -123,18 +138,35 @@ function ProfilePage() {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {profile.bio && <p className="text-muted-foreground">{profile.bio}</p>}
+          {profile.bio && (
+            <p className="text-muted-foreground">{profile.bio}</p>
+          )}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>{formatCount(followerCount, "follower")}</span>
             <span>{formatCount(followingCount, "following")}</span>
           </div>
+          {favoriteGames.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {favoriteGames.map((game) => (
+                <a
+                  key={game.id}
+                  href={`/game/${game.slug}`}
+                  className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 transition-colors ring-inset hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  {game.name}
+                </a>
+              ))}
+            </div>
+          )}
           {canUseProfileActions && (
             <div className="flex flex-wrap gap-2">
               {!isBlocked && (
                 <Button
                   type="button"
                   variant={isFollowing ? "outline" : "default"}
-                  disabled={followMutation.isPending || engagementQuery.isLoading}
+                  disabled={
+                    followMutation.isPending || engagementQuery.isLoading
+                  }
                   onClick={() => {
                     followMutation.mutate({ username });
                   }}
@@ -160,6 +192,10 @@ function ProfilePage() {
               >
                 {isBlocked ? "Unblock" : "Block"}
               </Button>
+              <ReportSheet
+                target={{ type: "profile", username }}
+                buttonClassName="text-muted-foreground hover:text-foreground"
+              />
             </div>
           )}
         </CardContent>
@@ -177,7 +213,7 @@ function ProfilePage() {
               <AlertDescription>{postsQuery.error.message}</AlertDescription>
             </Alert>
           ) : posts.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
               No public posts yet.
             </p>
           ) : (
@@ -188,7 +224,9 @@ function ProfilePage() {
                   post={post}
                   onDeleted={(publicId) => {
                     setExtraPages((current) =>
-                      current.map((page) => removePostFromFeedPage(page, publicId)!),
+                      current.map(
+                        (page) => removePostFromFeedPage(page, publicId)!
+                      )
                     );
                   }}
                 />
@@ -243,7 +281,7 @@ function formatCount(value: number, noun: string): string {
 
 function ProfileSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl p-4 flex flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4">
       <Card>
         <CardHeader>
           <Skeleton className="h-8 w-48" />

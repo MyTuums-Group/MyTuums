@@ -12,6 +12,8 @@
     "build": "tsc",
     "start": "node --env-file ../../.env dist/index.js",
     "media:cleanup": "tsx --env-file ../../.env src/maintenance/media-cleanup.ts",
+    "owner:bootstrap": "tsx --env-file ../../.env src/commands/bootstrap-owner.ts",
+    "seed:games": "tsx --env-file ../../.env src/services/game/seed-games.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.ts\""

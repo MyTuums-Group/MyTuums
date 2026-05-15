@@ -1,0 +1,5 @@
+CREATE UNIQUE INDEX "notification_follow_unique" ON "notification" USING btree ("recipient_id","type","actor_id") WHERE "notification"."type" = 'follow';--> statement-breakpoint
+CREATE UNIQUE INDEX "notification_post_like_unique" ON "notification" USING btree ("recipient_id","type","actor_id",("data"->>'postId')) WHERE "notification"."type" = 'post_like';--> statement-breakpoint
+CREATE UNIQUE INDEX "notification_post_comment_unique" ON "notification" USING btree ("recipient_id","type",("data"->>'commentId')) WHERE "notification"."type" = 'post_comment';--> statement-breakpoint
+CREATE UNIQUE INDEX "notification_comment_like_unique" ON "notification" USING btree ("recipient_id","type","actor_id",("data"->>'commentId')) WHERE "notification"."type" = 'comment_like';--> statement-breakpoint
+CREATE UNIQUE INDEX "notification_content_removed_unique" ON "notification" USING btree ("recipient_id","type",("data"->>'moderationActionId'),("data"->>'targetType')) WHERE "notification"."type" = 'content_removed';

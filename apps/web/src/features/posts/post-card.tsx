@@ -90,6 +90,7 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
     async onMutate() {
       await Promise.all([
         utils.post.forYouFeed.cancel({ limit: DEFAULT_POST_PAGE_LIMIT }),
+        utils.post.followingFeed.cancel({ limit: DEFAULT_POST_PAGE_LIMIT }),
         utils.post.profileFeed.cancel({
           username: post.author.username,
           limit: DEFAULT_POST_PAGE_LIMIT,
@@ -100,12 +101,19 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
       const previousForYou = utils.post.forYouFeed.getData({
         limit: DEFAULT_POST_PAGE_LIMIT,
       })
+      const previousFollowing = utils.post.followingFeed.getData({
+        limit: DEFAULT_POST_PAGE_LIMIT,
+      })
       const previousProfile = utils.post.profileFeed.getData({
         username: post.author.username,
         limit: DEFAULT_POST_PAGE_LIMIT,
       })
 
       utils.post.forYouFeed.setData(
+        { limit: DEFAULT_POST_PAGE_LIMIT },
+        (current) => removePostFromFeedPage(current, post.publicId)
+      )
+      utils.post.followingFeed.setData(
         { limit: DEFAULT_POST_PAGE_LIMIT },
         (current) => removePostFromFeedPage(current, post.publicId)
       )
@@ -119,6 +127,7 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
 
       return {
         previousForYou,
+        previousFollowing,
         previousProfile,
       }
     },
@@ -128,6 +137,13 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
         utils.post.forYouFeed.setData(
           { limit: DEFAULT_POST_PAGE_LIMIT },
           context.previousForYou
+        )
+      }
+
+      if (context?.previousFollowing) {
+        utils.post.followingFeed.setData(
+          { limit: DEFAULT_POST_PAGE_LIMIT },
+          context.previousFollowing
         )
       }
 
@@ -149,11 +165,16 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
     async onSettled() {
       await Promise.all([
         utils.post.forYouFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
+        utils.post.followingFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
         utils.post.profileFeed.invalidate({
           username: post.author.username,
           limit: DEFAULT_POST_PAGE_LIMIT,
         }),
+        utils.post.discoverFeed.invalidate(),
         utils.post.detail.invalidate({ publicId: post.publicId }),
+        post.gameTag
+          ? utils.game.feed.invalidate({ slug: post.gameTag.slug })
+          : Promise.resolve(),
       ])
     },
   })

@@ -189,4 +189,21 @@ describe("post presentation", () => {
     const wrongTime = encodeCursor({ ...row, createdAt: new Date("2020-01-01T00:00:00.000Z") });
     await expect(p.resolveCursor(viewerAlice, wrongTime)).rejects.toThrow(InvalidFeedCursorError);
   });
+
+  it("toFeedResponse preserves feed context for route-level empty states", async () => {
+    const p = createPostPresentation({
+      media: createStubMediaService(() => Promise.resolve({ ok: false, error: { kind: "media_not_found" } })),
+      loadPostDetail: () => Promise.resolve(null),
+    });
+
+    await expect(
+      p.toFeedResponse(viewerAlice, {
+        items: [],
+        nextCursor: null,
+        context: { kind: "for_you", hasFavoriteGames: false },
+      }),
+    ).resolves.toMatchObject({
+      context: { kind: "for_you", hasFavoriteGames: false },
+    });
+  });
 });

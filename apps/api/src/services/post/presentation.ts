@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { z } from "zod";
 import type { Result, ViewerContext } from "@workspace/types";
-import type { FeedCursor, FeedPage, FeedPageInput, FeedPostRow } from "../feed/index.js";
+import type { FeedContext, FeedCursor, FeedPage, FeedPageInput, FeedPostRow } from "../feed/index.js";
 import type { MediaService, SignReadUrlOutput } from "../media/media.js";
 import type { SignReadError } from "../media/media.policy.js";
 
@@ -74,6 +74,7 @@ export type PostViewModel = {
 export type FeedPageViewModel = {
   items: PostViewModel[];
   nextCursor: string | null;
+  context?: FeedContext;
 };
 
 export function createPostPresentation({ media, loadPostDetail }: PostPresentationPorts) {
@@ -141,6 +142,7 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
           page.nextCursor && page.items.length > 0
             ? encodeCursor(page.items[page.items.length - 1]!)
             : null,
+        context: page.context,
       };
     },
   };

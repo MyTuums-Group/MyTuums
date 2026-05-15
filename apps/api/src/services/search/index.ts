@@ -182,7 +182,7 @@ function toGameSearchItem(game: SearchGameRow): SearchCandidate {
     type: "game",
     id: game.id,
     label: game.name,
-    href: `/games/${game.slug}`,
+    href: `/game/${game.slug}`,
     exactTexts: [game.slug, game.name, ...game.aliases],
     prefixTexts: [game.slug, game.name, ...game.aliases],
     searchableText: [game.slug, game.name, ...game.aliases].join(" "),

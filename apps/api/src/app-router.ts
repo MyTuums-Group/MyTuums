@@ -7,8 +7,10 @@ import { moderationRouter } from "./routers/moderation.js"
 import { notificationRouter } from "./routers/notification.js"
 import { profileRouter } from "./routers/profile.js"
 import { postRouter } from "./routers/post.js"
+import { staffRouter } from "./routers/staff.js"
 import { authorization } from "./authorization/index.js"
 import { getCurrentAppUserState } from "./services/app-user-state/index.js"
+import { launchReadinessService } from "./services/launch-readiness/launch-readiness.production.js"
 import {
   createSearchService,
   type AppSearchInput,
@@ -25,6 +27,10 @@ export const appRouter = router({
 
   currentAppUser: publicProcedure.query(({ ctx }) =>
     getCurrentAppUserState(ctx)
+  ),
+
+  launchReadiness: publicProcedure.query(() =>
+    launchReadinessService.getReadiness()
   ),
 
   me: protectedProcedure.query(({ ctx }) => ({
@@ -57,6 +63,7 @@ export const appRouter = router({
   moderation: moderationRouter,
   notification: notificationRouter,
   docs: docsRouter,
+  staff: staffRouter,
 })
 
 export type AppRouter = typeof appRouter

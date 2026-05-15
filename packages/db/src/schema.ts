@@ -151,6 +151,8 @@ export const user = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     /** When a temporary suspension expires (null = active or indefinite) */
     suspendedUntil: timestamp("suspended_until", { withTimezone: true }),
+    /** Public reason shown on the account-status page while suspended */
+    suspensionPublicReason: text("suspension_public_reason"),
   },
   (table) => [
     uniqueIndex("user_email_unique").on(table.email),

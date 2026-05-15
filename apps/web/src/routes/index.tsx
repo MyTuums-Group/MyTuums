@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { Compass, X } from "@phosphor-icons/react";
+import { Compass, Sparkle, X } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
@@ -63,7 +63,7 @@ function HomePage() {
     !isAddFavoritesPromptDismissed;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
+    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:py-8">
       <PostComposer
         onCreated={() => {
           setExtraPages({ for_you: [], following: [] });
@@ -71,127 +71,142 @@ function HomePage() {
         }}
       />
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle>Home feed</CardTitle>
-            <div
-              role="tablist"
-              aria-label="Home feed tabs"
-              className="inline-flex rounded-lg bg-muted p-1"
+      <section className="space-y-3" aria-labelledby="home-feed-heading">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <div className="min-w-0">
+            <h1
+              id="home-feed-heading"
+              className="font-heading text-lg font-semibold tracking-tight"
             >
-              <FeedTabButton
-                isActive={activeTab === "for_you"}
-                onClick={() => {
-                  setActiveTab("for_you");
-                  setLoadMoreError(null);
-                }}
-              >
-                For You
-              </FeedTabButton>
-              <FeedTabButton
-                isActive={activeTab === "following"}
-                onClick={() => {
-                  setActiveTab("following");
-                  setLoadMoreError(null);
-                }}
-              >
-                Following
-              </FeedTabButton>
-            </div>
+              Home feed
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Fresh gaming posts from your world and the wider room.
+            </p>
           </div>
-        </CardHeader>
-      </Card>
-
-      {shouldShowAddFavoritesPrompt && (
-        <Card className="border-border/70 bg-muted/35 shadow-sm">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <p className="font-medium">Tune For You with favorite games</p>
-              <p className="text-sm text-muted-foreground">
-                You are seeing the global latest feed until you add favorites.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a href="/discover">
-                  <Compass weight="bold" />
-                  Discover
-                </a>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Dismiss favorite games prompt"
-                onClick={() => {
-                  window.localStorage.setItem(
-                    ADD_FAVORITES_PROMPT_DISMISSED_KEY,
-                    "true",
-                  );
-                  setIsAddFavoritesPromptDismissed(true);
-                }}
-              >
-                <X weight="bold" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeQuery.isLoading && !activeQuery.data ? (
-        <HomeFeedSkeleton />
-      ) : activeQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{activeQuery.error.message}</AlertDescription>
-        </Alert>
-      ) : posts.length === 0 ? (
-        <HomeEmptyState
-          tab={activeTab}
-          hasFavoriteGames={forYouContext?.hasFavoriteGames ?? false}
-        />
-      ) : (
-        <>
-          {posts.map((post) => (
-            <PostCard
-              key={post.publicId}
-              post={post}
-              onDeleted={(publicId) => {
-                setExtraPages((current) => ({
-                  ...current,
-                  [activeTab]: current[activeTab].map(
-                    (page) => removePostFromFeedPage(page, publicId)!,
-                  ),
-                }));
-              }}
-            />
-          ))}
-
-          {loadMoreError && (
-            <Alert variant="destructive">
-              <AlertDescription>{loadMoreError}</AlertDescription>
-            </Alert>
-          )}
-
-          {nextCursor && (
-            <Button
-              variant="outline"
-              disabled={isLoadingMore}
+          <div
+            role="tablist"
+            aria-label="Home feed tabs"
+            className="inline-flex rounded-lg bg-muted p-1 shadow-sm ring-1 ring-foreground/10"
+          >
+            <FeedTabButton
+              isActive={activeTab === "for_you"}
               onClick={() => {
-                void loadNextPage({
-                  activeTab,
-                  client,
-                  nextCursor,
-                  setExtraPages,
-                  setIsLoadingMore,
-                  setLoadMoreError,
-                });
+                setActiveTab("for_you");
+                setLoadMoreError(null);
               }}
             >
-              {isLoadingMore ? "Loading..." : "Load more"}
-            </Button>
+              For You
+            </FeedTabButton>
+            <FeedTabButton
+              isActive={activeTab === "following"}
+              onClick={() => {
+                setActiveTab("following");
+                setLoadMoreError(null);
+              }}
+            >
+              Following
+            </FeedTabButton>
+          </div>
+        </div>
+
+        {shouldShowAddFavoritesPrompt && (
+          <Card className="bg-muted/35 shadow-sm" size="sm">
+            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 gap-3">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-foreground/10">
+                  <Sparkle weight="bold" className="size-4" />
+                </span>
+                <div className="min-w-0 space-y-1">
+                  <p className="font-medium">Tune For You with favorite games</p>
+                  <p className="text-sm text-muted-foreground">
+                    Until then, this shows the latest public posts.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/discover">
+                    <Compass weight="bold" />
+                    Discover
+                  </a>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Dismiss favorite games prompt"
+                  onClick={() => {
+                    window.localStorage.setItem(
+                      ADD_FAVORITES_PROMPT_DISMISSED_KEY,
+                      "true",
+                    );
+                    setIsAddFavoritesPromptDismissed(true);
+                  }}
+                >
+                  <X weight="bold" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="space-y-3">
+          {activeQuery.isLoading && !activeQuery.data ? (
+            <HomeFeedSkeleton />
+          ) : activeQuery.isError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{activeQuery.error.message}</AlertDescription>
+            </Alert>
+          ) : posts.length === 0 ? (
+            <HomeEmptyState
+              tab={activeTab}
+              hasFavoriteGames={forYouContext?.hasFavoriteGames ?? false}
+            />
+          ) : (
+            <>
+              {posts.map((post) => (
+                <PostCard
+                  key={post.publicId}
+                  post={post}
+                  onDeleted={(publicId) => {
+                    setExtraPages((current) => ({
+                      ...current,
+                      [activeTab]: current[activeTab].map(
+                        (page) => removePostFromFeedPage(page, publicId)!,
+                      ),
+                    }));
+                  }}
+                />
+              ))}
+
+              {loadMoreError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{loadMoreError}</AlertDescription>
+                </Alert>
+              )}
+
+              {nextCursor && (
+                <Button
+                  variant="outline"
+                  disabled={isLoadingMore}
+                  onClick={() => {
+                    void loadNextPage({
+                      activeTab,
+                      client,
+                      nextCursor,
+                      setExtraPages,
+                      setIsLoadingMore,
+                      setLoadMoreError,
+                    });
+                  }}
+                >
+                  {isLoadingMore ? "Loading..." : "Load more"}
+                </Button>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -231,7 +246,7 @@ function HomeEmptyState({
 }) {
   if (tab === "following") {
     return (
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Follow players to build this feed</CardTitle>
         </CardHeader>
@@ -246,7 +261,7 @@ function HomeEmptyState({
   }
 
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>
           {hasFavoriteGames ? "No favorite-game posts yet" : "No posts yet"}

@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { z } from "zod";
 import type { ViewerContext } from "@workspace/types";
 import type { FeedCommentRow, FeedCursor, FeedPage, FeedPageInput } from "../feed/index.js";
+import { isStaff } from "../visibility/memory.js";
 
 const commentCursorPayloadSchema = z.object({
   id: z.string().min(1),
@@ -32,6 +33,11 @@ export type CommentViewModel = {
   updatedAt: Date;
   canLike: boolean;
   canDelete: boolean;
+  moderationRemoval: {
+    publicReason: string | null;
+    removedAt: Date;
+    supportPath: "/contact";
+  } | null;
 };
 
 export type CommentPageViewModel = {
@@ -71,9 +77,10 @@ export function createCommentPresentation() {
     viewer: ViewerContext,
     row: FeedCommentRow,
   ): CommentViewModel {
+    const showRemovedPlaceholder = row.removedAt !== null && !isStaff(viewer);
     return {
       id: row.id,
-      text: row.text,
+      text: showRemovedPlaceholder ? "" : row.text,
       author: {
         username: row.authorUsername,
         displayName: row.authorDisplayName,
@@ -83,8 +90,22 @@ export function createCommentPresentation() {
       viewerHasLiked: row.viewerHasLiked,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      canLike: viewer.isAuthenticated && row.deletedAt === null,
-      canDelete: viewer.userId === row.authorId && row.deletedAt === null,
+      canLike:
+        viewer.isAuthenticated &&
+        row.deletedAt === null &&
+        row.removedAt === null,
+      canDelete:
+        viewer.userId === row.authorId &&
+        row.deletedAt === null &&
+        row.removedAt === null,
+      moderationRemoval:
+        showRemovedPlaceholder && row.removedAt
+          ? {
+              publicReason: row.removalPublicReason,
+              removedAt: row.removedAt,
+              supportPath: "/contact",
+            }
+          : null,
     };
   }
 

@@ -95,4 +95,23 @@ describe("Current app user state policy", () => {
       accountStatus: "account_deleted",
     });
   });
+
+  it("includes the public suspension reason when one is available", () => {
+    expect(
+      buildCurrentAppUserState({
+        session: { user: { id: "user-1", emailVerified: true } },
+        account: {
+          ...activeAccount,
+          status: "suspended",
+          suspensionPublicReason: "underage",
+        },
+        profile: null,
+      }),
+    ).toEqual({
+      kind: "limited_account",
+      user: { id: "user-1", emailVerified: true },
+      accountStatus: "suspended",
+      suspensionPublicReason: "underage",
+    });
+  });
 });

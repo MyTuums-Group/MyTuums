@@ -11,6 +11,7 @@ export const accountStatusRepository: AccountStatusRepository = {
         status: user.accountStatus,
         role: user.role,
         suspendedUntil: user.suspendedUntil,
+        suspensionPublicReason: user.suspensionPublicReason,
         deletedAt: user.deletedAt,
       })
       .from(user)
@@ -24,6 +25,7 @@ export const accountStatusRepository: AccountStatusRepository = {
       status: row.status as AccountStatus,
       role: row.role as UserRole,
       suspendedUntil: row.suspendedUntil,
+      suspensionPublicReason: row.suspensionPublicReason,
       deletedAt: row.deletedAt,
     };
   },
@@ -31,7 +33,12 @@ export const accountStatusRepository: AccountStatusRepository = {
   async markTemporarySuspensionExpired(userId) {
     await db
       .update(user)
-      .set({ accountStatus: "active", suspendedUntil: null, updatedAt: new Date() })
+      .set({
+        accountStatus: "active",
+        suspendedUntil: null,
+        suspensionPublicReason: null,
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(user.id, userId),

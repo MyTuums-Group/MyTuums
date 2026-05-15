@@ -23,6 +23,7 @@ export type CurrentAppUserState =
       kind: "limited_account";
       user: AppUser;
       accountStatus: Extract<AccountStatus, "suspended" | "account_deleted">;
+      suspensionPublicReason?: string;
     };
 
 export type CurrentAppUserStateInput = {
@@ -43,7 +44,14 @@ export function buildCurrentAppUserState(
   }
 
   if (input.account.status === "suspended") {
-    return { kind: "limited_account", user, accountStatus: "suspended" };
+    return {
+      kind: "limited_account",
+      user,
+      accountStatus: "suspended",
+      ...(input.account.suspensionPublicReason
+        ? { suspensionPublicReason: input.account.suspensionPublicReason }
+        : {}),
+    };
   }
 
   if (user.emailVerified === false) {

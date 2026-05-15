@@ -11,10 +11,62 @@ export interface FeedPageInput {
   cursor?: FeedCursor | null;
 }
 
+export type FeedContext =
+  | { kind: "for_you"; hasFavoriteGames: boolean }
+  | { kind: "following" }
+  | { kind: "discover"; gameSlug: string | null }
+  | { kind: "game_page"; gameId: string }
+  | { kind: "profile"; profileUserId: string };
+
 export interface FeedPage<T> {
   items: T[];
   nextCursor: FeedCursor | null;
+  context?: FeedContext;
 }
+
+export type FeedEligibility =
+  | { kind: "for_you" }
+  | { kind: "following" }
+  | { kind: "discover"; gameSlug?: string | null }
+  | { kind: "game_page"; gameId: string }
+  | { kind: "profile"; profileUserId: string };
+
+export interface FeedParams {
+  eligibility: FeedEligibility;
+  viewer: ViewerContext;
+  limit: number;
+  cursor?: FeedCursor | null;
+}
+
+export const ForYouEligibility = {
+  create(): FeedEligibility {
+    return { kind: "for_you" };
+  },
+};
+
+export const FollowingEligibility = {
+  create(): FeedEligibility {
+    return { kind: "following" };
+  },
+};
+
+export const DiscoverEligibility = {
+  create(input: { gameSlug?: string | null } = {}): FeedEligibility {
+    return { kind: "discover", gameSlug: input.gameSlug ?? null };
+  },
+};
+
+export const GamePageEligibility = {
+  create(gameId: string): FeedEligibility {
+    return { kind: "game_page", gameId };
+  },
+};
+
+export const ProfileEligibility = {
+  create(profileUserId: string): FeedEligibility {
+    return { kind: "profile", profileUserId };
+  },
+};
 
 export interface FeedPostRow {
   id: string;
@@ -60,7 +112,13 @@ export interface FeedFollowRow {
   followedId: string;
 }
 
+export interface FeedFavoriteGameRow {
+  userId: string;
+  gameId: string;
+}
+
 export interface FeedVisibilityQueryAdapter {
+  queryFeed(params: FeedParams): Promise<FeedPage<FeedPostRow>>;
   forYouFeed(viewer: ViewerContext, page: FeedPageInput): Promise<FeedPage<FeedPostRow>>;
   followingFeed(viewer: ViewerContext, page: FeedPageInput): Promise<FeedPage<FeedPostRow>>;
   discoverFeed(viewer: ViewerContext, page: FeedPageInput): Promise<FeedPage<FeedPostRow>>;
@@ -86,6 +144,7 @@ export interface InMemoryFeedVisibilityState {
   posts: FeedPostRow[];
   comments: FeedCommentRow[];
   follows: FeedFollowRow[];
+  favoriteGames?: FeedFavoriteGameRow[];
 }
 
 export function createInMemoryFeedVisibilityQueries(
@@ -104,42 +163,146 @@ export function createInMemoryFeedVisibilityQueries(
     );
   }
 
+  function favoriteGameIdsForViewer(viewer: ViewerContext): string[] {
+    if (!viewer.userId) return [];
+    return (state.favoriteGames ?? [])
+      .filter((favorite) => favorite.userId === viewer.userId)
+      .map((favorite) => favorite.gameId);
+  }
+
+  function queryFeed(params: FeedParams): FeedPage<FeedPostRow> {
+    const page = { limit: params.limit, cursor: params.cursor ?? null };
+    const eligibility = params.eligibility;
+
+    switch (eligibility.kind) {
+      case "for_you": {
+        const favoriteGameIds = favoriteGameIdsForViewer(params.viewer);
+        const hasFavoriteGames = favoriteGameIds.length > 0;
+        return {
+          ...visiblePosts(
+            params.viewer,
+            (post) => !hasFavoriteGames || favoriteGameIds.includes(post.gameTagId ?? ""),
+            page,
+          ),
+          context: { kind: "for_you", hasFavoriteGames },
+        };
+      }
+      case "following": {
+        if (!params.viewer.userId) {
+          return {
+            items: [],
+            nextCursor: null,
+            context: { kind: "following" },
+          };
+        }
+
+        const followedIds = state.follows
+          .filter((follow) => follow.followerId === params.viewer.userId)
+          .map((follow) => follow.followedId);
+
+        return {
+          ...visiblePosts(
+            params.viewer,
+            (post) => followedIds.includes(post.authorId),
+            page,
+          ),
+          context: { kind: "following" },
+        };
+      }
+      case "discover":
+        return {
+          ...visiblePosts(
+            params.viewer,
+            (post) =>
+              !eligibility.gameSlug || post.gameTagSlug === eligibility.gameSlug,
+            page,
+          ),
+          context: {
+            kind: "discover",
+            gameSlug: eligibility.gameSlug ?? null,
+          },
+        };
+      case "game_page":
+        return {
+          ...visiblePosts(
+            params.viewer,
+            (post) => post.gameTagId === eligibility.gameId,
+            page,
+          ),
+          context: { kind: "game_page", gameId: eligibility.gameId },
+        };
+      case "profile":
+        return {
+          ...visiblePosts(
+            params.viewer,
+            (post) => post.authorId === eligibility.profileUserId,
+            page,
+          ),
+          context: {
+            kind: "profile",
+            profileUserId: eligibility.profileUserId,
+          },
+        };
+    }
+  }
+
   return {
+    queryFeed(params) {
+      return Promise.resolve(queryFeed(params));
+    },
+
     forYouFeed(viewer, page) {
-      return Promise.resolve(visiblePosts(viewer, () => true, page));
+      return Promise.resolve(
+        queryFeed({
+          viewer,
+          eligibility: ForYouEligibility.create(),
+          limit: page.limit,
+          cursor: page.cursor,
+        }),
+      );
     },
 
     followingFeed(viewer, page) {
-      if (!viewer.userId) {
-        return Promise.resolve({ items: [], nextCursor: null });
-      }
-
-      const followedIds = state.follows
-        .filter((follow) => follow.followerId === viewer.userId)
-        .map((follow) => follow.followedId);
-
       return Promise.resolve(
-        visiblePosts(
+        queryFeed({
           viewer,
-          (post) => followedIds.includes(post.authorId),
-          page,
-        ),
+          eligibility: FollowingEligibility.create(),
+          limit: page.limit,
+          cursor: page.cursor,
+        }),
       );
     },
 
     discoverFeed(viewer, page) {
-      return Promise.resolve(visiblePosts(viewer, () => true, page));
+      return Promise.resolve(
+        queryFeed({
+          viewer,
+          eligibility: DiscoverEligibility.create(),
+          limit: page.limit,
+          cursor: page.cursor,
+        }),
+      );
     },
 
     gameFeed(viewer, gameId, page) {
       return Promise.resolve(
-        visiblePosts(viewer, (post) => post.gameTagId === gameId, page),
+        queryFeed({
+          viewer,
+          eligibility: GamePageEligibility.create(gameId),
+          limit: page.limit,
+          cursor: page.cursor,
+        }),
       );
     },
 
     profileFeed(viewer, profileUserId, page) {
       return Promise.resolve(
-        visiblePosts(viewer, (post) => post.authorId === profileUserId, page),
+        queryFeed({
+          viewer,
+          eligibility: ProfileEligibility.create(profileUserId),
+          limit: page.limit,
+          cursor: page.cursor,
+        }),
       );
     },
 

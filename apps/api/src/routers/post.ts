@@ -19,6 +19,7 @@ import {
   createCommentPresentation,
   InvalidCommentCursorError,
 } from "../services/comment/presentation.js";
+import { findBySlug } from "../services/game/game.adapter.js";
 import {
   createPost as createPostRecord,
   deleteOwnPost,
@@ -28,7 +29,6 @@ import {
   postPublicIdSchema,
 } from "../services/post/presentation.js";
 import { postPresentation } from "../services/post/presentation.production.js";
-import { findBySlug } from "../services/game/game.adapter.js";
 import { getOwnerByUsername } from "../services/profile/index.js";
 import { mapProfileAccessErrorToTRPC } from "../transport/profile-errors.js";
 import {
@@ -53,7 +53,11 @@ const feedPageSchema = z.object({
 
 const discoverFeedSchema = feedPageSchema.extend({
   game: z.preprocess(
-    (value) => (value === undefined || value === null ? "" : String(value)),
+    (value: unknown) => {
+      if (value === undefined || value === null) return "";
+      if (typeof value === "string") return value;
+      return "";
+    },
     z
       .string()
       .trim()

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import {
   ArrowUpRight,
   ChatCircleDots,
@@ -36,7 +36,55 @@ type PostCardProps = {
 export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
   const authorName = post.author.displayName ?? `@${post.author.username}`
   const [isLightboxOpen, setLightboxOpen] = useState(false)
+  const [likeState, setLikeState] = useState({
+    likedByViewer: post.likedByViewer,
+    likeCount: post.likeCount,
+  })
   const utils = trpc.useUtils()
+  useEffect(() => {
+    setLikeState({
+      likedByViewer: post.likedByViewer,
+      likeCount: post.likeCount,
+    })
+  }, [post.likedByViewer, post.likeCount])
+
+  const likeMutation = trpc.engagement.togglePostLike.useMutation({
+    onMutate() {
+      const previous = likeState
+      setLikeState((current) => {
+        const likedByViewer = !current.likedByViewer
+        return {
+          likedByViewer,
+          likeCount: Math.max(0, current.likeCount + (likedByViewer ? 1 : -1)),
+        }
+      })
+      return { previous }
+    },
+
+    onError(_error, _variables, context) {
+      if (context?.previous) {
+        setLikeState(context.previous)
+      }
+    },
+
+    onSuccess(result) {
+      setLikeState({
+        likedByViewer: result.liked,
+        likeCount: result.likeCount,
+      })
+    },
+
+    async onSettled() {
+      await Promise.all([
+        utils.post.forYouFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
+        utils.post.profileFeed.invalidate({
+          username: post.author.username,
+          limit: DEFAULT_POST_PAGE_LIMIT,
+        }),
+        utils.post.detail.invalidate({ publicId: post.publicId }),
+      ])
+    },
+  })
   const deleteMutation = trpc.post.deleteOwn.useMutation({
     async onMutate() {
       await Promise.all([
@@ -226,10 +274,24 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
 
       <CardFooter className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <PostStat
-            icon={<HeartStraight className="size-3.5" weight="bold" />}
-            label={formatCountLabel(post.likeCount, "like")}
-          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-pressed={likeState.likedByViewer}
+            disabled={likeMutation.isPending}
+            className="min-h-8 gap-1.5 rounded-full px-2.5 text-xs font-medium text-foreground ring-1 ring-foreground/10 hover:text-primary data-[liked=true]:text-primary"
+            data-liked={likeState.likedByViewer}
+            onClick={() => {
+              likeMutation.mutate({ publicId: post.publicId })
+            }}
+          >
+            <HeartStraight
+              className="size-3.5"
+              weight={likeState.likedByViewer ? "fill" : "bold"}
+            />
+            <span>{formatCountLabel(likeState.likeCount, "like")}</span>
+          </Button>
           <PostStat
             icon={<ChatCircleDots className="size-3.5" weight="bold" />}
             label={formatCountLabel(post.commentCount, "comment")}

@@ -47,7 +47,14 @@ describe("Current app user state policy", () => {
       buildCurrentAppUserState({
         session: { user: { id: "user-1", email: "alice@example.com", emailVerified: true } },
         account: activeAccount,
-        profile: { username: "alice", displayName: "Alice", bio: null, createdAt: new Date("2026-01-01") },
+        profile: {
+          username: "alice",
+          displayName: "Alice",
+          bio: null,
+          followerCount: 0,
+          followingCount: 0,
+          createdAt: new Date("2026-01-01"),
+        },
       }),
     ).toEqual({
       kind: "active_onboarded_profile",
@@ -73,7 +80,14 @@ describe("Current app user state policy", () => {
       buildCurrentAppUserState({
         session: { user: { id: "user-1", emailVerified: true } },
         account: { ...activeAccount, status: "account_deleted" },
-        profile: { username: "alice", displayName: null, bio: null, createdAt: new Date("2026-01-01") },
+        profile: {
+          username: "alice",
+          displayName: null,
+          bio: null,
+          followerCount: 0,
+          followingCount: 0,
+          createdAt: new Date("2026-01-01"),
+        },
       }),
     ).toEqual({
       kind: "limited_account",

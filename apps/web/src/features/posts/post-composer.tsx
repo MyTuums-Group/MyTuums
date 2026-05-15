@@ -59,6 +59,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
               }
             : null,
         likeCount: 0,
+        likedByViewer: false,
         commentCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),

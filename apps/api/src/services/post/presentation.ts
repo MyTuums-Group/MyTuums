@@ -65,6 +65,7 @@ export type PostViewModel = {
     url: string;
   } | null;
   likeCount: number;
+  likedByViewer: boolean;
   commentCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -110,6 +111,7 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
           : null,
       media: await toMediaView(media, row),
       likeCount: row.likeCount,
+      likedByViewer: row.likedByViewer ?? false,
       commentCount: row.commentCount,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

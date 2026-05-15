@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { PostCard } from "@/features/posts/post-card";
+import { PostComments } from "@/features/posts/post-comments";
 import { trpc } from "@/lib/trpc";
 
 export const Route = createFileRoute("/post/$publicId")({
@@ -47,16 +48,7 @@ function PostDetailPage() {
         }}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Comments</CardTitle>
-        </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
-          {query.data.commentCount > 0
-            ? `${query.data.commentCount} comments coming soon.`
-            : "Comments coming soon."}
-        </CardContent>
-      </Card>
+      <PostComments post={query.data} />
     </div>
   );
 }

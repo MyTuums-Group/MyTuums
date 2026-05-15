@@ -113,7 +113,7 @@ describe("Search module", () => {
         type: "game",
         id: "game-visible-game",
         label: "Visible Game",
-        href: "/games/visible-game",
+        href: "/game/visible-game",
       },
       {
         type: "user",

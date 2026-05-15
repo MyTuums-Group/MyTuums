@@ -3,6 +3,12 @@ import { z } from "zod";
 import { authorization } from "../authorization/index.js";
 import type { FeedPageInput } from "../services/feed/index.js";
 import { feedVisibilityQueries } from "../services/feed/production.js";
+import {
+  DiscoverEligibility,
+  FollowingEligibility,
+  ForYouEligibility,
+  ProfileEligibility,
+} from "../services/feed/index.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
 import {
   createPost as createPostRecord,
@@ -29,15 +35,56 @@ const feedPageSchema = z.object({
   limit: z.number().int().min(1).max(MAX_PAGE_LIMIT).default(DEFAULT_PAGE_LIMIT),
 });
 
+const discoverFeedSchema = feedPageSchema.extend({
+  game: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, "Invalid game filter.")
+    .optional(),
+});
+
 export const postRouter = router({
   forYouFeed: protectedProcedure
     .input(feedPageSchema)
     .query(async ({ ctx, input }) => {
       const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
-      const page = await feedVisibilityQueries.forYouFeed(
+      const pageInput = await toFeedPageInputOrThrow(viewer, input);
+      const page = await feedVisibilityQueries.queryFeed({
         viewer,
-        await toFeedPageInputOrThrow(viewer, input),
-      );
+        eligibility: ForYouEligibility.create(),
+        limit: pageInput.limit,
+        cursor: pageInput.cursor,
+      });
+      return postPresentation.toFeedResponse(viewer, page);
+    }),
+
+  followingFeed: protectedProcedure
+    .input(feedPageSchema)
+    .query(async ({ ctx, input }) => {
+      const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
+      const pageInput = await toFeedPageInputOrThrow(viewer, input);
+      const page = await feedVisibilityQueries.queryFeed({
+        viewer,
+        eligibility: FollowingEligibility.create(),
+        limit: pageInput.limit,
+        cursor: pageInput.cursor,
+      });
+      return postPresentation.toFeedResponse(viewer, page);
+    }),
+
+  discoverFeed: protectedProcedure
+    .input(discoverFeedSchema)
+    .query(async ({ ctx, input }) => {
+      const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
+      const pageInput = await toFeedPageInputOrThrow(viewer, input);
+      const page = await feedVisibilityQueries.queryFeed({
+        viewer,
+        eligibility: DiscoverEligibility.create({ gameSlug: input.game ?? null }),
+        limit: pageInput.limit,
+        cursor: pageInput.cursor,
+      });
       return postPresentation.toFeedResponse(viewer, page);
     }),
 
@@ -54,11 +101,13 @@ export const postRouter = router({
         throw mapProfileAccessErrorToTRPC(owner.error);
       }
 
-      const page = await feedVisibilityQueries.profileFeed(
+      const pageInput = await toFeedPageInputOrThrow(viewer, input);
+      const page = await feedVisibilityQueries.queryFeed({
         viewer,
-        owner.value.userId,
-        await toFeedPageInputOrThrow(viewer, input),
-      );
+        eligibility: ProfileEligibility.create(owner.value.userId),
+        limit: pageInput.limit,
+        cursor: pageInput.cursor,
+      });
 
       return postPresentation.toFeedResponse(viewer, page);
     }),

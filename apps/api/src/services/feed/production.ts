@@ -1,41 +1,75 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
-import { comment, db, follow, game, media, post, profile, user } from "@workspace/db";
+import { and, desc, eq, inArray, lt, or, type SQL } from "drizzle-orm";
+import { comment, db, favoriteGame, follow, game, media, post, profile, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
 import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
 import { feedCommentSqlPredicate, feedPostSqlPredicate } from "../visibility/sql-feed.production.js";
 import type {
+  FeedContext,
   FeedPage,
   FeedPageInput,
+  FeedParams,
   FeedPostRow,
   FeedVisibilityQueryAdapter,
+} from "./index.js";
+import {
+  DiscoverEligibility,
+  FollowingEligibility,
+  ForYouEligibility,
+  GamePageEligibility,
+  ProfileEligibility,
 } from "./index.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
 export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
+  queryFeed(params) {
+    return queryFeed(params);
+  },
+
   forYouFeed(viewer, page) {
-    return visiblePostPage(viewer, page);
+    return queryFeed({
+      viewer,
+      eligibility: ForYouEligibility.create(),
+      limit: page.limit,
+      cursor: page.cursor,
+    });
   },
 
   followingFeed(viewer, page) {
-    if (!viewer.userId) {
-      return Promise.resolve({ items: [], nextCursor: null });
-    }
-
-    return visiblePostPage(viewer, page, eq(follow.followerId, viewer.userId));
+    return queryFeed({
+      viewer,
+      eligibility: FollowingEligibility.create(),
+      limit: page.limit,
+      cursor: page.cursor,
+    });
   },
 
   discoverFeed(viewer, page) {
-    return visiblePostPage(viewer, page);
+    return queryFeed({
+      viewer,
+      eligibility: DiscoverEligibility.create(),
+      limit: page.limit,
+      cursor: page.cursor,
+    });
   },
 
   gameFeed(viewer, gameId, page) {
-    return visiblePostPage(viewer, page, eq(post.gameTagId, gameId));
+    return queryFeed({
+      viewer,
+      eligibility: GamePageEligibility.create(gameId),
+      limit: page.limit,
+      cursor: page.cursor,
+    });
   },
 
   profileFeed(viewer, profileUserId, page) {
-    return visiblePostPage(viewer, page, eq(post.authorId, profileUserId));
+    return queryFeed({
+      viewer,
+      eligibility: ProfileEligibility.create(profileUserId),
+      limit: page.limit,
+      cursor: page.cursor,
+    });
   },
 
   async postDetail(viewer, publicId) {
@@ -77,10 +111,65 @@ export const feedVisibilityQueries: FeedVisibilityQueryAdapter = {
   },
 };
 
+async function queryFeed(params: FeedParams): Promise<FeedPage<FeedPostRow>> {
+  const page = { limit: params.limit, cursor: params.cursor ?? null };
+
+  switch (params.eligibility.kind) {
+    case "for_you": {
+      const favoriteGameIds = await favoriteGameIdsForViewer(params.viewer);
+      const hasFavoriteGames = favoriteGameIds.length > 0;
+      return visiblePostPage(
+        params.viewer,
+        page,
+        hasFavoriteGames ? inArray(post.gameTagId, favoriteGameIds) : undefined,
+        { kind: "for_you", hasFavoriteGames },
+      );
+    }
+    case "following":
+      if (!params.viewer.userId) {
+        return { items: [], nextCursor: null, context: { kind: "following" } };
+      }
+
+      return visiblePostPage(
+        params.viewer,
+        page,
+        eq(follow.followerId, params.viewer.userId),
+        { kind: "following" },
+      );
+    case "discover":
+      return visiblePostPage(
+        params.viewer,
+        page,
+        params.eligibility.gameSlug
+          ? eq(game.slug, params.eligibility.gameSlug)
+          : undefined,
+        {
+          kind: "discover",
+          gameSlug: params.eligibility.gameSlug ?? null,
+        },
+      );
+    case "game_page":
+      return visiblePostPage(
+        params.viewer,
+        page,
+        eq(post.gameTagId, params.eligibility.gameId),
+        { kind: "game_page", gameId: params.eligibility.gameId },
+      );
+    case "profile":
+      return visiblePostPage(
+        params.viewer,
+        page,
+        eq(post.authorId, params.eligibility.profileUserId),
+        { kind: "profile", profileUserId: params.eligibility.profileUserId },
+      );
+  }
+}
+
 async function visiblePostPage(
   viewer: ViewerContext,
   page: FeedPageInput,
-  extraPredicate?: ReturnType<typeof eq>,
+  extraPredicate?: SQL,
+  context?: FeedContext,
 ): Promise<FeedPage<FeedPostRow>> {
   const limit = clampLimit(page.limit);
   const sqlPred = feedPostSqlPredicate(viewer);
@@ -92,7 +181,20 @@ async function visiblePostPage(
   return toPage(
     rows.filter((row) => canViewFeedPost(viewer, row)),
     limit,
+    context,
   );
+}
+
+async function favoriteGameIdsForViewer(viewer: ViewerContext): Promise<string[]> {
+  if (!viewer.userId) return [];
+
+  const rows = await db
+    .select({ gameId: favoriteGame.gameId })
+    .from(favoriteGame)
+    .innerJoin(profile, eq(favoriteGame.profileId, profile.id))
+    .where(eq(profile.userId, viewer.userId));
+
+  return rows.map((row) => row.gameId);
 }
 
 function postBaseQuery(viewer: ViewerContext) {
@@ -165,6 +267,7 @@ function cursorPredicate(
 function toPage<T extends { id: string; createdAt: Date }>(
   rows: T[],
   limit: number,
+  context?: FeedContext,
 ): FeedPage<T> {
   const items = rows.slice(0, limit);
   const nextCursor =
@@ -172,7 +275,7 @@ function toPage<T extends { id: string; createdAt: Date }>(
       ? { id: items[items.length - 1]!.id, createdAt: items[items.length - 1]!.createdAt }
       : null;
 
-  return { items, nextCursor };
+  return { items, nextCursor, context };
 }
 
 function clampLimit(limit: number): number {

@@ -21,7 +21,68 @@ function ProfilePage() {
   const [extraPages, setExtraPages] = useState<PostFeedPage[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const utils = trpc.useUtils();
   const query = trpc.profile.getByUsername.useQuery({ username });
+  const currentAppUser = trpc.currentAppUser.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const canUseProfileActions =
+    currentAppUser.data?.kind === "active_onboarded_profile" &&
+    currentAppUser.data.profile.username !== username &&
+    query.data !== undefined;
+  const engagementQuery = trpc.engagement.profileState.useQuery(
+    { username },
+    {
+      enabled: canUseProfileActions,
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const followMutation = trpc.engagement.toggleFollow.useMutation({
+    async onSuccess(result) {
+      utils.engagement.profileState.setData({ username }, (current) =>
+        current
+          ? {
+              ...current,
+              followerCount: result.followerCount,
+              followingCount: result.followingCount,
+              isFollowing: result.following,
+            }
+          : current,
+      );
+      await Promise.all([
+        utils.engagement.profileState.invalidate({ username }),
+        utils.profile.getByUsername.invalidate({ username }),
+      ]);
+    },
+  });
+  const blockMutation = trpc.engagement.blockUser.useMutation({
+    onSuccess() {
+      utils.engagement.profileState.setData({ username }, (current) =>
+        current
+          ? {
+              ...current,
+              isFollowing: false,
+              isBlocked: true,
+            }
+          : current,
+      );
+    },
+  });
+  const unblockMutation = trpc.engagement.unblockUser.useMutation({
+    async onSuccess() {
+      utils.engagement.profileState.setData({ username }, (current) =>
+        current
+          ? {
+              ...current,
+              isBlocked: false,
+            }
+          : current,
+      );
+      await utils.engagement.profileState.invalidate({ username });
+    },
+  });
   const postsQuery = trpc.post.profileFeed.useQuery({
     username,
     limit: DEFAULT_POST_PAGE_LIMIT,
@@ -38,6 +99,11 @@ function ProfilePage() {
   if (!query.data) return null;
 
   const profile = query.data;
+  const engagement = engagementQuery.data;
+  const followerCount = engagement?.followerCount ?? profile.followerCount;
+  const followingCount = engagement?.followingCount ?? profile.followingCount;
+  const isFollowing = engagement?.isFollowing ?? false;
+  const isBlocked = engagement?.isBlocked ?? false;
   const pages = postsQuery.data ? [postsQuery.data, ...extraPages] : extraPages;
   const posts = pages.flatMap((page) => page.items);
   const nextCursor =
@@ -58,9 +124,44 @@ function ProfilePage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {profile.bio && <p className="text-muted-foreground">{profile.bio}</p>}
-          <div className="text-sm text-muted-foreground">
-            <p>Follower / following counts: coming soon</p>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <span>{formatCount(followerCount, "follower")}</span>
+            <span>{formatCount(followingCount, "following")}</span>
           </div>
+          {canUseProfileActions && (
+            <div className="flex flex-wrap gap-2">
+              {!isBlocked && (
+                <Button
+                  type="button"
+                  variant={isFollowing ? "outline" : "default"}
+                  disabled={followMutation.isPending || engagementQuery.isLoading}
+                  onClick={() => {
+                    followMutation.mutate({ username });
+                  }}
+                >
+                  {isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant={isBlocked ? "outline" : "ghost"}
+                disabled={
+                  blockMutation.isPending ||
+                  unblockMutation.isPending ||
+                  engagementQuery.isLoading
+                }
+                onClick={() => {
+                  if (isBlocked) {
+                    unblockMutation.mutate({ username });
+                  } else {
+                    blockMutation.mutate({ username });
+                  }
+                }}
+              >
+                {isBlocked ? "Unblock" : "Block"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -133,6 +234,11 @@ function ProfilePage() {
       </Card>
     </div>
   );
+}
+
+function formatCount(value: number, noun: string): string {
+  const count = new Intl.NumberFormat("en").format(value);
+  return `${count} ${noun}${value === 1 || noun === "following" ? "" : "s"}`;
 }
 
 function ProfileSkeleton() {

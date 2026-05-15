@@ -17,6 +17,8 @@ export type ProfileRow = {
   username: string;
   displayName: string | null;
   bio: string | null;
+  followerCount: number;
+  followingCount: number;
   createdAt: Date;
 };
 
@@ -24,6 +26,8 @@ export type PublicProfile = {
   username: string;
   displayName: string | null;
   bio: string | null;
+  followerCount: number;
+  followingCount: number;
   createdAt: Date;
 };
 
@@ -167,6 +171,8 @@ export function createInMemoryProfileOnboardingService(state: {
         username: values.username,
         displayName: values.displayName,
         bio: values.bio,
+        followerCount: 0,
+        followingCount: 0,
         createdAt: new Date("2026-01-01T00:00:00.000Z"),
       };
       state.profiles.push(row);
@@ -200,6 +206,8 @@ function toPublicProfile(row: ProfileRow): PublicProfile {
     username: row.username,
     displayName: row.displayName,
     bio: row.bio,
+    followerCount: row.followerCount,
+    followingCount: row.followingCount,
     createdAt: row.createdAt,
   };
 }

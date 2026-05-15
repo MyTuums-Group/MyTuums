@@ -28,6 +28,8 @@ const profileRow: ProfileRow = {
   bio: "Plays co-op games.",
   avatarMediaId: null,
   bannerMediaId: null,
+  followerCount: 0,
+  followingCount: 0,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
 };
@@ -78,6 +80,8 @@ describe("Profile access module", () => {
         username: "alice",
         displayName: "Alice",
         bio: "Plays co-op games.",
+        followerCount: 0,
+        followingCount: 0,
         createdAt: profileRow.createdAt,
       },
     });

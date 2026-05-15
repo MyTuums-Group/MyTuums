@@ -1,5 +1,5 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
-import { comment, db, follow, game, media, post, profile, user } from "@workspace/db";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import { comment, db, follow, game, media, post, postLike, profile, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
 import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
 import { feedCommentSqlPredicate, feedPostSqlPredicate } from "../visibility/sql-feed.production.js";
@@ -102,7 +102,13 @@ function postBaseQuery(viewer: ViewerContext) {
     .innerJoin(user, eq(post.authorId, user.id))
     .innerJoin(profile, eq(post.authorId, profile.userId))
     .leftJoin(game, eq(post.gameTagId, game.id))
-    .leftJoin(media, eq(post.mediaAttachmentId, media.id));
+    .leftJoin(media, eq(post.mediaAttachmentId, media.id))
+    .leftJoin(
+      postLike,
+      viewer.userId
+        ? and(eq(postLike.postId, post.id), eq(postLike.userId, viewer.userId))
+        : sql`false`,
+    );
 
   if (!viewer.userId) return query;
 
@@ -129,6 +135,7 @@ const postSelection = {
   mediaStorageContainer: media.storageContainer,
   mediaStatus: media.status,
   likeCount: post.likeCount,
+  likedByViewer: sql<boolean>`${postLike.userId} is not null`,
   commentCount: post.commentCount,
   deletedAt: post.deletedAt,
   removedAt: post.removedAt,

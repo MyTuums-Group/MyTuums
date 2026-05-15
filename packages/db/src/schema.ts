@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql } from "drizzle-orm"
 import {
   pgTable,
   text,
@@ -9,7 +9,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
-} from "drizzle-orm/pg-core";
+} from "drizzle-orm/pg-core"
 
 import {
   type AccountStatus,
@@ -23,26 +23,26 @@ import {
   type ReportReason,
   type ReportTargetType,
   type UserRole,
-} from "@workspace/types";
+} from "@workspace/types"
 
 const USER_ROLES = [
   "user",
   "moderator",
   "admin",
   "owner",
-] as const satisfies readonly UserRole[];
+] as const satisfies readonly UserRole[]
 
 const ACCOUNT_STATUSES = [
   "active",
   "suspended",
   "account_deleted",
-] as const satisfies readonly AccountStatus[];
+] as const satisfies readonly AccountStatus[]
 
 const MEDIA_PURPOSES = [
   "post_attachment",
   "profile_avatar",
   "profile_banner",
-] as const satisfies readonly MediaPurpose[];
+] as const satisfies readonly MediaPurpose[]
 
 const MEDIA_STATUSES = [
   "pending",
@@ -50,19 +50,19 @@ const MEDIA_STATUSES = [
   "attached",
   "failed",
   "deleted",
-] as const satisfies readonly MediaStatus[];
+] as const satisfies readonly MediaStatus[]
 
 const CASE_STATUSES = [
   "open",
   "reviewing",
   "dismissed",
   "actioned",
-] as const satisfies readonly CaseStatus[];
+] as const satisfies readonly CaseStatus[]
 
 const CASE_PRIORITIES = [
   "normal",
   "urgent",
-] as const satisfies readonly CasePriority[];
+] as const satisfies readonly CasePriority[]
 
 const REPORT_REASONS = [
   "self_harm",
@@ -73,13 +73,13 @@ const REPORT_REASONS = [
   "spam",
   "impersonation",
   "other",
-] as const satisfies readonly ReportReason[];
+] as const satisfies readonly ReportReason[]
 
 const REPORT_TARGET_TYPES = [
   "post",
   "comment",
   "profile",
-] as const satisfies readonly ReportTargetType[];
+] as const satisfies readonly ReportTargetType[]
 
 const MODERATION_ACTION_TYPES = [
   "remove_post",
@@ -89,7 +89,7 @@ const MODERATION_ACTION_TYPES = [
   "suspend_user",
   "unsuspend_user",
   "dismiss_case",
-] as const satisfies readonly ModerationActionType[];
+] as const satisfies readonly ModerationActionType[]
 
 const NOTIFICATION_TYPES = [
   "follow",
@@ -97,7 +97,7 @@ const NOTIFICATION_TYPES = [
   "post_comment",
   "comment_like",
   "content_removed",
-] as const satisfies readonly NotificationType[];
+] as const satisfies readonly NotificationType[]
 
 const CONTACT_CATEGORIES = [
   "account_access",
@@ -106,7 +106,7 @@ const CONTACT_CATEGORIES = [
   "bug_report",
   "general_support",
   "other",
-] as const satisfies readonly ContactCategory[];
+] as const satisfies readonly ContactCategory[]
 
 // ─────────────────────────────────────────────────────────────────────
 // BetterAuth tables
@@ -157,8 +157,8 @@ export const user = pgTable(
   (table) => [
     uniqueIndex("user_email_unique").on(table.email),
     index("user_email_idx").on(table.email),
-  ],
-);
+  ]
+)
 
 export const session = pgTable(
   "session",
@@ -179,8 +179,8 @@ export const session = pgTable(
   (table) => [
     uniqueIndex("session_token_unique").on(table.token),
     index("session_user_id_idx").on(table.userId),
-  ],
-);
+  ]
+)
 
 export const account = pgTable(
   "account",
@@ -206,8 +206,8 @@ export const account = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
-  (table) => [index("account_user_id_idx").on(table.userId)],
-);
+  (table) => [index("account_user_id_idx").on(table.userId)]
+)
 
 export const verification = pgTable(
   "verification",
@@ -223,8 +223,8 @@ export const verification = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)],
-);
+  (table) => [index("verification_identifier_idx").on(table.identifier)]
+)
 
 // ─────────────────────────────────────────────────────────────────────
 // Domain tables — UUID primary keys, snake_case DB columns
@@ -249,18 +249,18 @@ export const game = pgTable(
     index("game_slug_idx").on(table.slug),
     index("game_slug_search_trgm_idx").using(
       "gin",
-      sql`(public.immutable_unaccent(lower(${table.slug}))) gin_trgm_ops`,
+      sql`(public.immutable_unaccent(lower(${table.slug}))) gin_trgm_ops`
     ),
     index("game_name_search_trgm_idx").using(
       "gin",
-      sql`(public.immutable_unaccent(lower(${table.name}))) gin_trgm_ops`,
+      sql`(public.immutable_unaccent(lower(${table.name}))) gin_trgm_ops`
     ),
     index("game_aliases_search_trgm_idx").using(
       "gin",
-      sql`(public.immutable_unaccent(lower(coalesce(${table.aliases}::text, '')))) gin_trgm_ops`,
+      sql`(public.immutable_unaccent(lower(coalesce(${table.aliases}::text, '')))) gin_trgm_ops`
     ),
-  ],
-);
+  ]
+)
 
 export const media = pgTable(
   "media",
@@ -298,8 +298,8 @@ export const media = pgTable(
   (table) => [
     index("media_owner_id_idx").on(table.ownerId),
     index("media_status_idx").on(table.status),
-  ],
-);
+  ]
+)
 
 export const profile = pgTable(
   "profile",
@@ -335,14 +335,14 @@ export const profile = pgTable(
     index("profile_username_idx").on(table.username),
     index("profile_username_search_trgm_idx").using(
       "gin",
-      sql`(public.immutable_unaccent(lower(${table.username}))) gin_trgm_ops`,
+      sql`(public.immutable_unaccent(lower(${table.username}))) gin_trgm_ops`
     ),
     index("profile_display_name_search_trgm_idx").using(
       "gin",
-      sql`(public.immutable_unaccent(lower(coalesce(${table.displayName}, '')))) gin_trgm_ops`,
+      sql`(public.immutable_unaccent(lower(coalesce(${table.displayName}, '')))) gin_trgm_ops`
     ),
-  ],
-);
+  ]
+)
 
 export const post = pgTable(
   "post",
@@ -383,8 +383,8 @@ export const post = pgTable(
     index("post_author_id_idx").on(table.authorId),
     index("post_created_at_idx").on(table.createdAt),
     index("post_game_tag_id_idx").on(table.gameTagId),
-  ],
-);
+  ]
+)
 
 export const comment = pgTable(
   "comment",
@@ -415,8 +415,8 @@ export const comment = pgTable(
   (table) => [
     index("comment_post_id_idx").on(table.postId),
     index("comment_author_id_idx").on(table.authorId),
-  ],
-);
+  ]
+)
 
 export const postLike = pgTable(
   "post_like",
@@ -434,8 +434,8 @@ export const postLike = pgTable(
   (table) => [
     uniqueIndex("post_like_unique").on(table.userId, table.postId),
     index("post_like_post_id_idx").on(table.postId),
-  ],
-);
+  ]
+)
 
 export const commentLike = pgTable(
   "comment_like",
@@ -453,8 +453,8 @@ export const commentLike = pgTable(
   (table) => [
     uniqueIndex("comment_like_unique").on(table.userId, table.commentId),
     index("comment_like_comment_id_idx").on(table.commentId),
-  ],
-);
+  ]
+)
 
 export const follow = pgTable(
   "follow",
@@ -473,8 +473,8 @@ export const follow = pgTable(
     uniqueIndex("follow_unique").on(table.followerId, table.followedId),
     index("follow_follower_id_idx").on(table.followerId),
     index("follow_followed_id_idx").on(table.followedId),
-  ],
-);
+  ]
+)
 
 export const block = pgTable(
   "block",
@@ -492,8 +492,8 @@ export const block = pgTable(
   (table) => [
     uniqueIndex("block_unique").on(table.blockerId, table.blockedId),
     index("block_blocker_id_idx").on(table.blockerId),
-  ],
-);
+  ]
+)
 
 export const favoriteGame = pgTable(
   "favorite_game",
@@ -513,8 +513,8 @@ export const favoriteGame = pgTable(
   (table) => [
     uniqueIndex("favorite_game_unique").on(table.profileId, table.gameId),
     index("favorite_game_profile_id_idx").on(table.profileId),
-  ],
-);
+  ]
+)
 
 export const notification = pgTable(
   "notification",
@@ -524,7 +524,7 @@ export const notification = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     type: text("type", {
-            enum: NOTIFICATION_TYPES,
+      enum: NOTIFICATION_TYPES,
     }).notNull(),
     /** User whose action triggered the notification (nullable for system) */
     actorId: text("actor_id").references(() => user.id, {
@@ -543,8 +543,38 @@ export const notification = pgTable(
   (table) => [
     index("notification_recipient_id_idx").on(table.recipientId),
     index("notification_created_at_idx").on(table.createdAt),
-  ],
-);
+    uniqueIndex("notification_follow_unique")
+      .on(table.recipientId, table.type, table.actorId)
+      .where(sql`${table.type} = 'follow'`),
+    uniqueIndex("notification_post_like_unique")
+      .on(
+        table.recipientId,
+        table.type,
+        table.actorId,
+        sql`(${table.data}->>'postId')`
+      )
+      .where(sql`${table.type} = 'post_like'`),
+    uniqueIndex("notification_post_comment_unique")
+      .on(table.recipientId, table.type, sql`(${table.data}->>'commentId')`)
+      .where(sql`${table.type} = 'post_comment'`),
+    uniqueIndex("notification_comment_like_unique")
+      .on(
+        table.recipientId,
+        table.type,
+        table.actorId,
+        sql`(${table.data}->>'commentId')`
+      )
+      .where(sql`${table.type} = 'comment_like'`),
+    uniqueIndex("notification_content_removed_unique")
+      .on(
+        table.recipientId,
+        table.type,
+        sql`(${table.data}->>'moderationActionId')`,
+        sql`(${table.data}->>'targetType')`
+      )
+      .where(sql`${table.type} = 'content_removed'`),
+  ]
+)
 
 export const moderationCase = pgTable(
   "moderation_case",
@@ -580,8 +610,8 @@ export const moderationCase = pgTable(
   (table) => [
     index("moderation_case_status_idx").on(table.status),
     index("moderation_case_assignee_id_idx").on(table.assigneeId),
-  ],
-);
+  ]
+)
 
 export const report = pgTable(
   "report",
@@ -595,25 +625,24 @@ export const report = pgTable(
     }).notNull(),
     targetId: uuid("target_id").notNull(),
     reason: text("reason", {
-            enum: REPORT_REASONS,
+      enum: REPORT_REASONS,
     }).notNull(),
     /** Free-text notes from the reporter */
     notes: text("notes"),
     /** Linked moderation case (created when report is triaged) */
     moderationCaseId: uuid("moderation_case_id").references(
       () => moderationCase.id,
-      { onDelete: "set null" },
+      { onDelete: "set null" }
     ),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-
     index("report_reporter_id_idx").on(table.reporterId),
     index("report_moderation_case_id_idx").on(table.moderationCaseId),
-  ],
-);
+  ]
+)
 
 export const moderationAction = pgTable(
   "moderation_action",
@@ -627,10 +656,10 @@ export const moderationAction = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     action: text("action", {
-            enum: MODERATION_ACTION_TYPES,
+      enum: MODERATION_ACTION_TYPES,
     }).notNull(),
     reason: text("reason", {
-            enum: REPORT_REASONS,
+      enum: REPORT_REASONS,
     }).notNull(),
     /** Shown to the content author (user-facing) */
     publicReason: text("public_reason"),
@@ -642,8 +671,8 @@ export const moderationAction = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("moderation_action_case_id_idx").on(table.caseId)],
-);
+  (table) => [index("moderation_action_case_id_idx").on(table.caseId)]
+)
 
 export const roleChangeAudit = pgTable(
   "role_change_audit",
@@ -668,8 +697,8 @@ export const roleChangeAudit = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("role_change_audit_target_idx").on(table.targetUserId)],
-);
+  (table) => [index("role_change_audit_target_idx").on(table.targetUserId)]
+)
 
 export const rateLimit = pgTable(
   "rate_limit",
@@ -684,10 +713,8 @@ export const rateLimit = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [
-    index("rate_limit_key_action_idx").on(table.key, table.action),
-  ],
-);
+  (table) => [index("rate_limit_key_action_idx").on(table.key, table.action)]
+)
 
 export const contactSubmission = pgTable(
   "contact_submission",
@@ -699,12 +726,12 @@ export const contactSubmission = pgTable(
     }),
     email: text("email"),
     category: text("category", {
-            enum: CONTACT_CATEGORIES,
+      enum: CONTACT_CATEGORIES,
     }).notNull(),
     message: text("message").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("contact_submission_category_idx").on(table.category)],
-);
+  (table) => [index("contact_submission_category_idx").on(table.category)]
+)

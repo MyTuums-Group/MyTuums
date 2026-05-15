@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 900" role="img" aria-labelledby="title desc">
+  <title id="title">MyTuums game cover placeholder</title>
+  <desc id="desc">A rights-cleared abstract cover image for seeded games.</desc>
+  <rect width="640" height="900" fill="#171717"/>
+  <rect x="40" y="40" width="560" height="820" rx="42" fill="#fafafa"/>
+  <rect x="74" y="74" width="492" height="752" rx="28" fill="#f5f5f5"/>
+  <path d="M128 284c0-54 44-98 98-98h188c54 0 98 44 98 98v174c0 54-44 98-98 98H226c-54 0-98-44-98-98V284Z" fill="#e9e9e9"/>
+  <path d="M226 326h188M226 416h188M320 232v278" stroke="#171717" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="228" cy="650" r="30" fill="#861043"/>
+  <circle cx="300" cy="650" r="30" fill="#171717"/>
+  <circle cx="372" cy="650" r="30" fill="#171717"/>
+  <circle cx="444" cy="650" r="30" fill="#861043"/>
+  <path d="M170 758h300" stroke="#171717" stroke-width="28" stroke-linecap="round"/>
+</svg>

@@ -6,10 +6,7 @@ import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { trpc } from "@/lib/trpc";
 import { DEFAULT_POST_PAGE_LIMIT } from "./constants";
-import {
-  prependPostToFeedPage,
-  replacePostInFeedPage,
-} from "./post-cache";
+import { prependPostToFeedPage, replacePostInFeedPage } from "./post-cache";
 import { getPostTextState } from "./post-text";
 import type { PostView } from "./types";
 
@@ -19,6 +16,7 @@ type PostComposerProps = {
 
 export function PostComposer({ onCreated }: PostComposerProps) {
   const [draft, setDraft] = useState("");
+  const [selectedGameId, setSelectedGameId] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upload, setUpload] = useState<UploadState | null>(null);
 
@@ -36,6 +34,12 @@ export function PostComposer({ onCreated }: PostComposerProps) {
   const confirmUploadMutation = trpc.media.confirmUpload.useMutation();
   const retryUploadMutation = trpc.media.retryUpload.useMutation();
   const removeUploadMutation = trpc.media.removeUpload.useMutation();
+  const gamesQuery = trpc.game.listActive.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const selectedGame =
+    gamesQuery.data?.find((game) => game.id === selectedGameId) ?? null;
 
   const createMutation = trpc.post.create.useMutation({
     async onMutate(variables) {
@@ -48,7 +52,13 @@ export function PostComposer({ onCreated }: PostComposerProps) {
           displayName: activeProfile?.displayName ?? "You",
           avatarUrl: null,
         },
-        gameTag: null,
+        gameTag: selectedGame
+          ? {
+              id: selectedGame.id,
+              slug: selectedGame.slug,
+              name: selectedGame.name,
+            }
+          : null,
         media:
           upload?.status === "ready"
             ? {
@@ -88,11 +98,12 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
       setErrorMessage(null);
       setDraft("");
+      setSelectedGameId("");
       clearUpload();
 
       utils.post.forYouFeed.setData(
         { limit: DEFAULT_POST_PAGE_LIMIT },
-        (current) => prependPostToFeedPage(current, optimisticPost),
+        (current) => prependPostToFeedPage(current, optimisticPost)
       );
 
       if (activeProfile) {
@@ -101,7 +112,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             username: activeProfile.username,
             limit: DEFAULT_POST_PAGE_LIMIT,
           },
-          (current) => prependPostToFeedPage(current, optimisticPost),
+          (current) => prependPostToFeedPage(current, optimisticPost)
         );
       }
 
@@ -116,7 +127,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
     onError(error, _variables, context) {
       utils.post.forYouFeed.setData(
         { limit: DEFAULT_POST_PAGE_LIMIT },
-        context?.previousForYou,
+        context?.previousForYou
       );
 
       if (activeProfile) {
@@ -125,7 +136,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             username: activeProfile.username,
             limit: DEFAULT_POST_PAGE_LIMIT,
           },
-          context?.previousProfile,
+          context?.previousProfile
         );
       }
 
@@ -140,8 +151,8 @@ export function PostComposer({ onCreated }: PostComposerProps) {
           replacePostInFeedPage(
             current,
             context?.optimisticPublicId ?? createdPost.publicId,
-            createdPost,
-          ) ?? prependPostToFeedPage(current, createdPost),
+            createdPost
+          ) ?? prependPostToFeedPage(current, createdPost)
       );
 
       if (activeProfile) {
@@ -154,8 +165,8 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             replacePostInFeedPage(
               current,
               context?.optimisticPublicId ?? createdPost.publicId,
-              createdPost,
-            ) ?? prependPostToFeedPage(current, createdPost),
+              createdPost
+            ) ?? prependPostToFeedPage(current, createdPost)
         );
       }
 
@@ -182,7 +193,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
           <PenNib weight="bold" className="size-4" />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold leading-5">Share a public post</p>
+          <p className="leading-5 font-semibold">Share a public post</p>
           <p className="text-sm text-muted-foreground">
             Start a thread, drop a clip, or call out what you are playing.
           </p>
@@ -205,7 +216,9 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
             createMutation.mutate({
               text: state.normalizedText,
-              mediaAttachmentId: upload?.status === "ready" ? upload.mediaId : null,
+              mediaAttachmentId:
+                upload?.status === "ready" ? upload.mediaId : null,
+              gameTagId: selectedGameId || null,
             });
           }}
         >
@@ -218,6 +231,29 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             placeholder="What are you playing right now?"
             className="min-h-28 resize-y bg-muted/20 text-base sm:text-sm"
           />
+
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="post-game-tag"
+              className="text-sm font-medium text-foreground"
+            >
+              Game tag
+            </label>
+            <select
+              id="post-game-tag"
+              value={selectedGameId}
+              onChange={(event) => setSelectedGameId(event.target.value)}
+              disabled={createMutation.isPending || gamesQuery.isLoading}
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">No game tag</option>
+              {gamesQuery.data?.map((game) => (
+                <option key={game.id} value={game.id}>
+                  {game.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div
             onDragOver={(event) => {
@@ -239,8 +275,12 @@ export function PostComposer({ onCreated }: PostComposerProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={createMutation.isPending || upload?.status === "uploading"}
-                onClick={() => document.getElementById("post-media-input")?.click()}
+                disabled={
+                  createMutation.isPending || upload?.status === "uploading"
+                }
+                onClick={() =>
+                  document.getElementById("post-media-input")?.click()
+                }
               >
                 Choose file
               </Button>
@@ -361,19 +401,21 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       setUpload((current) =>
         current
           ? { ...current, mediaId: intent.mediaId, uploadUrl: intent.uploadUrl }
-          : current,
+          : current
       );
       await uploadFile(intent.uploadUrl, file, (progress) => {
         setUpload((current) => (current ? { ...current, progress } : current));
       });
       await confirmUploadMutation.mutateAsync({ mediaId: intent.mediaId });
       setUpload((current) =>
-        current ? { ...current, status: "ready", progress: 100 } : current,
+        current ? { ...current, status: "ready", progress: 100 } : current
       );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Upload failed.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Upload failed."
+      );
       setUpload((current) =>
-        current ? { ...current, status: "failed" } : current,
+        current ? { ...current, status: "failed" } : current
       );
     }
   }
@@ -390,12 +432,14 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       });
       await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId });
       setUpload((current) =>
-        current ? { ...current, status: "ready", progress: 100 } : current,
+        current ? { ...current, status: "ready", progress: 100 } : current
       );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Upload failed.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Upload failed."
+      );
       setUpload((current) =>
-        current ? { ...current, status: "failed" } : current,
+        current ? { ...current, status: "failed" } : current
       );
     }
   }
@@ -427,7 +471,7 @@ type UploadState = {
 function uploadFile(
   uploadUrl: string,
   file: File,
-  onProgress: (progress: number) => void,
+  onProgress: (progress: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

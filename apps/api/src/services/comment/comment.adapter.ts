@@ -1,46 +1,50 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm"
 import {
+  block,
   comment as commentTable,
   commentLike,
   db,
+  notification,
   post as postTable,
-} from "@workspace/db";
-import type { CommentRecord, CommentRepository } from "./comment.core.js";
+} from "@workspace/db"
+import type { CommentRecord, CommentRepository } from "./comment.core.js"
 
 export async function findCommentablePostByPublicId(
-  publicId: string,
+  publicId: string
 ): ReturnType<CommentRepository["findCommentablePostByPublicId"]> {
   const [row] = await db
     .select({
       id: postTable.id,
       publicId: postTable.publicId,
+      authorId: postTable.authorId,
       commentCount: postTable.commentCount,
       deletedAt: postTable.deletedAt,
       removedAt: postTable.removedAt,
     })
     .from(postTable)
     .where(eq(postTable.publicId, publicId))
-    .limit(1);
+    .limit(1)
 
-  return row ?? null;
+  return row ?? null
 }
 
 export async function findCommentById(
-  commentId: string,
+  commentId: string
 ): Promise<CommentRecord | null> {
   const [row] = await db
     .select()
     .from(commentTable)
     .where(eq(commentTable.id, commentId))
-    .limit(1);
+    .limit(1)
 
-  return row ?? null;
+  return row ?? null
 }
 
 export async function createComment(values: {
-  postId: string;
-  authorId: string;
-  text: CommentRecord["text"];
+  postId: string
+  postAuthorId: string
+  authorId: string
+  text: CommentRecord["text"]
 }): Promise<CommentRecord> {
   return db.transaction(async (tx) => {
     const [created] = await tx
@@ -50,10 +54,10 @@ export async function createComment(values: {
         authorId: values.authorId,
         text: values.text,
       })
-      .returning();
+      .returning()
 
     if (!created) {
-      throw new Error("Failed to create comment.");
+      throw new Error("Failed to create comment.")
     }
 
     await tx
@@ -62,16 +66,31 @@ export async function createComment(values: {
         commentCount: sql`${postTable.commentCount} + 1`,
         updatedAt: created.createdAt,
       })
-      .where(eq(postTable.id, values.postId));
+      .where(eq(postTable.id, values.postId))
 
-    return created;
-  });
+    if (
+      values.authorId !== values.postAuthorId &&
+      !(await hasBlockedPair(tx, values.authorId, values.postAuthorId))
+    ) {
+      await tx
+        .insert(notification)
+        .values({
+          recipientId: values.postAuthorId,
+          type: "post_comment",
+          actorId: values.authorId,
+          data: { postId: values.postId, commentId: created.id },
+        })
+        .onConflictDoNothing()
+    }
+
+    return created
+  })
 }
 
 export async function markCommentDeleted(values: {
-  commentId: string;
-  authorId: string;
-  deletedAt: Date;
+  commentId: string
+  authorId: string
+  deletedAt: Date
 }): Promise<CommentRecord | null> {
   return db.transaction(async (tx) => {
     const [existing] = await tx
@@ -81,13 +100,13 @@ export async function markCommentDeleted(values: {
         and(
           eq(commentTable.id, values.commentId),
           eq(commentTable.authorId, values.authorId),
-          isNull(commentTable.deletedAt),
-        ),
+          isNull(commentTable.deletedAt)
+        )
       )
-      .limit(1);
+      .limit(1)
 
     if (!existing) {
-      return null;
+      return null
     }
 
     const [deleted] = await tx
@@ -97,10 +116,10 @@ export async function markCommentDeleted(values: {
         updatedAt: values.deletedAt,
       })
       .where(eq(commentTable.id, existing.id))
-      .returning();
+      .returning()
 
     if (!deleted) {
-      return null;
+      return null
     }
 
     if (existing.removedAt === null) {
@@ -110,39 +129,44 @@ export async function markCommentDeleted(values: {
           commentCount: sql`greatest(${postTable.commentCount} - 1, 0)`,
           updatedAt: values.deletedAt,
         })
-        .where(eq(postTable.id, existing.postId));
+        .where(eq(postTable.id, existing.postId))
     }
 
-    return deleted;
-  });
+    return deleted
+  })
 }
 
 export async function toggleCommentLike(values: {
-  commentId: string;
-  userId: string;
-  toggledAt: Date;
+  commentId: string
+  userId: string
+  toggledAt: Date
 }): Promise<{
-  commentId: string;
-  isLikedByViewer: boolean;
-  likeCount: number;
+  commentId: string
+  isLikedByViewer: boolean
+  likeCount: number
 } | null> {
   return db.transaction(async (tx) => {
     const [target] = await tx
       .select({
         id: commentTable.id,
+        postId: commentTable.postId,
+        authorId: commentTable.authorId,
       })
       .from(commentTable)
       .where(
         and(
           eq(commentTable.id, values.commentId),
           isNull(commentTable.deletedAt),
-          isNull(commentTable.removedAt),
-        ),
+          isNull(commentTable.removedAt)
+        )
       )
-      .limit(1);
+      .limit(1)
 
     if (!target) {
-      return null;
+      return null
+    }
+    if (await hasBlockedPair(tx, values.userId, target.authorId)) {
+      return null
     }
 
     const [existingLike] = await tx
@@ -153,10 +177,10 @@ export async function toggleCommentLike(values: {
       .where(
         and(
           eq(commentLike.commentId, values.commentId),
-          eq(commentLike.userId, values.userId),
-        ),
+          eq(commentLike.userId, values.userId)
+        )
       )
-      .limit(1);
+      .limit(1)
 
     if (existingLike) {
       await tx
@@ -164,9 +188,9 @@ export async function toggleCommentLike(values: {
         .where(
           and(
             eq(commentLike.commentId, values.commentId),
-            eq(commentLike.userId, values.userId),
-          ),
-        );
+            eq(commentLike.userId, values.userId)
+          )
+        )
 
       const [updated] = await tx
         .update(commentTable)
@@ -175,20 +199,20 @@ export async function toggleCommentLike(values: {
           updatedAt: values.toggledAt,
         })
         .where(eq(commentTable.id, values.commentId))
-        .returning({ likeCount: commentTable.likeCount });
+        .returning({ likeCount: commentTable.likeCount })
 
       return {
         commentId: values.commentId,
         isLikedByViewer: false,
         likeCount: updated?.likeCount ?? 0,
-      };
+      }
     }
 
     await tx.insert(commentLike).values({
       commentId: values.commentId,
       userId: values.userId,
       createdAt: values.toggledAt,
-    });
+    })
 
     const [updated] = await tx
       .update(commentTable)
@@ -197,12 +221,45 @@ export async function toggleCommentLike(values: {
         updatedAt: values.toggledAt,
       })
       .where(eq(commentTable.id, values.commentId))
-      .returning({ likeCount: commentTable.likeCount });
+      .returning({ likeCount: commentTable.likeCount })
+
+    if (values.userId !== target.authorId) {
+      await tx
+        .insert(notification)
+        .values({
+          recipientId: target.authorId,
+          type: "comment_like",
+          actorId: values.userId,
+          data: { commentId: values.commentId, postId: target.postId },
+        })
+        .onConflictDoNothing()
+    }
 
     return {
       commentId: values.commentId,
       isLikedByViewer: true,
       likeCount: updated?.likeCount ?? 1,
-    };
-  });
+    }
+  })
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+async function hasBlockedPair(
+  tx: Tx,
+  leftUserId: string,
+  rightUserId: string
+): Promise<boolean> {
+  if (leftUserId === rightUserId) return false
+  const [row] = await tx
+    .select({ blockerId: block.blockerId })
+    .from(block)
+    .where(
+      or(
+        and(eq(block.blockerId, leftUserId), eq(block.blockedId, rightUserId)),
+        and(eq(block.blockerId, rightUserId), eq(block.blockedId, leftUserId))
+      )
+    )
+    .limit(1)
+  return row !== undefined
 }

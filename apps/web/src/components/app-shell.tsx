@@ -43,29 +43,45 @@ import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
 import { getApiBase, trpc } from "@/lib/trpc"
 
-const PRIMARY_NAV_ITEMS = [
+type PrimaryNavItem = {
+  href: "/" | "/discover"
+  label: string
+  icon: typeof House
+  exact?: boolean
+  kind: "route"
+}
+
+type MobileNavItem = {
+  href: string
+  label: string
+  icon: typeof House
+  exact?: boolean
+  kind: "planned" | "route"
+}
+
+const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   {
     href: "/",
     label: "Home",
     icon: House,
     exact: true,
-    kind: "route" as const,
+    kind: "route",
   },
   {
     href: "/discover",
     label: "Discover",
     icon: Compass,
-    kind: "planned" as const,
+    kind: "route",
   },
 ]
 
-const MOBILE_NAV_ITEMS = [
+const MOBILE_NAV_ITEMS: MobileNavItem[] = [
   ...PRIMARY_NAV_ITEMS,
   {
     href: "/notifications",
     label: "Notifications",
     icon: Bell,
-    kind: "planned" as const,
+    kind: "planned",
   },
 ]
 
@@ -611,7 +627,7 @@ function PrimaryNavLink({
 }: {
   children: ReactNode
   exact?: boolean
-  href: string
+  href: "/" | "/discover"
   icon: typeof House
   isActive: boolean
   kind: "planned" | "route"
@@ -626,7 +642,7 @@ function PrimaryNavLink({
   if (kind === "route") {
     return (
       <Link
-        to="/"
+        to={href}
         activeOptions={{ exact: exact ?? false }}
         className={className}
       >

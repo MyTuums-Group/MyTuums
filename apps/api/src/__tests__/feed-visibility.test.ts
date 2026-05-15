@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ViewerContext } from "@workspace/types";
 import {
+  ForYouEligibility,
   createInMemoryFeedVisibilityQueries,
   type FeedPostRow,
   type FeedCommentRow,
@@ -96,6 +97,35 @@ function comment(
 }
 
 describe("feed visibility queries", () => {
+  it("queries For You through one feed engine interface using favorite-game eligibility", async () => {
+    const queries = createInMemoryFeedVisibilityQueries({
+      posts: [
+        post("matching-favorite", "bob", "2026-01-04T00:00:00Z", {
+          gameTagId: "game-1",
+        }),
+        post("other-game", "carol", "2026-01-03T00:00:00Z", {
+          gameTagId: "game-2",
+        }),
+        post("untagged", "dave", "2026-01-02T00:00:00Z"),
+      ],
+      comments: [],
+      follows: [],
+      favoriteGames: [{ userId: "alice", gameId: "game-1" }],
+    });
+
+    const page = await queries.queryFeed({
+      viewer: aliceViewer,
+      eligibility: ForYouEligibility.create(),
+      limit: 10,
+    });
+
+    expect(page.items.map((item) => item.publicId)).toEqual(["matching-favorite"]);
+    expect(page.context).toEqual({
+      kind: "for_you",
+      hasFavoriteGames: true,
+    });
+  });
+
   it("applies visibility before cursor pagination so hidden rows do not consume the page", async () => {
     const queries = createInMemoryFeedVisibilityQueries({
       posts: [

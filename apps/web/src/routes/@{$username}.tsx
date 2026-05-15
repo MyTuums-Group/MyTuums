@@ -10,6 +10,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
+import { ReportSheet } from "@/features/moderation/report-sheet";
 
 export const Route = createFileRoute("/@{$username}")({
   component: ProfilePage,
@@ -160,6 +161,10 @@ function ProfilePage() {
               >
                 {isBlocked ? "Unblock" : "Block"}
               </Button>
+              <ReportSheet
+                target={{ type: "profile", username }}
+                buttonClassName="text-muted-foreground hover:text-foreground"
+              />
             </div>
           )}
         </CardContent>

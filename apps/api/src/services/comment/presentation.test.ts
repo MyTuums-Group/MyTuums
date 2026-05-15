@@ -21,6 +21,15 @@ const publicViewer: ViewerContext = {
   isAuthenticated: false,
 };
 
+const staffViewer: ViewerContext = {
+  userId: "mod",
+  role: "moderator",
+  accountStatus: "active",
+  blockedUserIds: [],
+  blockedByUserIds: [],
+  isAuthenticated: true,
+};
+
 function commentRow(overrides: Partial<FeedCommentRow> = {}): FeedCommentRow {
   const createdAt = new Date("2026-01-01T00:00:00.000Z");
 
@@ -63,6 +72,31 @@ describe("comment presentation", () => {
 
     expect(presentation.toCommentView(publicViewer, commentRow())).toMatchObject({
       canDelete: false,
+    });
+  });
+
+  it("shows removed comments to authors as placeholders but keeps staff text visible", () => {
+    const presentation = createCommentPresentation();
+    const removedAt = new Date("2026-01-02T00:00:00.000Z");
+    const row = commentRow({
+      removedAt,
+      removalPublicReason: "spam",
+    });
+
+    expect(presentation.toCommentView(viewerBob, row)).toMatchObject({
+      text: "",
+      canLike: false,
+      canDelete: false,
+      moderationRemoval: {
+        publicReason: "spam",
+        removedAt,
+        supportPath: "/contact",
+      },
+    });
+
+    expect(presentation.toCommentView(staffViewer, row)).toMatchObject({
+      text: "Nice clutch",
+      moderationRemoval: null,
     });
   });
 });

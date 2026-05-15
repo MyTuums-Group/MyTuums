@@ -26,6 +26,7 @@ const session = {
 const profilelessState = { kind: "verified_profileless" } as const;
 const onboardedState = { kind: "active_onboarded_profile" } as const;
 const unverifiedState = { kind: "authenticated_unverified" } as const;
+const limitedState = { kind: "limited_account" } as const;
 
 describe("decideRootNavigation", () => {
   it("allows guest-only routes for logged-out users", async () => {
@@ -122,5 +123,19 @@ describe("decideRootNavigation", () => {
         appUserState: () => Promise.resolve(unverifiedState),
       })
     ).resolves.toEqual({ kind: "redirect", to: "/verify-email" });
+  });
+
+  it("keeps suspended or deleted users on the account status/support paths only", async () => {
+    await expect(
+      decideRootNavigation({ pathname: "/", session, appUserState: () => Promise.resolve(limitedState) }),
+    ).resolves.toEqual({ kind: "redirect", to: "/account/status" });
+
+    await expect(
+      decideRootNavigation({ pathname: "/account/status", session, appUserState: () => Promise.resolve(limitedState) }),
+    ).resolves.toEqual({ kind: "allow" });
+
+    await expect(
+      decideRootNavigation({ pathname: "/support", session, appUserState: () => Promise.resolve(limitedState) }),
+    ).resolves.toEqual({ kind: "allow" });
   });
 });

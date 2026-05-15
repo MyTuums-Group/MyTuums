@@ -27,6 +27,7 @@ export interface AccountLifecycleSnapshot {
   status: AccountStatus;
   role: UserRole;
   suspendedUntil: Date | null;
+  suspensionPublicReason?: string | null;
   deletedAt: Date | null;
 }
 
@@ -42,6 +43,7 @@ export type SelfDeletionDecision =
 const SUSPENDED_ALLOWED_ACTIONS = new Set<AccountAction>([
   "view_account_status",
   "contact_support",
+  "delete_account",
   "logout",
 ]);
 

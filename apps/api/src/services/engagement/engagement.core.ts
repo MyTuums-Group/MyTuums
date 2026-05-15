@@ -1,172 +1,172 @@
-import type { NotificationType, Result } from "@workspace/types";
+import type { NotificationType, Result } from "@workspace/types"
 
 export type EngagementPostRow = {
-  id: string;
-  publicId: string;
-  authorId: string;
-  likeCount: number;
-  deletedAt: Date | null;
-  removedAt: Date | null;
-};
+  id: string
+  publicId: string
+  authorId: string
+  likeCount: number
+  deletedAt: Date | null
+  removedAt: Date | null
+}
 
 export type EngagementCommentRow = {
-  id: string;
-  postId: string;
-  authorId: string;
-  likeCount: number;
-  deletedAt: Date | null;
-  removedAt: Date | null;
-};
+  id: string
+  postId: string
+  authorId: string
+  likeCount: number
+  deletedAt: Date | null
+  removedAt: Date | null
+}
 
 export type EngagementProfileRow = {
-  userId: string;
-  followerCount: number;
-  followingCount: number;
-};
+  userId: string
+  followerCount: number
+  followingCount: number
+}
 
 export type PostLikeRow = {
-  userId: string;
-  postId: string;
-};
+  userId: string
+  postId: string
+}
 
 export type CommentLikeRow = {
-  userId: string;
-  commentId: string;
-};
+  userId: string
+  commentId: string
+}
 
 export type FollowRow = {
-  followerId: string;
-  followedId: string;
-};
+  followerId: string
+  followedId: string
+}
 
 export type BlockRow = {
-  blockerId: string;
-  blockedId: string;
-};
+  blockerId: string
+  blockedId: string
+}
 
 export type EngagementNotificationRow = {
-  recipientId: string;
-  type: NotificationType;
-  actorId: string | null;
-  data: Record<string, unknown>;
-  isRead: boolean;
-};
+  recipientId: string
+  type: NotificationType
+  actorId: string | null
+  data: Record<string, unknown>
+  isRead: boolean
+}
 
 export type TogglePostLikeError =
   | { kind: "not_found" }
   | { kind: "not_available" }
-  | { kind: "blocked" };
+  | { kind: "blocked" }
 
 export type TogglePostLikeOutput = {
-  publicId: string;
-  liked: boolean;
-  likeCount: number;
-};
+  publicId: string
+  liked: boolean
+  likeCount: number
+}
 
 export type ToggleCommentLikeError =
   | { kind: "not_found" }
   | { kind: "not_available" }
-  | { kind: "blocked" };
+  | { kind: "blocked" }
 
 export type ToggleCommentLikeOutput = {
-  commentId: string;
-  liked: boolean;
-  likeCount: number;
-};
+  commentId: string
+  liked: boolean
+  likeCount: number
+}
 
 export type ToggleFollowError =
   | { kind: "not_found" }
   | { kind: "self_follow" }
-  | { kind: "blocked" };
+  | { kind: "blocked" }
 
 export type ToggleFollowOutput = {
-  followedId: string;
-  following: boolean;
-  followerCount: number;
-  followingCount: number;
-};
+  followedId: string
+  following: boolean
+  followerCount: number
+  followingCount: number
+}
 
-export type BlockUserError = { kind: "not_found" } | { kind: "self_block" };
+export type BlockUserError = { kind: "not_found" } | { kind: "self_block" }
 
 export type BlockUserOutput = {
-  blockedId: string;
-  blocked: true;
-  removedFollowCount: number;
-};
+  blockedId: string
+  blocked: true
+  removedFollowCount: number
+}
 
 export type UnblockUserOutput = {
-  blockedId: string;
-  blocked: false;
-};
+  blockedId: string
+  blocked: false
+}
 
 export type ProfileEngagementState = {
-  targetUserId: string;
-  followerCount: number;
-  followingCount: number;
-  isFollowing: boolean;
-  isBlocked: boolean;
-};
+  targetUserId: string
+  followerCount: number
+  followingCount: number
+  isFollowing: boolean
+  isBlocked: boolean
+}
 
 export type EngagementService = {
   togglePostLike(input: {
-    actorId: string;
-    publicId: string;
-  }): Promise<Result<TogglePostLikeOutput, TogglePostLikeError>>;
+    actorId: string
+    publicId: string
+  }): Promise<Result<TogglePostLikeOutput, TogglePostLikeError>>
   toggleCommentLike(input: {
-    actorId: string;
-    commentId: string;
-  }): Promise<Result<ToggleCommentLikeOutput, ToggleCommentLikeError>>;
+    actorId: string
+    commentId: string
+  }): Promise<Result<ToggleCommentLikeOutput, ToggleCommentLikeError>>
   toggleFollow(input: {
-    followerId: string;
-    followedId: string;
-  }): Promise<Result<ToggleFollowOutput, ToggleFollowError>>;
+    followerId: string
+    followedId: string
+  }): Promise<Result<ToggleFollowOutput, ToggleFollowError>>
   blockUser(input: {
-    blockerId: string;
-    blockedId: string;
-  }): Promise<Result<BlockUserOutput, BlockUserError>>;
+    blockerId: string
+    blockedId: string
+  }): Promise<Result<BlockUserOutput, BlockUserError>>
   unblockUser(input: {
-    blockerId: string;
-    blockedId: string;
-  }): Promise<Result<UnblockUserOutput, BlockUserError>>;
+    blockerId: string
+    blockedId: string
+  }): Promise<Result<UnblockUserOutput, BlockUserError>>
   listVisibleNotifications(input: {
-    recipientId: string;
-  }): Promise<EngagementNotificationRow[]>;
-  countUnreadNotifications(input: { recipientId: string }): Promise<number>;
-};
+    recipientId: string
+  }): Promise<EngagementNotificationRow[]>
+  countUnreadNotifications(input: { recipientId: string }): Promise<number>
+}
 
 export type InMemoryEngagementState = {
-  posts: EngagementPostRow[];
-  comments: EngagementCommentRow[];
-  profiles: EngagementProfileRow[];
-  postLikes: PostLikeRow[];
-  commentLikes: CommentLikeRow[];
-  follows: FollowRow[];
-  blocks: BlockRow[];
-  notifications: EngagementNotificationRow[];
-};
+  posts: EngagementPostRow[]
+  comments: EngagementCommentRow[]
+  profiles: EngagementProfileRow[]
+  postLikes: PostLikeRow[]
+  commentLikes: CommentLikeRow[]
+  follows: FollowRow[]
+  blocks: BlockRow[]
+  notifications: EngagementNotificationRow[]
+}
 
 export function createInMemoryEngagementService(
-  state: InMemoryEngagementState,
+  state: InMemoryEngagementState
 ): EngagementService & { snapshot(): InMemoryEngagementState } {
   return {
     async togglePostLike(input) {
-      await Promise.resolve();
-      const post = state.posts.find((row) => row.publicId === input.publicId);
-      if (!post) return { ok: false, error: { kind: "not_found" } };
+      await Promise.resolve()
+      const post = state.posts.find((row) => row.publicId === input.publicId)
+      if (!post) return { ok: false, error: { kind: "not_found" } }
       if (post.deletedAt || post.removedAt) {
-        return { ok: false, error: { kind: "not_available" } };
+        return { ok: false, error: { kind: "not_available" } }
       }
       if (isBlockedPair(state.blocks, input.actorId, post.authorId)) {
-        return { ok: false, error: { kind: "blocked" } };
+        return { ok: false, error: { kind: "blocked" } }
       }
 
       const existingIndex = state.postLikes.findIndex(
-        (like) => like.userId === input.actorId && like.postId === post.id,
-      );
+        (like) => like.userId === input.actorId && like.postId === post.id
+      )
 
       if (existingIndex >= 0) {
-        state.postLikes.splice(existingIndex, 1);
-        post.likeCount = Math.max(0, post.likeCount - 1);
+        state.postLikes.splice(existingIndex, 1)
+        post.likeCount = Math.max(0, post.likeCount - 1)
         return {
           ok: true,
           value: {
@@ -174,20 +174,20 @@ export function createInMemoryEngagementService(
             liked: false,
             likeCount: post.likeCount,
           },
-        };
+        }
       }
 
-      state.postLikes.push({ userId: input.actorId, postId: post.id });
-      post.likeCount += 1;
+      state.postLikes.push({ userId: input.actorId, postId: post.id })
+      post.likeCount += 1
 
       if (input.actorId !== post.authorId) {
-        state.notifications.push({
+        addNotificationOnce(state.notifications, {
           recipientId: post.authorId,
           type: "post_like",
           actorId: input.actorId,
           data: { postId: post.id },
           isRead: false,
-        });
+        })
       }
 
       return {
@@ -197,28 +197,27 @@ export function createInMemoryEngagementService(
           liked: true,
           likeCount: post.likeCount,
         },
-      };
+      }
     },
 
     async toggleCommentLike(input) {
-      await Promise.resolve();
-      const comment = state.comments.find((row) => row.id === input.commentId);
-      if (!comment) return { ok: false, error: { kind: "not_found" } };
+      await Promise.resolve()
+      const comment = state.comments.find((row) => row.id === input.commentId)
+      if (!comment) return { ok: false, error: { kind: "not_found" } }
       if (comment.deletedAt || comment.removedAt) {
-        return { ok: false, error: { kind: "not_available" } };
+        return { ok: false, error: { kind: "not_available" } }
       }
       if (isBlockedPair(state.blocks, input.actorId, comment.authorId)) {
-        return { ok: false, error: { kind: "blocked" } };
+        return { ok: false, error: { kind: "blocked" } }
       }
 
       const existingIndex = state.commentLikes.findIndex(
-        (like) =>
-          like.userId === input.actorId && like.commentId === comment.id,
-      );
+        (like) => like.userId === input.actorId && like.commentId === comment.id
+      )
 
       if (existingIndex >= 0) {
-        state.commentLikes.splice(existingIndex, 1);
-        comment.likeCount = Math.max(0, comment.likeCount - 1);
+        state.commentLikes.splice(existingIndex, 1)
+        comment.likeCount = Math.max(0, comment.likeCount - 1)
         return {
           ok: true,
           value: {
@@ -226,23 +225,23 @@ export function createInMemoryEngagementService(
             liked: false,
             likeCount: comment.likeCount,
           },
-        };
+        }
       }
 
       state.commentLikes.push({
         userId: input.actorId,
         commentId: comment.id,
-      });
-      comment.likeCount += 1;
+      })
+      comment.likeCount += 1
 
       if (input.actorId !== comment.authorId) {
-        state.notifications.push({
+        addNotificationOnce(state.notifications, {
           recipientId: comment.authorId,
           type: "comment_like",
           actorId: input.actorId,
           data: { commentId: comment.id, postId: comment.postId },
           isRead: false,
-        });
+        })
       }
 
       return {
@@ -252,34 +251,34 @@ export function createInMemoryEngagementService(
           liked: true,
           likeCount: comment.likeCount,
         },
-      };
+      }
     },
 
     async toggleFollow(input) {
-      await Promise.resolve();
+      await Promise.resolve()
       if (input.followerId === input.followedId) {
-        return { ok: false, error: { kind: "self_follow" } };
+        return { ok: false, error: { kind: "self_follow" } }
       }
 
-      const follower = findProfile(state.profiles, input.followerId);
-      const followed = findProfile(state.profiles, input.followedId);
+      const follower = findProfile(state.profiles, input.followerId)
+      const followed = findProfile(state.profiles, input.followedId)
       if (!follower || !followed) {
-        return { ok: false, error: { kind: "not_found" } };
+        return { ok: false, error: { kind: "not_found" } }
       }
       if (isBlockedPair(state.blocks, input.followerId, input.followedId)) {
-        return { ok: false, error: { kind: "blocked" } };
+        return { ok: false, error: { kind: "blocked" } }
       }
 
       const existingIndex = state.follows.findIndex(
         (follow) =>
           follow.followerId === input.followerId &&
-          follow.followedId === input.followedId,
-      );
+          follow.followedId === input.followedId
+      )
 
       if (existingIndex >= 0) {
-        state.follows.splice(existingIndex, 1);
-        follower.followingCount = Math.max(0, follower.followingCount - 1);
-        followed.followerCount = Math.max(0, followed.followerCount - 1);
+        state.follows.splice(existingIndex, 1)
+        follower.followingCount = Math.max(0, follower.followingCount - 1)
+        followed.followerCount = Math.max(0, followed.followerCount - 1)
         return {
           ok: true,
           value: {
@@ -288,22 +287,22 @@ export function createInMemoryEngagementService(
             followerCount: followed.followerCount,
             followingCount: follower.followingCount,
           },
-        };
+        }
       }
 
       state.follows.push({
         followerId: input.followerId,
         followedId: input.followedId,
-      });
-      follower.followingCount += 1;
-      followed.followerCount += 1;
-      state.notifications.push({
+      })
+      follower.followingCount += 1
+      followed.followerCount += 1
+      addNotificationOnce(state.notifications, {
         recipientId: input.followedId,
         type: "follow",
         actorId: input.followerId,
         data: { followerId: input.followerId },
         isRead: false,
-      });
+      })
 
       return {
         ok: true,
@@ -313,32 +312,32 @@ export function createInMemoryEngagementService(
           followerCount: followed.followerCount,
           followingCount: follower.followingCount,
         },
-      };
+      }
     },
 
     async blockUser(input) {
-      await Promise.resolve();
+      await Promise.resolve()
       if (input.blockerId === input.blockedId) {
-        return { ok: false, error: { kind: "self_block" } };
+        return { ok: false, error: { kind: "self_block" } }
       }
 
-      const blocker = findProfile(state.profiles, input.blockerId);
-      const blocked = findProfile(state.profiles, input.blockedId);
+      const blocker = findProfile(state.profiles, input.blockerId)
+      const blocked = findProfile(state.profiles, input.blockedId)
       if (!blocker || !blocked) {
-        return { ok: false, error: { kind: "not_found" } };
+        return { ok: false, error: { kind: "not_found" } }
       }
 
       const hasBlock = state.blocks.some(
         (block) =>
           block.blockerId === input.blockerId &&
-          block.blockedId === input.blockedId,
-      );
+          block.blockedId === input.blockedId
+      )
 
       if (!hasBlock) {
         state.blocks.push({
           blockerId: input.blockerId,
           blockedId: input.blockedId,
-        });
+        })
       }
 
       const removedFollowCount = removeFollowEdges(state, [
@@ -350,7 +349,7 @@ export function createInMemoryEngagementService(
           followerId: input.blockedId,
           followedId: input.blockerId,
         },
-      ]);
+      ])
 
       return {
         ok: true,
@@ -359,19 +358,19 @@ export function createInMemoryEngagementService(
           blocked: true,
           removedFollowCount,
         },
-      };
+      }
     },
 
     async unblockUser(input) {
-      await Promise.resolve();
+      await Promise.resolve()
       if (input.blockerId === input.blockedId) {
-        return { ok: false, error: { kind: "self_block" } };
+        return { ok: false, error: { kind: "self_block" } }
       }
 
-      const blocker = findProfile(state.profiles, input.blockerId);
-      const blocked = findProfile(state.profiles, input.blockedId);
+      const blocker = findProfile(state.profiles, input.blockerId)
+      const blocked = findProfile(state.profiles, input.blockedId)
       if (!blocker || !blocked) {
-        return { ok: false, error: { kind: "not_found" } };
+        return { ok: false, error: { kind: "not_found" } }
       }
 
       state.blocks = state.blocks.filter(
@@ -379,8 +378,8 @@ export function createInMemoryEngagementService(
           !(
             block.blockerId === input.blockerId &&
             block.blockedId === input.blockedId
-          ),
-      );
+          )
+      )
 
       return {
         ok: true,
@@ -388,22 +387,22 @@ export function createInMemoryEngagementService(
           blockedId: input.blockedId,
           blocked: false,
         },
-      };
+      }
     },
 
     async listVisibleNotifications(input) {
-      await Promise.resolve();
+      await Promise.resolve()
       return visibleNotifications(state, input.recipientId).map((row) => ({
         ...row,
         data: { ...row.data },
-      }));
+      }))
     },
 
     async countUnreadNotifications(input) {
-      await Promise.resolve();
+      await Promise.resolve()
       return visibleNotifications(state, input.recipientId).filter(
-        (notification) => !notification.isRead,
-      ).length;
+        (notification) => !notification.isRead
+      ).length
     },
 
     snapshot() {
@@ -419,80 +418,113 @@ export function createInMemoryEngagementService(
           ...row,
           data: { ...row.data },
         })),
-      };
+      }
     },
-  };
+  }
 }
 
 function findProfile(
   profiles: EngagementProfileRow[],
-  userId: string,
+  userId: string
 ): EngagementProfileRow | undefined {
-  return profiles.find((profile) => profile.userId === userId);
+  return profiles.find((profile) => profile.userId === userId)
 }
 
 function removeFollowEdges(
   state: InMemoryEngagementState,
-  edges: FollowRow[],
+  edges: FollowRow[]
 ): number {
-  let removedCount = 0;
+  let removedCount = 0
 
   for (const edge of edges) {
     const existingIndex = state.follows.findIndex(
       (follow) =>
         follow.followerId === edge.followerId &&
-        follow.followedId === edge.followedId,
-    );
-    if (existingIndex === -1) continue;
+        follow.followedId === edge.followedId
+    )
+    if (existingIndex === -1) continue
 
-    state.follows.splice(existingIndex, 1);
-    removedCount += 1;
+    state.follows.splice(existingIndex, 1)
+    removedCount += 1
 
-    const follower = findProfile(state.profiles, edge.followerId);
-    const followed = findProfile(state.profiles, edge.followedId);
+    const follower = findProfile(state.profiles, edge.followerId)
+    const followed = findProfile(state.profiles, edge.followedId)
     if (follower) {
-      follower.followingCount = Math.max(0, follower.followingCount - 1);
+      follower.followingCount = Math.max(0, follower.followingCount - 1)
     }
     if (followed) {
-      followed.followerCount = Math.max(0, followed.followerCount - 1);
+      followed.followerCount = Math.max(0, followed.followerCount - 1)
     }
   }
 
-  return removedCount;
+  return removedCount
+}
+
+function addNotificationOnce(
+  notifications: EngagementNotificationRow[],
+  notification: EngagementNotificationRow
+): void {
+  const exists = notifications.some((row) =>
+    sameNotificationNaturalKey(row, notification)
+  )
+  if (!exists) notifications.push(notification)
+}
+
+function sameNotificationNaturalKey(
+  left: EngagementNotificationRow,
+  right: EngagementNotificationRow
+): boolean {
+  if (
+    left.recipientId !== right.recipientId ||
+    left.type !== right.type ||
+    left.actorId !== right.actorId
+  ) {
+    return false
+  }
+
+  switch (left.type) {
+    case "follow":
+      return true
+    case "post_like":
+      return left.data.postId === right.data.postId
+    case "comment_like":
+      return left.data.commentId === right.data.commentId
+    case "post_comment":
+      return left.data.commentId === right.data.commentId
+    case "content_removed":
+      return left.data.moderationActionId === right.data.moderationActionId
+  }
 }
 
 function visibleNotifications(
   state: InMemoryEngagementState,
-  recipientId: string,
+  recipientId: string
 ): EngagementNotificationRow[] {
   const rows = state.notifications.filter(
-    (notification) => notification.recipientId === recipientId,
-  );
+    (notification) => notification.recipientId === recipientId
+  )
 
   for (const row of rows) {
-    if (
-      row.actorId &&
-      isBlockedPair(state.blocks, recipientId, row.actorId)
-    ) {
-      row.isRead = true;
+    if (row.actorId && isBlockedPair(state.blocks, recipientId, row.actorId)) {
+      row.isRead = true
     }
   }
 
   return rows.filter(
     (notification) =>
       !notification.actorId ||
-      !isBlockedPair(state.blocks, recipientId, notification.actorId),
-  );
+      !isBlockedPair(state.blocks, recipientId, notification.actorId)
+  )
 }
 
 function isBlockedPair(
   blocks: BlockRow[],
   leftUserId: string,
-  rightUserId: string,
+  rightUserId: string
 ): boolean {
   return blocks.some(
     (block) =>
       (block.blockerId === leftUserId && block.blockedId === rightUserId) ||
-      (block.blockerId === rightUserId && block.blockedId === leftUserId),
-  );
+      (block.blockerId === rightUserId && block.blockedId === leftUserId)
+  )
 }

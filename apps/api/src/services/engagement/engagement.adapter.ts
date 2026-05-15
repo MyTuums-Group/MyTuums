@@ -1,4 +1,4 @@
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm"
 import {
   block,
   comment,
@@ -9,7 +9,7 @@ import {
   post,
   postLike,
   profile,
-} from "@workspace/db";
+} from "@workspace/db"
 import type {
   BlockUserError,
   BlockUserOutput,
@@ -22,12 +22,12 @@ import type {
   TogglePostLikeError,
   TogglePostLikeOutput,
   UnblockUserOutput,
-} from "./engagement.core.js";
-import type { Result } from "@workspace/types";
+} from "./engagement.core.js"
+import type { Result } from "@workspace/types"
 
 export async function togglePostLike(input: {
-  actorId: string;
-  publicId: string;
+  actorId: string
+  publicId: string
 }): Promise<Result<TogglePostLikeOutput, TogglePostLikeError>> {
   return db.transaction(async (tx) => {
     const [target] = await tx
@@ -41,26 +41,23 @@ export async function togglePostLike(input: {
       })
       .from(post)
       .where(eq(post.publicId, input.publicId))
-      .limit(1);
+      .limit(1)
 
-    if (!target) return { ok: false, error: { kind: "not_found" } };
+    if (!target) return { ok: false, error: { kind: "not_found" } }
     if (target.deletedAt || target.removedAt) {
-      return { ok: false, error: { kind: "not_available" } };
+      return { ok: false, error: { kind: "not_available" } }
     }
     if (await hasBlockedPair(tx, input.actorId, target.authorId)) {
-      return { ok: false, error: { kind: "blocked" } };
+      return { ok: false, error: { kind: "blocked" } }
     }
 
     const [existing] = await tx
       .select({ postId: postLike.postId })
       .from(postLike)
       .where(
-        and(
-          eq(postLike.userId, input.actorId),
-          eq(postLike.postId, target.id),
-        ),
+        and(eq(postLike.userId, input.actorId), eq(postLike.postId, target.id))
       )
-      .limit(1);
+      .limit(1)
 
     if (existing) {
       await tx
@@ -68,9 +65,9 @@ export async function togglePostLike(input: {
         .where(
           and(
             eq(postLike.userId, input.actorId),
-            eq(postLike.postId, target.id),
-          ),
-        );
+            eq(postLike.postId, target.id)
+          )
+        )
 
       const [updated] = await tx
         .update(post)
@@ -79,7 +76,7 @@ export async function togglePostLike(input: {
           updatedAt: new Date(),
         })
         .where(eq(post.id, target.id))
-        .returning({ likeCount: post.likeCount });
+        .returning({ likeCount: post.likeCount })
 
       return {
         ok: true,
@@ -88,13 +85,13 @@ export async function togglePostLike(input: {
           liked: false,
           likeCount: updated?.likeCount ?? Math.max(0, target.likeCount - 1),
         },
-      };
+      }
     }
 
     await tx.insert(postLike).values({
       userId: input.actorId,
       postId: target.id,
-    });
+    })
 
     const [updated] = await tx
       .update(post)
@@ -103,15 +100,18 @@ export async function togglePostLike(input: {
         updatedAt: new Date(),
       })
       .where(eq(post.id, target.id))
-      .returning({ likeCount: post.likeCount });
+      .returning({ likeCount: post.likeCount })
 
     if (input.actorId !== target.authorId) {
-      await tx.insert(notification).values({
-        recipientId: target.authorId,
-        type: "post_like",
-        actorId: input.actorId,
-        data: { postId: target.id },
-      });
+      await tx
+        .insert(notification)
+        .values({
+          recipientId: target.authorId,
+          type: "post_like",
+          actorId: input.actorId,
+          data: { postId: target.id },
+        })
+        .onConflictDoNothing()
     }
 
     return {
@@ -121,13 +121,13 @@ export async function togglePostLike(input: {
         liked: true,
         likeCount: updated?.likeCount ?? target.likeCount + 1,
       },
-    };
-  });
+    }
+  })
 }
 
 export async function toggleCommentLike(input: {
-  actorId: string;
-  commentId: string;
+  actorId: string
+  commentId: string
 }): Promise<Result<ToggleCommentLikeOutput, ToggleCommentLikeError>> {
   return db.transaction(async (tx) => {
     const [target] = await tx
@@ -141,14 +141,14 @@ export async function toggleCommentLike(input: {
       })
       .from(comment)
       .where(eq(comment.id, input.commentId))
-      .limit(1);
+      .limit(1)
 
-    if (!target) return { ok: false, error: { kind: "not_found" } };
+    if (!target) return { ok: false, error: { kind: "not_found" } }
     if (target.deletedAt || target.removedAt) {
-      return { ok: false, error: { kind: "not_available" } };
+      return { ok: false, error: { kind: "not_available" } }
     }
     if (await hasBlockedPair(tx, input.actorId, target.authorId)) {
-      return { ok: false, error: { kind: "blocked" } };
+      return { ok: false, error: { kind: "blocked" } }
     }
 
     const [existing] = await tx
@@ -157,10 +157,10 @@ export async function toggleCommentLike(input: {
       .where(
         and(
           eq(commentLike.userId, input.actorId),
-          eq(commentLike.commentId, target.id),
-        ),
+          eq(commentLike.commentId, target.id)
+        )
       )
-      .limit(1);
+      .limit(1)
 
     if (existing) {
       await tx
@@ -168,9 +168,9 @@ export async function toggleCommentLike(input: {
         .where(
           and(
             eq(commentLike.userId, input.actorId),
-            eq(commentLike.commentId, target.id),
-          ),
-        );
+            eq(commentLike.commentId, target.id)
+          )
+        )
 
       const [updated] = await tx
         .update(comment)
@@ -179,7 +179,7 @@ export async function toggleCommentLike(input: {
           updatedAt: new Date(),
         })
         .where(eq(comment.id, target.id))
-        .returning({ likeCount: comment.likeCount });
+        .returning({ likeCount: comment.likeCount })
 
       return {
         ok: true,
@@ -188,13 +188,13 @@ export async function toggleCommentLike(input: {
           liked: false,
           likeCount: updated?.likeCount ?? Math.max(0, target.likeCount - 1),
         },
-      };
+      }
     }
 
     await tx.insert(commentLike).values({
       userId: input.actorId,
       commentId: target.id,
-    });
+    })
 
     const [updated] = await tx
       .update(comment)
@@ -203,15 +203,18 @@ export async function toggleCommentLike(input: {
         updatedAt: new Date(),
       })
       .where(eq(comment.id, target.id))
-      .returning({ likeCount: comment.likeCount });
+      .returning({ likeCount: comment.likeCount })
 
     if (input.actorId !== target.authorId) {
-      await tx.insert(notification).values({
-        recipientId: target.authorId,
-        type: "comment_like",
-        actorId: input.actorId,
-        data: { commentId: target.id, postId: target.postId },
-      });
+      await tx
+        .insert(notification)
+        .values({
+          recipientId: target.authorId,
+          type: "comment_like",
+          actorId: input.actorId,
+          data: { commentId: target.id, postId: target.postId },
+        })
+        .onConflictDoNothing()
     }
 
     return {
@@ -221,26 +224,26 @@ export async function toggleCommentLike(input: {
         liked: true,
         likeCount: updated?.likeCount ?? target.likeCount + 1,
       },
-    };
-  });
+    }
+  })
 }
 
 export async function toggleFollow(input: {
-  followerId: string;
-  followedId: string;
+  followerId: string
+  followedId: string
 }): Promise<Result<ToggleFollowOutput, ToggleFollowError>> {
   return db.transaction(async (tx) => {
     if (input.followerId === input.followedId) {
-      return { ok: false, error: { kind: "self_follow" } };
+      return { ok: false, error: { kind: "self_follow" } }
     }
 
-    const follower = await findProfileByUserId(tx, input.followerId);
-    const followed = await findProfileByUserId(tx, input.followedId);
+    const follower = await findProfileByUserId(tx, input.followerId)
+    const followed = await findProfileByUserId(tx, input.followedId)
     if (!follower || !followed) {
-      return { ok: false, error: { kind: "not_found" } };
+      return { ok: false, error: { kind: "not_found" } }
     }
     if (await hasBlockedPair(tx, input.followerId, input.followedId)) {
-      return { ok: false, error: { kind: "blocked" } };
+      return { ok: false, error: { kind: "blocked" } }
     }
 
     const [existing] = await tx
@@ -249,10 +252,10 @@ export async function toggleFollow(input: {
       .where(
         and(
           eq(follow.followerId, input.followerId),
-          eq(follow.followedId, input.followedId),
-        ),
+          eq(follow.followedId, input.followedId)
+        )
       )
-      .limit(1);
+      .limit(1)
 
     if (existing) {
       await tx
@@ -260,9 +263,9 @@ export async function toggleFollow(input: {
         .where(
           and(
             eq(follow.followerId, input.followerId),
-            eq(follow.followedId, input.followedId),
-          ),
-        );
+            eq(follow.followedId, input.followedId)
+          )
+        )
 
       const [updatedFollower] = await tx
         .update(profile)
@@ -271,7 +274,7 @@ export async function toggleFollow(input: {
           updatedAt: new Date(),
         })
         .where(eq(profile.userId, input.followerId))
-        .returning({ followingCount: profile.followingCount });
+        .returning({ followingCount: profile.followingCount })
       const [updatedFollowed] = await tx
         .update(profile)
         .set({
@@ -279,7 +282,7 @@ export async function toggleFollow(input: {
           updatedAt: new Date(),
         })
         .where(eq(profile.userId, input.followedId))
-        .returning({ followerCount: profile.followerCount });
+        .returning({ followerCount: profile.followerCount })
 
       return {
         ok: true,
@@ -293,13 +296,13 @@ export async function toggleFollow(input: {
             updatedFollower?.followingCount ??
             Math.max(0, follower.followingCount - 1),
         },
-      };
+      }
     }
 
     await tx.insert(follow).values({
       followerId: input.followerId,
       followedId: input.followedId,
-    });
+    })
 
     const [updatedFollower] = await tx
       .update(profile)
@@ -308,7 +311,7 @@ export async function toggleFollow(input: {
         updatedAt: new Date(),
       })
       .where(eq(profile.userId, input.followerId))
-      .returning({ followingCount: profile.followingCount });
+      .returning({ followingCount: profile.followingCount })
     const [updatedFollowed] = await tx
       .update(profile)
       .set({
@@ -316,14 +319,17 @@ export async function toggleFollow(input: {
         updatedAt: new Date(),
       })
       .where(eq(profile.userId, input.followedId))
-      .returning({ followerCount: profile.followerCount });
+      .returning({ followerCount: profile.followerCount })
 
-    await tx.insert(notification).values({
-      recipientId: input.followedId,
-      type: "follow",
-      actorId: input.followerId,
-      data: { followerId: input.followerId },
-    });
+    await tx
+      .insert(notification)
+      .values({
+        recipientId: input.followedId,
+        type: "follow",
+        actorId: input.followerId,
+        data: { followerId: input.followerId },
+      })
+      .onConflictDoNothing()
 
     return {
       ok: true,
@@ -335,23 +341,23 @@ export async function toggleFollow(input: {
         followingCount:
           updatedFollower?.followingCount ?? follower.followingCount + 1,
       },
-    };
-  });
+    }
+  })
 }
 
 export async function blockUser(input: {
-  blockerId: string;
-  blockedId: string;
+  blockerId: string
+  blockedId: string
 }): Promise<Result<BlockUserOutput, BlockUserError>> {
   return db.transaction(async (tx) => {
     if (input.blockerId === input.blockedId) {
-      return { ok: false, error: { kind: "self_block" } };
+      return { ok: false, error: { kind: "self_block" } }
     }
 
-    const blocker = await findProfileByUserId(tx, input.blockerId);
-    const blocked = await findProfileByUserId(tx, input.blockedId);
+    const blocker = await findProfileByUserId(tx, input.blockerId)
+    const blocked = await findProfileByUserId(tx, input.blockedId)
     if (!blocker || !blocked) {
-      return { ok: false, error: { kind: "not_found" } };
+      return { ok: false, error: { kind: "not_found" } }
     }
 
     await tx
@@ -360,7 +366,7 @@ export async function blockUser(input: {
         blockerId: input.blockerId,
         blockedId: input.blockedId,
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
 
     const removedFollows = await tx
       .delete(follow)
@@ -368,18 +374,18 @@ export async function blockUser(input: {
         or(
           and(
             eq(follow.followerId, input.blockerId),
-            eq(follow.followedId, input.blockedId),
+            eq(follow.followedId, input.blockedId)
           ),
           and(
             eq(follow.followerId, input.blockedId),
-            eq(follow.followedId, input.blockerId),
-          ),
-        ),
+            eq(follow.followedId, input.blockerId)
+          )
+        )
       )
       .returning({
         followerId: follow.followerId,
         followedId: follow.followedId,
-      });
+      })
 
     for (const removed of removedFollows) {
       await tx
@@ -388,14 +394,14 @@ export async function blockUser(input: {
           followingCount: sql<number>`greatest(${profile.followingCount} - 1, 0)`,
           updatedAt: new Date(),
         })
-        .where(eq(profile.userId, removed.followerId));
+        .where(eq(profile.userId, removed.followerId))
       await tx
         .update(profile)
         .set({
           followerCount: sql<number>`greatest(${profile.followerCount} - 1, 0)`,
           updatedAt: new Date(),
         })
-        .where(eq(profile.userId, removed.followedId));
+        .where(eq(profile.userId, removed.followedId))
     }
 
     return {
@@ -405,23 +411,23 @@ export async function blockUser(input: {
         blocked: true,
         removedFollowCount: removedFollows.length,
       },
-    };
-  });
+    }
+  })
 }
 
 export async function unblockUser(input: {
-  blockerId: string;
-  blockedId: string;
+  blockerId: string
+  blockedId: string
 }): Promise<Result<UnblockUserOutput, BlockUserError>> {
   return db.transaction(async (tx) => {
     if (input.blockerId === input.blockedId) {
-      return { ok: false, error: { kind: "self_block" } };
+      return { ok: false, error: { kind: "self_block" } }
     }
 
-    const blocker = await findProfileByUserId(tx, input.blockerId);
-    const blocked = await findProfileByUserId(tx, input.blockedId);
+    const blocker = await findProfileByUserId(tx, input.blockerId)
+    const blocked = await findProfileByUserId(tx, input.blockedId)
     if (!blocker || !blocked) {
-      return { ok: false, error: { kind: "not_found" } };
+      return { ok: false, error: { kind: "not_found" } }
     }
 
     await tx
@@ -429,9 +435,9 @@ export async function unblockUser(input: {
       .where(
         and(
           eq(block.blockerId, input.blockerId),
-          eq(block.blockedId, input.blockedId),
-        ),
-      );
+          eq(block.blockedId, input.blockedId)
+        )
+      )
 
     return {
       ok: true,
@@ -439,13 +445,13 @@ export async function unblockUser(input: {
         blockedId: input.blockedId,
         blocked: false,
       },
-    };
-  });
+    }
+  })
 }
 
 export async function getProfileEngagement(input: {
-  viewerId: string;
-  targetUserId: string;
+  viewerId: string
+  targetUserId: string
 }): Promise<ProfileEngagementState | null> {
   const [target] = await db
     .select({
@@ -455,9 +461,9 @@ export async function getProfileEngagement(input: {
     })
     .from(profile)
     .where(eq(profile.userId, input.targetUserId))
-    .limit(1);
+    .limit(1)
 
-  if (!target) return null;
+  if (!target) return null
 
   const [existingFollow] = await db
     .select({ followerId: follow.followerId })
@@ -465,10 +471,10 @@ export async function getProfileEngagement(input: {
     .where(
       and(
         eq(follow.followerId, input.viewerId),
-        eq(follow.followedId, input.targetUserId),
-      ),
+        eq(follow.followedId, input.targetUserId)
+      )
     )
-    .limit(1);
+    .limit(1)
 
   const [existingBlock] = await db
     .select({ blockerId: block.blockerId })
@@ -476,10 +482,10 @@ export async function getProfileEngagement(input: {
     .where(
       and(
         eq(block.blockerId, input.viewerId),
-        eq(block.blockedId, input.targetUserId),
-      ),
+        eq(block.blockedId, input.targetUserId)
+      )
     )
-    .limit(1);
+    .limit(1)
 
   return {
     targetUserId: target.userId,
@@ -487,14 +493,14 @@ export async function getProfileEngagement(input: {
     followingCount: target.followingCount,
     isFollowing: existingFollow !== undefined,
     isBlocked: existingBlock !== undefined,
-  };
+  }
 }
 
 export async function listVisibleNotifications(input: {
-  recipientId: string;
+  recipientId: string
 }): Promise<EngagementNotificationRow[]> {
   return db.transaction(async (tx) => {
-    const blockedIds = await findBlockedPairIds(tx, input.recipientId);
+    const blockedIds = await findBlockedPairIds(tx, input.recipientId)
     const rows = await tx
       .select({
         id: notification.id,
@@ -505,17 +511,17 @@ export async function listVisibleNotifications(input: {
         isRead: notification.isRead,
       })
       .from(notification)
-      .where(eq(notification.recipientId, input.recipientId));
+      .where(eq(notification.recipientId, input.recipientId))
 
     const hiddenIds = rows
       .filter((row) => row.actorId && blockedIds.includes(row.actorId))
-      .map((row) => row.id);
+      .map((row) => row.id)
 
     if (hiddenIds.length > 0) {
       await tx
         .update(notification)
         .set({ isRead: true })
-        .where(inArray(notification.id, hiddenIds));
+        .where(inArray(notification.id, hiddenIds))
     }
 
     return rows
@@ -526,36 +532,36 @@ export async function listVisibleNotifications(input: {
         actorId: row.actorId,
         data: row.data ?? {},
         isRead: row.isRead,
-      }));
-  });
+      }))
+  })
 }
 
 export async function countUnreadNotifications(input: {
-  recipientId: string;
+  recipientId: string
 }): Promise<number> {
-  const rows = await listVisibleNotifications(input);
-  return rows.filter((row) => !row.isRead).length;
+  const rows = await listVisibleNotifications(input)
+  return rows.filter((row) => !row.isRead).length
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 async function hasBlockedPair(
   tx: Tx,
   leftUserId: string,
-  rightUserId: string,
+  rightUserId: string
 ): Promise<boolean> {
-  if (leftUserId === rightUserId) return false;
+  if (leftUserId === rightUserId) return false
   const [row] = await tx
     .select({ blockerId: block.blockerId })
     .from(block)
     .where(
       or(
         and(eq(block.blockerId, leftUserId), eq(block.blockedId, rightUserId)),
-        and(eq(block.blockerId, rightUserId), eq(block.blockedId, leftUserId)),
-      ),
+        and(eq(block.blockerId, rightUserId), eq(block.blockedId, leftUserId))
+      )
     )
-    .limit(1);
-  return row !== undefined;
+    .limit(1)
+  return row !== undefined
 }
 
 async function findBlockedPairIds(tx: Tx, userId: string): Promise<string[]> {
@@ -565,15 +571,15 @@ async function findBlockedPairIds(tx: Tx, userId: string): Promise<string[]> {
       blockedId: block.blockedId,
     })
     .from(block)
-    .where(or(eq(block.blockerId, userId), eq(block.blockedId, userId)));
+    .where(or(eq(block.blockerId, userId), eq(block.blockedId, userId)))
 
   return [
     ...new Set(
       rows.map((row) =>
-        row.blockerId === userId ? row.blockedId : row.blockerId,
-      ),
+        row.blockerId === userId ? row.blockedId : row.blockerId
+      )
     ),
-  ];
+  ]
 }
 
 async function findProfileByUserId(tx: Tx, userId: string) {
@@ -585,6 +591,6 @@ async function findProfileByUserId(tx: Tx, userId: string) {
     })
     .from(profile)
     .where(eq(profile.userId, userId))
-    .limit(1);
-  return row;
+    .limit(1)
+  return row
 }

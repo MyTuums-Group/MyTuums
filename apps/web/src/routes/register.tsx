@@ -5,8 +5,10 @@ export const Route = createFileRoute("/register")({
 });
 
 function RegisterPage() {
+  const isPublicSignupEnabled = getPublicSignupEnabled();
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isPublicSignupEnabled) return;
     void (async () => {
       const form = new FormData(e.currentTarget);
       const { signUpEmail } = await import("@/lib/auth-client");
@@ -28,9 +30,13 @@ function RegisterPage() {
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Create your account</h1>
+          <h1 className="text-2xl font-semibold">
+            {isPublicSignupEnabled ? "Create your account" : "Signup is not open yet"}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Join the gaming community.
+            {isPublicSignupEnabled
+              ? "Join the gaming community."
+              : "MyTuums is completing legal, staff, support, email, monitoring, and deployment readiness before public signup opens."}
           </p>
         </div>
 
@@ -83,9 +89,10 @@ function RegisterPage() {
           </div>
           <button
             type="submit"
+            disabled={!isPublicSignupEnabled}
             className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
           >
-            Create account
+            {isPublicSignupEnabled ? "Create account" : "Signup disabled"}
           </button>
         </form>
 
@@ -97,4 +104,15 @@ function RegisterPage() {
       </div>
     </div>
   );
+}
+
+function getPublicSignupEnabled() {
+  try {
+    const env = (import.meta as unknown as {
+      env: { VITE_PUBLIC_SIGNUP_ENABLED?: string };
+    }).env;
+    return env?.VITE_PUBLIC_SIGNUP_ENABLED === "true";
+  } catch {
+    return false;
+  }
 }

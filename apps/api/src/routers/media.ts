@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { env } from "@workspace/config";
 import type { Context } from "../context.js";
 import { protectedProcedure, router } from "../trpc.js";
 import { getCurrentAppUserState } from "../services/app-user-state/index.js";
@@ -51,6 +52,13 @@ export const mediaRouter = router({
 });
 
 async function assertCanUpload(ctx: Pick<Context, "session" | "accountLifecycle">) {
+  if (!env.MEDIA_UPLOADS_ENABLED) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Media uploads are disabled until launch readiness gates pass.",
+    });
+  }
+
   const appUserState = await getCurrentAppUserState(ctx);
   if (appUserState.kind !== "active_onboarded_profile") {
     throw new TRPCError({

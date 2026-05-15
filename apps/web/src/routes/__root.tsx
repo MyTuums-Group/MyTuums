@@ -2,11 +2,17 @@ import { createRootRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth-client";
 import { getApiBase } from "@/lib/trpc";
-import { decideRootNavigation, type RootGuardAppUserState } from "./-root-guard";
+import {
+  decideRootNavigation,
+  isStaticPagePath,
+  type RootGuardAppUserState,
+} from "./-root-guard";
 
 export const Route = createRootRoute({
   component: RootLayout,
   beforeLoad: async ({ location }) => {
+    if (isStaticPagePath(location.pathname)) return;
+
     const session = await getSession();
     const decision = await decideRootNavigation({
       pathname: location.pathname,

@@ -316,6 +316,10 @@ export const profile = pgTable(
     bannerMediaId: uuid("banner_media_id").references(() => media.id, {
       onDelete: "set null",
     }),
+    /** Denormalized — updated transactionally with follow rows */
+    followerCount: integer("follower_count").notNull().default(0),
+    /** Denormalized — updated transactionally with follow rows */
+    followingCount: integer("following_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

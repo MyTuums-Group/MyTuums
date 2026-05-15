@@ -15,6 +15,8 @@ export const env = createEnv({
 
     // Email (Resend)
     RESEND_API_KEY: z.string().optional(),
+    SUPPORT_EMAIL: z.string().email().default("support@mytuums.com"),
+    PRIVACY_EMAIL: z.string().email().default("privacy@mytuums.com"),
 
     // Azure Storage
     AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
@@ -27,6 +29,7 @@ export const env = createEnv({
 
     // Sentry
     SENTRY_DSN: z.string().url().optional(),
+    SENTRY_RELEASE: z.string().optional(),
 
     // Node
     NODE_ENV: z
@@ -35,6 +38,14 @@ export const env = createEnv({
 
     // Bootstrap
     OWNER_BOOTSTRAP_SECRET: z.string().optional(),
+    PUBLIC_SIGNUP_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    MEDIA_UPLOADS_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
   },
 
   runtimeEnv: process.env,

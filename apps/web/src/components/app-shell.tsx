@@ -42,6 +42,7 @@ import { useState, type ReactNode } from "react"
 import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
 import { getApiBase, trpc } from "@/lib/trpc"
+import { FOOTER_STATIC_LINKS } from "@/routes/-static-pages"
 
 type PrimaryNavItem = {
   href: "/" | "/discover"
@@ -81,7 +82,7 @@ const MOBILE_NAV_ITEMS: MobileNavItem[] = [
     href: "/notifications",
     label: "Notifications",
     icon: Bell,
-    kind: "planned",
+    kind: "route",
   },
 ]
 
@@ -96,21 +97,15 @@ const FOOTER_SECTIONS = [
   },
   {
     title: "Support",
-    links: [
-      { href: "/about", label: "About" },
-      { href: "/support", label: "Support" },
-      { href: "/contact", label: "Contact" },
-      { href: "/accessibility", label: "Accessibility" },
-    ],
+    links: FOOTER_STATIC_LINKS.filter((link) =>
+      ["/about", "/support", "/contact", "/accessibility"].includes(link.href)
+    ),
   },
   {
     title: "Legal",
-    links: [
-      { href: "/privacy", label: "Privacy" },
-      { href: "/terms", label: "Terms" },
-      { href: "/cookies", label: "Cookies" },
-      { href: "/legal-notice", label: "Legal notice" },
-    ],
+    links: FOOTER_STATIC_LINKS.filter((link) =>
+      ["/terms", "/privacy", "/cookies", "/legal-notice"].includes(link.href)
+    ),
   },
 ]
 
@@ -362,6 +357,17 @@ function SearchEntry() {
 
 function NotificationEntry({ pathname }: { pathname: string }) {
   const active = isNavActive(pathname, "/notifications")
+  const unreadQuery = trpc.notification.unreadCount.useQuery(undefined, {
+    refetchOnWindowFocus: true,
+    refetchInterval: () =>
+      typeof document !== "undefined" && document.visibilityState === "visible"
+        ? 30_000
+        : false,
+    refetchIntervalInBackground: false,
+  })
+  const unreadCount = unreadQuery.data ?? 0
+  const badgeLabel =
+    unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null
 
   return (
     <Button
@@ -375,9 +381,20 @@ function NotificationEntry({ pathname }: { pathname: string }) {
           : "text-muted-foreground hover:text-foreground"
       )}
     >
-      <a href="/notifications" aria-label="Open notifications">
+      <a
+        href="/notifications"
+        aria-label={
+          unreadCount > 0
+            ? `Open notifications, ${unreadCount} unread`
+            : "Open notifications"
+        }
+      >
         <Bell weight="bold" />
-        <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-background sm:top-1.5 sm:right-1.5" />
+        {badgeLabel ? (
+          <span className="absolute -top-0.5 -right-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] leading-none font-semibold text-primary-foreground ring-2 ring-background sm:-top-1 sm:-right-1">
+            {badgeLabel}
+          </span>
+        ) : null}
       </a>
     </Button>
   )

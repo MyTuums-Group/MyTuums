@@ -22,6 +22,7 @@ import {
 } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
 import { trpc } from "@/lib/trpc"
+import { ReportSheet } from "@/features/moderation/report-sheet"
 import { DEFAULT_POST_PAGE_LIMIT } from "./constants"
 import { linkifyText } from "./linkify"
 import { removePostFromFeedPage } from "./post-cache"
@@ -201,12 +202,17 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
           </div>
         </div>
 
-        {post.canDelete && (
-          <CardAction>
+        <CardAction>
+          <div className="-mr-2 flex flex-wrap justify-end gap-1">
+            <ReportSheet
+              target={{ type: "post", publicId: post.publicId }}
+              buttonClassName="shrink-0 text-muted-foreground hover:text-foreground"
+            />
+            {post.canDelete && (
             <Button
               variant="ghost"
               size="sm"
-              className="-mr-2 shrink-0 text-muted-foreground hover:text-destructive"
+              className="shrink-0 text-muted-foreground hover:text-destructive"
               disabled={deleteMutation.isPending}
               onClick={() => {
                 deleteMutation.mutate({ publicId: post.publicId })
@@ -215,38 +221,51 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
               <Trash weight="bold" />
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
-          </CardAction>
-        )}
+            )}
+          </div>
+        </CardAction>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <div className="text-sm leading-6 break-words whitespace-pre-wrap text-foreground">
-          {linkifyText(post.text).map((part, index) =>
-            part.type === "link" ? (
-              <a
-                key={`${part.href}-${index}`}
-                href={part.href}
-                target="_blank"
-                rel="nofollow noopener noreferrer"
-                className="rounded-sm text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-              >
-                {part.text}
-              </a>
-            ) : (
-              <span key={`${part.text}-${index}`}>{part.text}</span>
-            )
-          )}
-        </div>
-
-        {post.gameTag && (
-          <div>
-            <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 ring-inset">
-              {post.gameTag.name}
-            </span>
+        {post.moderationRemoval ? (
+          <RemovedContentPlaceholder
+            targetType="post"
+            publicReason={post.moderationRemoval.publicReason}
+            removedAt={post.moderationRemoval.removedAt}
+          />
+        ) : (
+          <div className="text-sm leading-6 break-words whitespace-pre-wrap text-foreground">
+            {linkifyText(post.text).map((part, index) =>
+              part.type === "link" ? (
+                <a
+                  key={`${part.href}-${index}`}
+                  href={part.href}
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                  className="rounded-sm text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  {part.text}
+                </a>
+              ) : (
+                <span key={`${part.text}-${index}`}>{part.text}</span>
+              )
+            )}
           </div>
         )}
 
-        {post.media && (
+        {!post.moderationRemoval && post.gameTag && (
+          <div>
+            <Link
+              to="/game/$slug"
+              params={{ slug: post.gameTag.slug }}
+              className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 transition-colors ring-inset hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {post.gameTag.name}
+            </Link>
+          </div>
+        )}
+
+        {!post.moderationRemoval && post.media && (
           <div className="overflow-hidden rounded-xl border border-border bg-muted/40">
             {post.media.kind === "video" ? (
               <video
@@ -354,6 +373,34 @@ function PostStat({ icon, label }: { icon: ReactNode; label: string }) {
   )
 }
 
+function RemovedContentPlaceholder({
+  publicReason,
+  removedAt,
+  targetType,
+}: {
+  publicReason: string | null
+  removedAt: Date
+  targetType: "post" | "comment"
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+      <p className="font-medium text-foreground">
+        This {targetType} was removed.
+      </p>
+      <p className="mt-1">
+        Reason: {formatPublicReason(publicReason)} ·{" "}
+        {formatAbsoluteTimestamp(removedAt)}
+      </p>
+      <a
+        href="/contact"
+        className="mt-2 inline-flex rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        Contact support
+      </a>
+    </div>
+  )
+}
+
 function getInitials(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return "?"
@@ -376,6 +423,14 @@ function formatAbsoluteTimestamp(value: Date): string {
 function formatCountLabel(value: number, noun: string): string {
   const count = new Intl.NumberFormat("en").format(value)
   return `${count} ${noun}${value === 1 ? "" : "s"}`
+}
+
+function formatPublicReason(value: string | null): string {
+  if (!value) return "Moderation decision"
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
 }
 
 function formatRelativeTimestamp(value: Date): string {

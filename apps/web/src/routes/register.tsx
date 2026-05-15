@@ -1,36 +1,60 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState } from "react"
+import { trpc } from "@/lib/trpc"
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
-});
+})
 
 function RegisterPage() {
+  const launchReadiness = trpc.launchReadiness.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const signupDisabled =
+    launchReadiness.isLoading ||
+    launchReadiness.data?.publicSignupEnabled === false
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    e.preventDefault()
+    if (signupDisabled) return
+    setErrorMessage(null)
     void (async () => {
-      const form = new FormData(e.currentTarget);
-      const { signUpEmail } = await import("@/lib/auth-client");
-      const email = form.get("email") as string;
+      const form = new FormData(e.currentTarget)
+      const { signUpEmail } = await import("@/lib/auth-client")
+      const email = form.get("email") as string
       const result = await signUpEmail({
         email,
         password: form.get("password") as string,
         // Better Auth requires a name, but MyTuums profile identity is chosen
         // during onboarding. Do not collect a misleading display name here.
         name: email,
-      });
+      })
       if (result.ok) {
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`
+      } else {
+        setErrorMessage(result.error.message)
       }
-    })();
-  };
+    })()
+  }
+
+  const signupDisabledMessage =
+    launchReadiness.data?.publicSignupEnabled === false
+      ? "MyTuums is completing legal, staff, support, email, monitoring, and deployment readiness before public signup opens."
+      : null
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Create your account</h1>
+          <h1 className="text-2xl font-semibold">
+            {signupDisabledMessage
+              ? "Signup is not open yet"
+              : "Create your account"}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Join the gaming community.
+            {signupDisabledMessage ?? "Join the gaming community."}
           </p>
         </div>
 
@@ -83,10 +107,14 @@ function RegisterPage() {
           </div>
           <button
             type="submit"
+            disabled={signupDisabled}
             className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
           >
-            Create account
+            {signupDisabled ? "Signup disabled" : "Create account"}
           </button>
+          {errorMessage ? (
+            <p className="text-destructive text-sm">{errorMessage}</p>
+          ) : null}
         </form>
 
         <div className="text-sm text-center">
@@ -96,5 +124,5 @@ function RegisterPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

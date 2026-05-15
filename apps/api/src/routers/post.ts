@@ -19,6 +19,7 @@ import {
   createCommentPresentation,
   InvalidCommentCursorError,
 } from "../services/comment/presentation.js";
+import { findBySlug } from "../services/game/game.adapter.js";
 import {
   createPost as createPostRecord,
   deleteOwnPost,
@@ -51,13 +52,19 @@ const feedPageSchema = z.object({
 });
 
 const discoverFeedSchema = feedPageSchema.extend({
-  game: z
-    .string()
-    .trim()
-    .min(1)
-    .max(80)
-    .regex(/^[a-z0-9-]+$/, "Invalid game filter.")
-    .optional(),
+  game: z.preprocess(
+    (value: unknown) => {
+      if (value === undefined || value === null) return "";
+      if (typeof value === "string") return value;
+      return "";
+    },
+    z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^(|[a-z0-9]+(?:-[a-z0-9]+)*)$/, "Invalid game filter.")
+      .transform((value) => (value === "" ? undefined : value)),
+  ),
 });
 
 export const postRouter = router({
@@ -94,9 +101,22 @@ export const postRouter = router({
     .query(async ({ ctx, input }) => {
       const viewer = await authorization.getViewerContext({ userId: ctx.user.id });
       const pageInput = await toFeedPageInputOrThrow(viewer, input);
+
+      let gameSlug: string | null = input.game ?? null;
+      if (gameSlug) {
+        const catalogGame = await findBySlug(gameSlug);
+        if (!catalogGame?.isActive) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Choose an active game from the catalog to filter Discover.",
+          });
+        }
+        gameSlug = catalogGame.slug;
+      }
+
       const page = await feedVisibilityQueries.queryFeed({
         viewer,
-        eligibility: DiscoverEligibility.create({ gameSlug: input.game ?? null }),
+        eligibility: DiscoverEligibility.create({ gameSlug }),
         limit: pageInput.limit,
         cursor: pageInput.cursor,
       });

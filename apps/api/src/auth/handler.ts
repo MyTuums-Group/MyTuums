@@ -33,7 +33,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         reply.status(response.status);
         response.headers.forEach((value, key) => reply.header(key, value));
         const body = response.body ? await response.text() : null;
-        void reply.send(body ? (body.startsWith("{") ? JSON.parse(body) : body) : null);
+        void reply.send(body);
         return;
       } catch (error) {
         app.log.error(`Auth error: ${String(error)}`);

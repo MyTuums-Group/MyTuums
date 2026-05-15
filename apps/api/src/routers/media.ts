@@ -56,7 +56,7 @@ async function assertCanUpload(ctx: Pick<Context, "session" | "accountLifecycle"
   if (!launchReadiness.mediaUploadsEnabled) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Media uploads are disabled until staff launch readiness is complete.",
+      message: "Media uploads are disabled until launch readiness gates pass.",
     });
   }
 

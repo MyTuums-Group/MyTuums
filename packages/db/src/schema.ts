@@ -16,6 +16,7 @@ import {
   type CasePriority,
   type CaseStatus,
   type ContactCategory,
+  type ContactEmailStatus,
   type MediaPurpose,
   type MediaStatus,
   type ModerationActionType,
@@ -107,6 +108,12 @@ const CONTACT_CATEGORIES = [
   "general_support",
   "other",
 ] as const satisfies readonly ContactCategory[]
+
+const CONTACT_EMAIL_STATUSES = [
+  "pending",
+  "sent",
+  "failed",
+] as const satisfies readonly ContactEmailStatus[]
 
 // ─────────────────────────────────────────────────────────────────────
 // BetterAuth tables
@@ -729,9 +736,25 @@ export const contactSubmission = pgTable(
       enum: CONTACT_CATEGORIES,
     }).notNull(),
     message: text("message").notNull(),
+    requestIpHash: text("request_ip_hash"),
+    userAgent: text("user_agent"),
+    emailStatus: text("email_status", {
+      enum: CONTACT_EMAIL_STATUSES,
+    })
+      .notNull()
+      .default("pending"),
+    emailError: text("email_error"),
+    retentionExpiresAt: timestamp("retention_expires_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .default(sql`now() + interval '180 days'`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("contact_submission_category_idx").on(table.category)]
+  (table) => [
+    index("contact_submission_category_idx").on(table.category),
+    index("contact_submission_retention_idx").on(table.retentionExpiresAt),
+  ]
 )

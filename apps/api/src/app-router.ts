@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { router, publicProcedure, protectedProcedure } from "./trpc.js"
+import { contactRouter } from "./routers/contact.js"
 import { docsRouter } from "./routers/docs.js"
 import { engagementRouter } from "./routers/engagement.js"
 import { gameRouter } from "./routers/game.js"
@@ -66,6 +67,7 @@ export const appRouter = router({
   notification: notificationRouter,
   docs: docsRouter,
   staff: staffRouter,
+  contact: contactRouter,
 })
 
 export type AppRouter = typeof appRouter

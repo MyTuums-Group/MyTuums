@@ -1,0 +1,37 @@
+name: Media Cleanup
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: media-cleanup-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Cleanup expired media
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @workspace/api media:cleanup
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.PRODUCTION_BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ vars.PRODUCTION_API_URL }}
+          WEB_APP_URL: ${{ vars.PRODUCTION_WEB_URL }}
+          DOCS_APP_URL: ${{ vars.PRODUCTION_DOCS_URL }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.PRODUCTION_AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.PRODUCTION_AZURE_STORAGE_ACCOUNT_NAME }}
+          AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.PRODUCTION_AZURE_STORAGE_ACCOUNT_KEY }}
+          MEDIA_CONTAINER_NAME: ${{ vars.PRODUCTION_MEDIA_CONTAINER_NAME || 'user-media' }}
+          GAME_COVERS_CONTAINER_NAME: ${{ vars.PRODUCTION_GAME_COVERS_CONTAINER_NAME || 'game-covers' }}
+          NODE_ENV: production

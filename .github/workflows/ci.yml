@@ -58,10 +58,25 @@ jobs:
           } >> "$GITHUB_ENV"
       - run: pnpm docs:validate
 
+  drizzle-check:
+    name: Drizzle Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:check
+        env:
+          DATABASE_URL: postgresql://mytuums:mytuums_test@localhost:5432/mytuums_test
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [typecheck, lint, docs-validation]
+    needs: [typecheck, lint, docs-validation, drizzle-check]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -84,6 +99,40 @@ jobs:
             echo "VITE_DOCS_BUILD_TIME=${build_time}"
           } >> "$GITHUB_ENV"
       - run: pnpm build
+
+  smoke:
+    name: Playwright Smoke
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm smoke
+        env:
+          VITE_PUBLIC_SIGNUP_ENABLED: "false"
+
+  axe-smoke:
+    name: Axe Smoke
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm axe:smoke
+        env:
+          VITE_PUBLIC_SIGNUP_ENABLED: "false"
 
   test:
     name: Tests (Vitest)

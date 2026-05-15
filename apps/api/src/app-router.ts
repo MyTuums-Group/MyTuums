@@ -9,6 +9,7 @@ import { moderationRouter } from "./routers/moderation.js"
 import { notificationRouter } from "./routers/notification.js"
 import { profileRouter } from "./routers/profile.js"
 import { postRouter } from "./routers/post.js"
+import { settingsRouter } from "./routers/settings.js"
 import { staffRouter } from "./routers/staff.js"
 import { authorization } from "./authorization/index.js"
 import { getCurrentAppUserState } from "./services/app-user-state/index.js"
@@ -66,6 +67,7 @@ export const appRouter = router({
   moderation: moderationRouter,
   notification: notificationRouter,
   docs: docsRouter,
+  settings: settingsRouter,
   staff: staffRouter,
   contact: contactRouter,
 })

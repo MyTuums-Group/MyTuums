@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -47,6 +48,11 @@ const TermsRoute = TermsRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/register'
     | '/reset-password'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/verify-email'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/register'
     | '/reset-password'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/verify-email'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/register'
     | '/reset-password'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/verify-email'
@@ -333,6 +345,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SettingsRoute: typeof SettingsRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -543,6 +563,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SettingsRoute: SettingsRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,

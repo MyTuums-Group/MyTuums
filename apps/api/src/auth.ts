@@ -56,10 +56,12 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60, // Refresh session every 24 hours (rolling)
   },
 
+  // Production: enough headroom for session checks + bursts (tabs, prefetch, navigations).
+  // Dev/test: disabled so HMR and tooling do not 429.
   rateLimit: {
-    enabled: true,
+    enabled: env.NODE_ENV === "production",
     window: 60,
-    max: 10,
+    max: 500,
   },
 
   secret: env.BETTER_AUTH_SECRET,

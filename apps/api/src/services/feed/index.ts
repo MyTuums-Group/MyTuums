@@ -4,6 +4,7 @@ import { canViewFeedComment, canViewFeedPost } from "../visibility/memory.js";
 export interface FeedCursor {
   createdAt: Date;
   id: string;
+  likeCount?: number;
 }
 
 export interface FeedPageInput {
@@ -97,9 +98,12 @@ export interface FeedCommentRow {
   id: string;
   postId: string;
   authorId: string;
+  authorUsername: string;
+  authorDisplayName: string | null;
   authorAccountStatus: AccountStatus;
   text: string;
   likeCount: number;
+  viewerHasLiked: boolean;
   deletedAt: Date | null;
   removedAt: Date | null;
   removalPublicReason: string | null;
@@ -319,7 +323,7 @@ export function createInMemoryFeedVisibilityQueries(
         .filter((comment) => comment.postId === postId)
         .filter((comment) => canViewFeedComment(viewer, comment));
 
-      return Promise.resolve(paginateByCreatedAt(comments, page));
+      return Promise.resolve(paginateCommentsByLikeCount(comments, page));
     },
   };
 }
@@ -364,4 +368,59 @@ function isOlderThanCursor(
 
 function toCursor(row: { id: string; createdAt: Date }): FeedCursor {
   return { id: row.id, createdAt: row.createdAt };
+}
+
+function paginateCommentsByLikeCount<T extends { id: string; createdAt: Date; likeCount: number }>(
+  rows: T[],
+  page: FeedPageInput,
+): FeedPage<T> {
+  const limit = Math.max(0, page.limit);
+  const sortedVisibleRows = [...rows].sort(compareComments);
+  const cursorFilteredRows = page.cursor
+    ? sortedVisibleRows.filter((row) => isAfterCommentCursor(row, page.cursor!))
+    : sortedVisibleRows;
+  const items = cursorFilteredRows.slice(0, limit);
+  const nextCursor =
+    items.length === limit && cursorFilteredRows.length > limit
+      ? toCommentCursor(items[items.length - 1]!)
+      : null;
+
+  return { items, nextCursor };
+}
+
+function compareComments(
+  left: { id: string; createdAt: Date; likeCount: number },
+  right: { id: string; createdAt: Date; likeCount: number },
+): number {
+  const likeDifference = right.likeCount - left.likeCount;
+  if (likeDifference !== 0) return likeDifference;
+
+  const timeDifference = left.createdAt.getTime() - right.createdAt.getTime();
+  if (timeDifference !== 0) return timeDifference;
+
+  return left.id.localeCompare(right.id);
+}
+
+function isAfterCommentCursor(
+  row: { id: string; createdAt: Date; likeCount: number },
+  cursor: FeedCursor,
+): boolean {
+  if (typeof cursor.likeCount === "number") {
+    if (row.likeCount < cursor.likeCount) return true;
+    if (row.likeCount > cursor.likeCount) return false;
+  }
+
+  const rowTime = row.createdAt.getTime();
+  const cursorTime = cursor.createdAt.getTime();
+  if (rowTime > cursorTime) return true;
+  if (rowTime < cursorTime) return false;
+  return row.id > cursor.id;
+}
+
+function toCommentCursor(row: {
+  id: string;
+  createdAt: Date;
+  likeCount: number;
+}): FeedCursor {
+  return { id: row.id, createdAt: row.createdAt, likeCount: row.likeCount };
 }

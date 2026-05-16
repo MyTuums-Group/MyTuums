@@ -1,12 +1,12 @@
-import { and, eq, isNull, or, sql } from "drizzle-orm"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import {
-  block,
   comment as commentTable,
   commentLike,
   db,
   notification,
   post as postTable,
 } from "@workspace/db"
+import { hasBlockedPair } from "../block/block.adapter.js"
 import type { CommentRecord, CommentRepository } from "./comment.core.js"
 
 export async function findCommentablePostByPublicId(
@@ -243,23 +243,3 @@ export async function toggleCommentLike(values: {
   })
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
-
-async function hasBlockedPair(
-  tx: Tx,
-  leftUserId: string,
-  rightUserId: string
-): Promise<boolean> {
-  if (leftUserId === rightUserId) return false
-  const [row] = await tx
-    .select({ blockerId: block.blockerId })
-    .from(block)
-    .where(
-      or(
-        and(eq(block.blockerId, leftUserId), eq(block.blockedId, rightUserId)),
-        and(eq(block.blockerId, rightUserId), eq(block.blockedId, leftUserId))
-      )
-    )
-    .limit(1)
-  return row !== undefined
-}

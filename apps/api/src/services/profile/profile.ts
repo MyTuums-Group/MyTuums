@@ -15,7 +15,18 @@ async function signMediaReadUrl(mediaId: string): Promise<string | null> {
   return result.ok ? result.value.readUrl : null
 }
 
-const service = createProfileService({ adapter, signMediaReadUrl })
+const service = createProfileService({
+  adapter,
+  media: {
+    async attachMedia(mediaId: string, userId: string) {
+      const { mediaService } = await import(
+        "../media/media-service.production.js"
+      )
+      return mediaService.attachMedia(mediaId, userId, "profile_avatar")
+    },
+  },
+  signMediaReadUrl,
+})
 
 export type {
   OnboardingError,

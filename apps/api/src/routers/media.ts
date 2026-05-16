@@ -25,7 +25,7 @@ export const mediaRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await assertCanUpload(ctx)
+      await assertCanUpload(ctx, input.purpose)
       await enforceRateLimit({
         key: createUserRateLimitKey(ctx.user.id),
         policy: RATE_LIMIT_POLICIES.uploadCreate,
@@ -69,7 +69,8 @@ export const mediaRouter = router({
 })
 
 async function assertCanUpload(
-  ctx: Pick<Context, "session" | "accountLifecycle">
+  ctx: Pick<Context, "session" | "accountLifecycle">,
+  purpose: "post_attachment" | "profile_avatar" | "profile_banner"
 ) {
   const launchReadiness = await launchReadinessService.getReadiness()
   if (!launchReadiness.mediaUploadsEnabled) {
@@ -80,12 +81,18 @@ async function assertCanUpload(
   }
 
   const appUserState = await getCurrentAppUserState(ctx)
-  if (appUserState.kind !== "active_onboarded_profile") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You need a verified onboarded profile to upload media.",
-    })
+  if (appUserState.kind === "active_onboarded_profile") return
+  if (
+    appUserState.kind === "verified_profileless" &&
+    purpose === "profile_avatar"
+  ) {
+    return
   }
+
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "You need a verified onboarded profile to upload media.",
+  })
 }
 
 function mediaError(kind: string): TRPCError {

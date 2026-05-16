@@ -19,6 +19,13 @@ export function mapOnboardingErrorToTransport(
         publicCode: "invalid_favorite_games",
         message: error.message,
       };
+    case "invalid_avatar_media":
+      return {
+        trpcCode: "BAD_REQUEST",
+        httpStatus: 400,
+        publicCode: "invalid_avatar_media",
+        message: error.message,
+      };
     case "already_has_profile":
       return {
         trpcCode: "CONFLICT",

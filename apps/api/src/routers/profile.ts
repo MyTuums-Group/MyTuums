@@ -4,6 +4,7 @@ import {
   USERNAME_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
+  MAX_FAVORITE_GAMES,
 } from "@workspace/types"
 import { protectedProcedure, publicProcedure, router } from "../trpc.js"
 import { authorization } from "../authorization/index.js"
@@ -41,7 +42,11 @@ export const profileRouter = router({
         username: z.string().min(USERNAME_MIN_LENGTH).max(USERNAME_MAX_LENGTH),
         displayName: z.string().max(DISPLAY_NAME_MAX_LENGTH).optional(),
         bio: z.string().max(BIO_MAX_LENGTH).optional(),
-        favoriteGameIds: z.array(z.string().uuid()).max(5).optional(),
+        avatarMediaId: z.string().uuid().nullable().optional(),
+        favoriteGameIds: z
+          .array(z.string().uuid())
+          .max(MAX_FAVORITE_GAMES)
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -49,6 +54,7 @@ export const profileRouter = router({
         username: input.username,
         displayName: input.displayName ?? null,
         bio: input.bio ?? null,
+        avatarMediaId: input.avatarMediaId ?? null,
         favoriteGameIds: input.favoriteGameIds ?? [],
       })
       if (!result.ok) {

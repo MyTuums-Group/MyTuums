@@ -94,6 +94,7 @@ export async function createOnboarding(values: {
   username: Username
   displayName: string | null
   bio: string | null
+  avatarMediaId: string | null
   favoriteGames: { gameId: string; position: number }[]
 }): Promise<ProfileRow> {
   return db.transaction(async (tx) => {
@@ -104,6 +105,7 @@ export async function createOnboarding(values: {
         username: values.username,
         displayName: values.displayName,
         bio: values.bio,
+        avatarMediaId: values.avatarMediaId,
       })
       .returning()
 

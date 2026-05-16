@@ -10,12 +10,14 @@ import {
 import { isValidDiagramId, isValidSemanticPath } from "./slug.js";
 import type {
   DocsArtifact,
+  DocsArtifactHomeEntry,
   DocsBuildOptions,
   DocsBuildResult,
   DocsDiagram,
   DocsLink,
   DocsManifest,
   DocsManifestDiagram,
+  DocsManifestHome,
   DocsManifestPage,
   DocsManifestSection,
   DocsPage,
@@ -273,6 +275,35 @@ export function validateDocsManifest(value: unknown): DocsManifest {
     };
   });
 
+  const homeRaw = root.home;
+  let manifestHome: DocsManifestHome | undefined;
+  if (homeRaw !== undefined) {
+    const homeRecord = expectRecord(homeRaw, "Manifest.home", issues);
+    const homeSectionId = expectNonEmptyString(
+      homeRecord.sectionId,
+      "Manifest.home.sectionId",
+      issues,
+    );
+    const homePageSlug = expectNonEmptyString(
+      homeRecord.pageSlug,
+      "Manifest.home.pageSlug",
+      issues,
+    );
+
+    if (homeSectionId.length > 0 && homePageSlug.length > 0) {
+      const homeSection = manifestSections.find((candidate) => candidate.id === homeSectionId);
+      if (homeSection === undefined) {
+        issues.push(`Manifest.home.sectionId "${homeSectionId}" does not match any section.`);
+      } else if (!homeSection.pages.some((candidate) => candidate.slug === homePageSlug)) {
+        issues.push(
+          `Manifest.home.pageSlug "${homePageSlug}" is not a page under section "${homeSectionId}".`,
+        );
+      } else {
+        manifestHome = { sectionId: homeSectionId, pageSlug: homePageSlug };
+      }
+    }
+  }
+
   if (issues.length > 0) {
     throw new DocsContentValidationError("Manifest validation failed.", issues);
   }
@@ -280,6 +311,7 @@ export function validateDocsManifest(value: unknown): DocsManifest {
   return {
     version: 1,
     sections: manifestSections,
+    home: manifestHome,
   };
 }
 
@@ -388,8 +420,16 @@ async function compileDocsManifest(
     searchIndex = [];
   }
 
+  const homeEntry = resolveArtifactHomeEntry(manifest, sections, issues);
+
   if (issues.length > 0) {
     throw new DocsContentValidationError("Docs content validation failed.", issues);
+  }
+
+  if (homeEntry === null) {
+    throw new DocsContentValidationError("Docs content validation failed.", [
+      "Cannot resolve docs home entry: no compiled navigation pages.",
+    ]);
   }
 
   return {
@@ -400,9 +440,47 @@ async function compileDocsManifest(
       generatedAt: options.generatedAt ?? new Date().toISOString(),
       commitSha: options.commitSha ?? resolveGitCommit(options.rootDir),
     },
+    homeEntry,
     sections,
     pages,
     searchIndex,
+  };
+}
+
+function resolveArtifactHomeEntry(
+  manifest: DocsManifest,
+  sections: DocsSection[],
+  issues: string[],
+): DocsArtifactHomeEntry | null {
+  const fallbackTarget = (): { sectionId: string; pageSlug: string } | null => {
+    const firstSection = sections[0];
+    const firstPage = firstSection?.pages[0];
+    if (!firstSection || !firstPage) {
+      return null;
+    }
+
+    return { sectionId: firstSection.id, pageSlug: firstPage.slug };
+  };
+
+  const target = manifest.home ?? fallbackTarget();
+  if (target === null) {
+    issues.push("Cannot resolve docs home entry: no compiled navigation pages.");
+    return null;
+  }
+
+  const section = sections.find((candidate) => candidate.id === target.sectionId);
+  const page = section?.pages.find((candidate) => candidate.slug === target.pageSlug);
+  if (!section || !page) {
+    issues.push(
+      `Docs home entry (${target.sectionId}/${target.pageSlug}) does not match any compiled page. Update docs-manifest home or restore sources.`,
+    );
+    return null;
+  }
+
+  return {
+    sectionId: target.sectionId,
+    pageSlug: target.pageSlug,
+    pageTitle: page.title,
   };
 }
 

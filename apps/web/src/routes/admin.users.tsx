@@ -1,41 +1,49 @@
-import { useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
-import { Alert, AlertDescription } from "@workspace/ui/components/alert";
-import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Input } from "@workspace/ui/components/input";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { trpc } from "@/lib/trpc";
+import { useState } from "react"
+import { MagnifyingGlass } from "@phosphor-icons/react"
+import { createFileRoute } from "@tanstack/react-router"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { Button } from "@workspace/ui/components/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card"
+import { Input } from "@workspace/ui/components/input"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+import { trpc } from "@/lib/trpc"
 
 export const Route = createFileRoute("/admin/users")({
   validateSearch: (search) => ({
     q: typeof search.q === "string" ? search.q : "",
   }),
   component: AdminUsersPage,
-});
+})
 
 function AdminUsersPage() {
-  const { q } = Route.useSearch();
-  const [draft, setDraft] = useState(q);
-  const guardQuery = trpc.moderation.listCases.useQuery(undefined, {
-    retry: false,
-  });
-  const searchQuery = trpc.search.useQuery(
+  const { q } = Route.useSearch()
+  const [draft, setDraft] = useState(q)
+  const guardQuery = trpc.staff.searchUsers.useQuery(
+    { query: "", limit: 1 },
+    {
+      retry: false,
+    }
+  )
+  const searchQuery = trpc.staff.searchUsers.useQuery(
     { query: q, limit: 12 },
     {
       enabled: !guardQuery.isError && q.trim().length > 0,
       retry: false,
-    },
-  );
+    }
+  )
 
-  if (guardQuery.isLoading) return <UsersSkeleton />;
+  if (guardQuery.isLoading) return <UsersSkeleton />
   if (guardQuery.isError) {
-    if (guardQuery.error.data?.code === "FORBIDDEN") return <AdminUnavailable />;
-    return <AdminError message={guardQuery.error.message} />;
+    if (guardQuery.error.data?.code === "FORBIDDEN") return <AdminUnavailable />
+    return <AdminError message={guardQuery.error.message} />
   }
 
-  const users = searchQuery.data?.results.filter((item) => item.type === "user") ?? [];
+  const users = searchQuery.data ?? []
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6">
@@ -50,12 +58,12 @@ function AdminUsersPage() {
           <form
             className="flex flex-col gap-3 sm:flex-row"
             onSubmit={(event) => {
-              event.preventDefault();
-              const search = new URLSearchParams();
-              if (draft.trim()) search.set("q", draft.trim());
+              event.preventDefault()
+              const search = new URLSearchParams()
+              if (draft.trim()) search.set("q", draft.trim())
               window.location.href = search.toString()
                 ? `/admin/users?${search.toString()}`
-                : "/admin/users";
+                : "/admin/users"
             }}
           >
             <Input
@@ -87,17 +95,27 @@ function AdminUsersPage() {
           {users.map((item) => (
             <a
               key={item.id}
-              href={item.href}
+              href={`/admin/users/${item.id}`}
               className="flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              <span className="font-medium">{item.label}</span>
-              <span className="text-muted-foreground">Open profile</span>
+              <span className="min-w-0">
+                <span className="block truncate font-medium">
+                  {item.displayName ?? `@${item.username}`}
+                </span>
+                <span className="block truncate text-muted-foreground">
+                  @{item.username} · {formatEnum(item.role)} ·{" "}
+                  {formatEnum(item.accountStatus)}
+                </span>
+              </span>
+              <span className="shrink-0 text-muted-foreground">
+                Open account
+              </span>
             </a>
           ))}
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function UsersSkeleton() {
@@ -106,7 +124,7 @@ function UsersSkeleton() {
       <Skeleton className="h-28 w-full" />
       <Skeleton className="h-40 w-full" />
     </div>
-  );
+  )
 }
 
 function AdminUnavailable() {
@@ -121,7 +139,7 @@ function AdminUnavailable() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 function AdminError({ message }: { message: string }) {
@@ -131,5 +149,12 @@ function AdminError({ message }: { message: string }) {
         <AlertDescription>{message}</AlertDescription>
       </Alert>
     </div>
-  );
+  )
+}
+
+function formatEnum(value: string): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
 }

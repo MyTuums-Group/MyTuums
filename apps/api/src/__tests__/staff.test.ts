@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { createInMemoryStaffService } from "../services/staff/index.js";
+import { describe, expect, it, vi } from "vitest"
+import { createInMemoryStaffService } from "../services/staff/index.js"
 
 function createStaffService() {
   return createInMemoryStaffService({
@@ -50,6 +50,13 @@ function createStaffService() {
         suspensionPublicReason: null,
       },
     ],
+    profiles: [
+      { userId: "owner-1", username: "owner", displayName: "Owner" },
+      { userId: "admin-1", username: "admin", displayName: "Admin" },
+      { userId: "mod-1", username: "mod", displayName: "Mod" },
+      { userId: "user-1", username: "alice", displayName: "Alice" },
+      { userId: "user-2", username: "bob", displayName: "Bob" },
+    ],
     roleChangeAudits: [],
     moderationCases: [
       { id: "case-open", assigneeId: "mod-1", status: "open" },
@@ -57,7 +64,7 @@ function createStaffService() {
       { id: "case-dismissed", assigneeId: "mod-1", status: "dismissed" },
     ],
     invalidatedSessions: [],
-  });
+  })
 }
 
 function createOwnerBootstrapService() {
@@ -85,12 +92,81 @@ function createOwnerBootstrapService() {
     roleChangeAudits: [],
     moderationCases: [],
     invalidatedSessions: [],
-  });
+  })
 }
 
 describe("Staff service", () => {
+  it("returns role-appropriate user detail actions", async () => {
+    const service = createStaffService()
+
+    await expect(
+      service.getUser({ actorId: "mod-1", targetUserId: "user-1" })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        id: "user-1",
+        role: "user",
+        accountStatus: "active",
+        profile: { username: "alice", displayName: "Alice" },
+        actions: {
+          canSuspend: true,
+          canUnsuspend: false,
+          canConfirmUnderage: true,
+          roleOptions: [],
+        },
+      },
+    })
+
+    await expect(
+      service.getUser({ actorId: "admin-1", targetUserId: "mod-1" })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        id: "mod-1",
+        role: "moderator",
+        actions: {
+          canSuspend: true,
+          roleOptions: ["user"],
+        },
+      },
+    })
+
+    await expect(
+      service.getUser({ actorId: "mod-1", targetUserId: "admin-1" })
+    ).resolves.toEqual({
+      ok: false,
+      error: { kind: "staff_access_not_allowed" },
+    })
+  })
+
+  it("filters staff user search to inspectable roles only", async () => {
+    const service = createStaffService()
+
+    await expect(
+      service.searchUsers({ actorId: "admin-1", query: "o", limit: 10 })
+    ).resolves.toEqual({
+      ok: true,
+      value: [
+        {
+          id: "mod-1",
+          username: "mod",
+          displayName: "Mod",
+          role: "moderator",
+          accountStatus: "active",
+        },
+        {
+          id: "user-2",
+          username: "bob",
+          displayName: "Bob",
+          role: "user",
+          accountStatus: "active",
+        },
+      ],
+    })
+  })
+
   it("changes a role with internal notes, audit, and immediate session invalidation", async () => {
-    const service = createStaffService();
+    const service = createStaffService()
 
     await expect(
       service.changeRole({
@@ -98,7 +174,7 @@ describe("Staff service", () => {
         targetUserId: "user-1",
         newRole: "admin",
         internalNotes: "Trusted launch operator.",
-      }),
+      })
     ).resolves.toEqual({
       ok: true,
       value: {
@@ -106,22 +182,24 @@ describe("Staff service", () => {
         oldRole: "user",
         newRole: "admin",
       },
-    });
+    })
 
-    const snapshot = service.snapshot();
-    expect(snapshot.users.find((user) => user.id === "user-1")?.role).toBe("admin");
+    const snapshot = service.snapshot()
+    expect(snapshot.users.find((user) => user.id === "user-1")?.role).toBe(
+      "admin"
+    )
     expect(snapshot.roleChangeAudits[0]).toMatchObject({
       actorId: "owner-1",
       targetUserId: "user-1",
       oldRole: "user",
       newRole: "admin",
       internalNotes: "Trusted launch operator.",
-    });
-    expect(snapshot.invalidatedSessions).toEqual(["user-1"]);
-  });
+    })
+    expect(snapshot.invalidatedSessions).toEqual(["user-1"])
+  })
 
   it("lets admins promote moderators but not admins", async () => {
-    const service = createStaffService();
+    const service = createStaffService()
 
     await expect(
       service.changeRole({
@@ -129,11 +207,11 @@ describe("Staff service", () => {
         targetUserId: "user-1",
         newRole: "moderator",
         internalNotes: "Needs access to report queue.",
-      }),
+      })
     ).resolves.toMatchObject({
       ok: true,
       value: { targetUserId: "user-1", oldRole: "user", newRole: "moderator" },
-    });
+    })
 
     await expect(
       service.changeRole({
@@ -141,15 +219,15 @@ describe("Staff service", () => {
         targetUserId: "user-2",
         newRole: "admin",
         internalNotes: "Trying to grant admin.",
-      }),
+      })
     ).resolves.toEqual({
       ok: false,
       error: { kind: "role_change_not_allowed" },
-    });
-  });
+    })
+  })
 
   it("unassigns a demoted staff member from open and reviewing moderation cases", async () => {
-    const service = createStaffService();
+    const service = createStaffService()
 
     await expect(
       service.changeRole({
@@ -157,22 +235,22 @@ describe("Staff service", () => {
         targetUserId: "mod-1",
         newRole: "user",
         internalNotes: "No longer available for moderation.",
-      }),
-    ).resolves.toMatchObject({ ok: true });
+      })
+    ).resolves.toMatchObject({ ok: true })
 
     expect(service.snapshot().moderationCases).toEqual([
       { id: "case-open", assigneeId: null, status: "open" },
       { id: "case-reviewing", assigneeId: null, status: "reviewing" },
       { id: "case-dismissed", assigneeId: "mod-1", status: "dismissed" },
-    ]);
-  });
+    ])
+  })
 
   it("suspends allowed targets with preset expiry, session invalidation, and case unassignment", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-10T12:00:00.000Z"));
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-10T12:00:00.000Z"))
 
     try {
-      const service = createStaffService();
+      const service = createStaffService()
 
       await expect(
         service.suspendUser({
@@ -181,7 +259,7 @@ describe("Staff service", () => {
           duration: "7d",
           internalNotes: "Repeated safety misses.",
           publicReason: "terms_violation",
-        }),
+        })
       ).resolves.toEqual({
         ok: true,
         value: {
@@ -189,34 +267,34 @@ describe("Staff service", () => {
           suspendedUntil: new Date("2026-01-17T12:00:00.000Z"),
           publicReason: "terms_violation",
         },
-      });
+      })
 
-      const snapshot = service.snapshot();
+      const snapshot = service.snapshot()
       expect(snapshot.users.find((user) => user.id === "mod-1")).toMatchObject({
         accountStatus: "suspended",
         suspendedUntil: new Date("2026-01-17T12:00:00.000Z"),
         suspensionPublicReason: "terms_violation",
-      });
+      })
       expect(snapshot.moderationCases).toEqual([
         { id: "case-open", assigneeId: null, status: "open" },
         { id: "case-reviewing", assigneeId: null, status: "reviewing" },
         { id: "case-dismissed", assigneeId: "mod-1", status: "dismissed" },
-      ]);
-      expect(snapshot.invalidatedSessions).toEqual(["mod-1"]);
+      ])
+      expect(snapshot.invalidatedSessions).toEqual(["mod-1"])
     } finally {
-      vi.useRealTimers();
+      vi.useRealTimers()
     }
-  });
+  })
 
   it("confirmed underage moderation applies an indefinite underage suspension", async () => {
-    const service = createStaffService();
+    const service = createStaffService()
 
     await expect(
       service.confirmUnderage({
         actorId: "mod-1",
         targetUserId: "user-1",
         internalNotes: "User confirmed they are under launch age.",
-      }),
+      })
     ).resolves.toEqual({
       ok: true,
       value: {
@@ -224,7 +302,7 @@ describe("Staff service", () => {
         suspendedUntil: null,
         publicReason: "underage",
       },
-    });
+    })
 
     expect(service.snapshot().users).toEqual(
       expect.arrayContaining([
@@ -234,9 +312,9 @@ describe("Staff service", () => {
           suspendedUntil: null,
           suspensionPublicReason: "underage",
         }),
-      ]),
-    );
-  });
+      ])
+    )
+  })
 
   it("unsuspends allowed targets and invalidates existing sessions", async () => {
     const service = createInMemoryStaffService({
@@ -263,67 +341,71 @@ describe("Staff service", () => {
       roleChangeAudits: [],
       moderationCases: [],
       invalidatedSessions: [],
-    });
+    })
 
     await expect(
       service.unsuspendUser({
         actorId: "admin-1",
         targetUserId: "user-1",
         internalNotes: "Reviewed by support.",
-      }),
+      })
     ).resolves.toEqual({
       ok: true,
       value: { targetUserId: "user-1" },
-    });
+    })
 
-    const snapshot = service.snapshot();
+    const snapshot = service.snapshot()
     expect(snapshot.users.find((user) => user.id === "user-1")).toMatchObject({
       accountStatus: "active",
       suspendedUntil: null,
       suspensionPublicReason: null,
-    });
-    expect(snapshot.invalidatedSessions).toEqual(["user-1"]);
-  });
+    })
+    expect(snapshot.invalidatedSessions).toEqual(["user-1"])
+  })
 
   it("bootstraps exactly one verified owner idempotently with the one-time secret", async () => {
-    const service = createOwnerBootstrapService();
+    const service = createOwnerBootstrapService()
 
     await expect(
       service.bootstrapOwner({
         email: "founder@example.com",
         secret: "setup-secret",
         expectedSecret: "setup-secret",
-      }),
+      })
     ).resolves.toEqual({
       ok: true,
       value: { ownerId: "founder-1", alreadyOwner: false },
-    });
+    })
 
     await expect(
       service.bootstrapOwner({
         email: "founder@example.com",
         secret: "setup-secret",
         expectedSecret: "setup-secret",
-      }),
+      })
     ).resolves.toEqual({
       ok: true,
       value: { ownerId: "founder-1", alreadyOwner: true },
-    });
+    })
 
     await expect(
       service.bootstrapOwner({
         email: "other@example.com",
         secret: "setup-secret",
         expectedSecret: "setup-secret",
-      }),
+      })
     ).resolves.toEqual({
       ok: false,
       error: { kind: "owner_already_exists" },
-    });
+    })
 
-    const snapshot = service.snapshot();
-    expect(snapshot.users.find((user) => user.id === "founder-1")?.role).toBe("owner");
-    expect(snapshot.users.find((user) => user.id === "other-1")?.role).toBe("user");
-    expect(snapshot.invalidatedSessions).toEqual(["founder-1"]);
-  });
-});
+    const snapshot = service.snapshot()
+    expect(snapshot.users.find((user) => user.id === "founder-1")?.role).toBe(
+      "owner"
+    )
+    expect(snapshot.users.find((user) => user.id === "other-1")?.role).toBe(
+      "user"
+    )
+    expect(snapshot.invalidatedSessions).toEqual(["founder-1"])
+  })
+})

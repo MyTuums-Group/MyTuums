@@ -42,31 +42,20 @@ import {
   validateUsernameCandidate,
   type UsernameValidation,
 } from "@/features/onboarding/username"
+import {
+  useMediaUploadWorkflow,
+  type ClientMediaUploadState,
+} from "@/lib/media-upload-client"
 import { trpc } from "@/lib/trpc"
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 })
 
-type AvatarState = {
-  mediaId: string | null
-  previewUrl: string | null
-  status: AvatarUploadStatus
-  error: string | null
-}
-
-const EMPTY_AVATAR_STATE: AvatarState = {
-  mediaId: null,
-  previewUrl: null,
-  status: "idle",
-  error: null,
-}
-
 function OnboardingPage() {
   const navigate = useNavigate()
   const utils = trpc.useUtils()
-  const createUploadMutation = trpc.media.createUpload.useMutation()
-  const confirmUploadMutation = trpc.media.confirmUpload.useMutation()
+  const avatarUpload = useMediaUploadWorkflow({ purpose: "profile_avatar" })
 
   const [username, setUsername] = useState("")
   const [hasEditedUsername, setHasEditedUsername] = useState(false)
@@ -76,7 +65,6 @@ function OnboardingPage() {
     []
   )
   const [gameSearch, setGameSearch] = useState("")
-  const [avatar, setAvatar] = useState<AvatarState>(EMPTY_AVATAR_STATE)
   const [localError, setLocalError] = useState<string | null>(null)
 
   const mutation = trpc.profile.submitOnboarding.useMutation({
@@ -147,13 +135,15 @@ function OnboardingPage() {
     [favoriteGames, gameSearchQuery.data]
   )
 
+  const avatarStatus: AvatarUploadStatus = avatarUpload.status
+
   const isSubmitDisabled =
     usernameValidation.kind !== "valid" ||
     currentAvailability?.status !== "available" ||
     availabilityQuery.isFetching ||
     isOnboardingSubmitDisabled({
       isSubmitting: mutation.isPending,
-      avatarStatus: avatar.status,
+      avatarStatus,
     })
 
   function addFavoriteGame(game: OnboardingFavoriteGame) {
@@ -169,56 +159,13 @@ function OnboardingPage() {
   async function handleAvatarSelected(file: File | null) {
     if (!file) return
 
-    try {
-      if (avatar.previewUrl) URL.revokeObjectURL(avatar.previewUrl)
-      setAvatar({
-        mediaId: null,
-        previewUrl: null,
-        status: "uploading",
-        error: null,
-      })
-      setLocalError(null)
-
-      const upload = await createUploadMutation.mutateAsync({
-        mimeType: file.type,
-        byteSize: file.size,
-        purpose: "profile_avatar",
-      })
-
-      const uploadResponse = await fetch(upload.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-          "x-ms-blob-type": "BlockBlob",
-        },
-        body: file,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error("Avatar upload failed.")
-      }
-
-      await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId })
-      setAvatar({
-        mediaId: upload.mediaId,
-        previewUrl: URL.createObjectURL(file),
-        status: "ready",
-        error: null,
-      })
-    } catch (error) {
-      setAvatar({
-        mediaId: null,
-        previewUrl: null,
-        status: "failed",
-        error: getErrorMessage(error),
-      })
-    }
+    setLocalError(null)
+    await avatarUpload.start(file)
   }
 
-  function removeAvatar() {
-    if (avatar.previewUrl) URL.revokeObjectURL(avatar.previewUrl)
-    setAvatar(EMPTY_AVATAR_STATE)
-    setLocalError(null)
+  async function removeAvatar() {
+    const result = await avatarUpload.remove()
+    setLocalError(result.ok ? null : result.message)
   }
 
   function handleSubmit(e: FormEvent) {
@@ -244,7 +191,7 @@ function OnboardingPage() {
       return
     }
 
-    const avatarBlocker = getAvatarSubmitBlocker(avatar.status)
+    const avatarBlocker = getAvatarSubmitBlocker(avatarStatus)
     if (avatarBlocker) {
       setLocalError(avatarBlocker)
       return
@@ -257,13 +204,14 @@ function OnboardingPage() {
         displayName,
         bio,
         favoriteGames,
-        avatarMediaId: avatar.mediaId,
+        avatarMediaId: avatarUpload.readyUpload?.mediaId ?? null,
       })
     )
   }
 
   const serverErrorMessage = mutation.error?.message
-  const errorMessage = localError ?? avatar.error ?? serverErrorMessage
+  const errorMessage =
+    localError ?? avatarUpload.errorMessage ?? serverErrorMessage
 
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
@@ -344,8 +292,9 @@ function OnboardingPage() {
             </div>
 
             <AvatarField
-              avatar={avatar}
-              isUploading={avatar.status === "uploading"}
+              upload={avatarUpload.upload}
+              errorMessage={avatarUpload.errorMessage}
+              isUploading={avatarStatus === "uploading"}
               onAvatarSelected={handleAvatarSelected}
               onRemoveAvatar={removeAvatar}
             />
@@ -425,8 +374,12 @@ function OnboardingPage() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitDisabled}>
-              {avatar.status === "uploading"
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitDisabled}
+            >
+              {avatarStatus === "uploading"
                 ? "Uploading avatar..."
                 : mutation.isPending
                   ? "Creating profile..."
@@ -507,23 +460,25 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 }
 
 function AvatarField({
-  avatar,
+  errorMessage,
   isUploading,
   onAvatarSelected,
   onRemoveAvatar,
+  upload,
 }: {
-  avatar: AvatarState
+  errorMessage: string | null
   isUploading: boolean
   onAvatarSelected: (file: File | null) => Promise<void>
-  onRemoveAvatar: () => void
+  onRemoveAvatar: () => Promise<void>
+  upload: ClientMediaUploadState | null
 }) {
-  const hasSelectedAvatar = Boolean(avatar.mediaId || avatar.error)
+  const hasSelectedAvatar = Boolean(upload?.mediaId || errorMessage)
 
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-muted/35 p-3 ring-1 ring-foreground/10">
       <div className="flex items-center gap-3">
         <Avatar size="lg">
-          <AvatarImage src={avatar.previewUrl ?? undefined} alt="Avatar" />
+          <AvatarImage src={upload?.previewUrl ?? undefined} alt="Avatar" />
           <AvatarFallback>
             <User weight="bold" />
           </AvatarFallback>
@@ -531,8 +486,8 @@ function AvatarField({
         <div className="min-w-0">
           <Label htmlFor="avatar-media">Avatar (optional)</Label>
           <p className="truncate text-xs text-muted-foreground">
-            {avatar.mediaId
-              ? `Media ${avatar.mediaId}`
+            {upload?.mediaId
+              ? `Media ${upload.mediaId}`
               : isUploading
                 ? "Uploading..."
                 : "No avatar selected"}
@@ -555,9 +510,11 @@ function AvatarField({
           type="button"
           variant="outline"
           disabled={!hasSelectedAvatar || isUploading}
-          onClick={onRemoveAvatar}
+          onClick={() => {
+            void onRemoveAvatar()
+          }}
         >
-          {avatar.error ? <X weight="bold" /> : <Trash weight="bold" />}
+          {errorMessage ? <X weight="bold" /> : <Trash weight="bold" />}
           Remove
         </Button>
       </div>
@@ -565,22 +522,9 @@ function AvatarField({
       {isUploading ? (
         <p className="text-xs text-muted-foreground">
           <Camera weight="bold" className="mr-1 inline" />
-          Uploading avatar...
+          Uploading avatar {upload?.progress ?? 0}%
         </p>
       ) : null}
     </div>
   )
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message
-  }
-  return "Something went wrong."
 }

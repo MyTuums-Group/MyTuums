@@ -6,17 +6,17 @@ V1 focuses on public posts, profiles, game-tagged discovery, follows, comments, 
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Monorepo** | Turborepo + pnpm workspaces |
-| **Frontend** | React 19, Vite, TanStack Router, Tailwind CSS, ShadCN/Radix |
-| **API** | Fastify, tRPC, BetterAuth |
-| **Database** | PostgreSQL + Drizzle ORM |
-| **Email** | Resend (prod), Mailpit (dev) |
-| **Storage** | Azure Blob Storage (prod), Azurite (local) |
-| **Testing** | Vitest (unit/integration), Playwright (e2e smoke) |
-| **CI/CD** | GitHub Actions, Azure deployment |
-| **Monitoring** | Sentry (errors only), structured JSON logging |
+| Layer          | Technology                                                  |
+| -------------- | ----------------------------------------------------------- |
+| **Monorepo**   | Turborepo + pnpm workspaces                                 |
+| **Frontend**   | React 19, Vite, TanStack Router, Tailwind CSS, ShadCN/Radix |
+| **API**        | Fastify, tRPC, BetterAuth                                   |
+| **Database**   | PostgreSQL + Drizzle ORM                                    |
+| **Email**      | Resend (prod), Mailpit (dev)                                |
+| **Storage**    | Azure Blob Storage (prod), Azurite (local)                  |
+| **Testing**    | Vitest (unit/integration), Playwright (e2e smoke)           |
+| **CI/CD**      | GitHub Actions, Azure deployment                            |
+| **Monitoring** | Sentry (errors only), structured JSON logging               |
 
 ## Architecture
 
@@ -59,23 +59,33 @@ cp .env.example .env   # edit with your local values
 pnpm dev               # runs web (5173) + api (4000) via Turborepo
 ```
 
-For local email testing, start Mailpit:
+For local infrastructure, start PostgreSQL, Mailpit, and Azurite:
+
 ```bash
-docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+pnpm infra
+```
+
+To run the critical-flow Playwright smoke locally against that infrastructure:
+
+```bash
+pnpm smoke:setup
+pnpm smoke
 ```
 
 ## Commands
 
-| Command | Description |
-|---------|------------|
-| `pnpm dev` | Start web + API dev servers |
-| `pnpm build` | Build all packages and apps |
-| `pnpm lint` | ESLint across all packages |
-| `pnpm format` | Prettier across all packages |
-| `pnpm typecheck` | TypeScript strict check |
-| `pnpm docs:validate` | Build and validate the docs-content artifact |
-| `pnpm test` | Vitest unit/integration tests |
-| `pnpm test:watch` | Vitest in watch mode |
+| Command              | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| `pnpm dev`           | Start web + API dev servers                                                 |
+| `pnpm build`         | Build all packages and apps                                                 |
+| `pnpm lint`          | ESLint across all packages                                                  |
+| `pnpm format`        | Prettier across all packages                                                |
+| `pnpm typecheck`     | TypeScript strict check                                                     |
+| `pnpm docs:validate` | Build and validate the docs-content artifact                                |
+| `pnpm test`          | Vitest unit/integration tests                                               |
+| `pnpm test:watch`    | Vitest in watch mode                                                        |
+| `pnpm smoke:setup`   | Apply smoke DB migrations and seed the game catalog                         |
+| `pnpm smoke`         | Run Playwright smoke against local Postgres, Mailpit, Azurite, API, and web |
 
 ## Documentation
 

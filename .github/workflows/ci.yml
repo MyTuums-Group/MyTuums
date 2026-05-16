@@ -104,6 +104,37 @@ jobs:
     name: Playwright Smoke
     runs-on: ubuntu-latest
     needs: [build]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: mytuums
+          POSTGRES_PASSWORD: mytuums_test
+          POSTGRES_DB: mytuums_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+    env:
+      DATABASE_URL: postgresql://mytuums:mytuums_test@localhost:5432/mytuums_test
+      BETTER_AUTH_SECRET: ci-smoke-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://127.0.0.1:4000
+      WEB_APP_URL: http://127.0.0.1:5175
+      DOCS_APP_URL: http://127.0.0.1:5174
+      PUBLIC_SIGNUP_ENABLED: "true"
+      MEDIA_UPLOADS_ENABLED: "true"
+      VITE_PUBLIC_SIGNUP_ENABLED: "true"
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
+      MEDIA_CONTAINER_NAME: user-media
+      GAME_COVERS_CONTAINER_NAME: game-covers
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -111,11 +142,21 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Start Azurite
+        run: |
+          docker run -d --name mytuums-azurite -p 10000:10000 mcr.microsoft.com/azure-storage/azurite:latest azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck
+          for i in {1..30}; do
+            if (echo > /dev/tcp/127.0.0.1/10000) >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs mytuums-azurite
+          exit 1
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm smoke:setup
       - run: pnpm smoke
-        env:
-          VITE_PUBLIC_SIGNUP_ENABLED: "false"
 
   axe-smoke:
     name: Axe Smoke

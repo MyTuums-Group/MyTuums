@@ -1,29 +1,12 @@
-import { POST_TEXT_MAX_LENGTH } from "@workspace/types";
+import {
+  POST_TEXT_MAX_LENGTH,
+  graphemeLength,
+  normalizeBodyText,
+} from "@workspace/types";
 
+/** Mirrors API post body normalization (`normalizeBodyText`). */
 export function normalizePostText(text: string): string {
-  return text.replace(/\r\n?/g, "\n").trim();
-}
-
-export function graphemeLength(text: string): number {
-  try {
-    if (typeof Intl === "undefined" || !Intl.Segmenter) {
-      return text.length;
-    }
-
-    const segmenter = new Intl.Segmenter("en", {
-      granularity: "grapheme",
-    });
-
-    let count = 0;
-    for (const _segment of segmenter.segment(text)) {
-      void _segment;
-      count += 1;
-    }
-
-    return count;
-  } catch {
-    return text.length;
-  }
+  return normalizeBodyText(text);
 }
 
 export function getPostTextState(text: string) {

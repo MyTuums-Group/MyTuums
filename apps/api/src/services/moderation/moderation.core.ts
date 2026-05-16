@@ -1,19 +1,13 @@
-import type {
-  AccountStatus,
-  CasePriority,
-  CaseStatus,
-  ModerationActionType,
-  ReportReason,
-  ReportTargetType,
-  UserRole,
+import {
+  URGENT_REPORT_REASONS,
+  type AccountStatus,
+  type CasePriority,
+  type CaseStatus,
+  type ModerationActionType,
+  type ReportReason,
+  type ReportTargetType,
+  type UserRole,
 } from "@workspace/types";
-
-const URGENT_REPORT_REASONS = new Set<ReportReason>([
-  "self_harm",
-  "illegal_or_dangerous",
-  "privacy",
-  "underage_or_safety",
-]);
 
 export type ModerationUserRecord = {
   id: string;

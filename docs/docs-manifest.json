@@ -123,14 +123,14 @@
           "title": "Issue Tracker",
           "sourcePath": "docs/agents/issue-tracker.md",
           "kind": "agent-doc",
-          "summary": "GitHub issue conventions and Kanban board synchronization rules."
+          "summary": "GitHub issues plus org Tasks project; Status is workflow source of truth."
         },
         {
-          "slug": "agent-workflows/triage-labels",
-          "title": "Triage Labels",
-          "sourcePath": "docs/agents/triage-labels.md",
+          "slug": "agent-workflows/issue-classification-labels",
+          "title": "Issue classification labels",
+          "sourcePath": "docs/agents/issue-classification-labels.md",
           "kind": "agent-doc",
-          "summary": "Canonical triage labels and how they map to workflow states."
+          "summary": "Kind and priority labels mirrored to the org Tasks project; coordination labels."
         },
         {
           "slug": "agent-workflows/db-import-seam",

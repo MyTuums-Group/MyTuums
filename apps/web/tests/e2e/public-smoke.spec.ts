@@ -34,7 +34,6 @@ test.describe("public static smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Contact MyTuums", level: 1 })
     ).toBeVisible()
-
     const results = await new AxeBuilder({ page })
       .disableRules(["color-contrast"])
       .analyze()

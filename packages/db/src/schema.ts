@@ -39,6 +39,8 @@ const ACCOUNT_STATUSES = [
   "account_deleted",
 ] as const satisfies readonly AccountStatus[]
 
+const ACCOUNT_DELETION_HOLD_KINDS = ["email", "username"] as const
+
 const MEDIA_PURPOSES = [
   "post_attachment",
   "profile_avatar",
@@ -238,6 +240,30 @@ export const verification = pgTable(
 // ─────────────────────────────────────────────────────────────────────
 // Domain tables — UUID primary keys, snake_case DB columns
 // ─────────────────────────────────────────────────────────────────────
+
+export const accountDeletionHold = pgTable(
+  "account_deletion_hold",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: ACCOUNT_DELETION_HOLD_KINDS,
+    }).notNull(),
+    /** Lowercase canonical value, held for abuse-prevention cooldowns. */
+    value: text("value").notNull(),
+    heldUntil: timestamp("held_until", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("account_deletion_hold_kind_value_idx").on(table.kind, table.value),
+    index("account_deletion_hold_held_until_idx").on(table.heldUntil),
+    index("account_deletion_hold_user_id_idx").on(table.userId),
+  ]
+)
 
 export const game = pgTable(
   "game",

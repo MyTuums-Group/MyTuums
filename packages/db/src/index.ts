@@ -8,6 +8,7 @@ export {
   session,
   account,
   verification,
+  accountDeletionHold,
   // Domain tables
   game,
   media,

@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
-import type { ViewerContext } from "@workspace/types";
+import { describe, expect, it } from "vitest"
+import type { ViewerContext } from "@workspace/types"
 import {
   createInMemorySearchService,
   type SearchGameRow,
   type SearchProfileRow,
-} from "../services/search/index.js";
+} from "../services/search/index.js"
 
 const viewer: ViewerContext = {
   userId: "viewer",
@@ -13,7 +13,7 @@ const viewer: ViewerContext = {
   blockedUserIds: ["blocked-by-viewer"],
   blockedByUserIds: ["blocks-viewer"],
   isAuthenticated: true,
-};
+}
 
 const guest: ViewerContext = {
   userId: null,
@@ -22,12 +22,12 @@ const guest: ViewerContext = {
   blockedUserIds: [],
   blockedByUserIds: [],
   isAuthenticated: false,
-};
+}
 
 function profile(
   username: string,
   displayName: string,
-  overrides: Partial<SearchProfileRow> = {},
+  overrides: Partial<SearchProfileRow> = {}
 ): SearchProfileRow {
   return {
     id: `profile-${username}`,
@@ -36,13 +36,13 @@ function profile(
     displayName,
     accountStatus: "active",
     ...overrides,
-  };
+  }
 }
 
 function game(
   slug: string,
   name: string,
-  overrides: Partial<SearchGameRow> = {},
+  overrides: Partial<SearchGameRow> = {}
 ): SearchGameRow {
   return {
     id: `game-${slug}`,
@@ -51,17 +51,32 @@ function game(
     aliases: [],
     isActive: true,
     ...overrides,
-  };
+  }
 }
 
 describe("Search module", () => {
   it("rejects unauthenticated v1 search", async () => {
-    const search = createInMemorySearchService({ profiles: [], games: [] });
+    const search = createInMemorySearchService({ profiles: [], games: [] })
 
-    await expect(search.appSearch(guest, { query: "alice", limit: 10 })).rejects.toThrow(
-      "Search is authenticated-only in v1.",
-    );
-  });
+    await expect(
+      search.appSearch(guest, { query: "alice", limit: 10 })
+    ).rejects.toThrow("Search is authenticated-only in v1.")
+  })
+
+  it("enforces the two-character minimum without issuing empty searches", async () => {
+    const search = createInMemorySearchService({
+      profiles: [profile("alice", "Alice")],
+      games: [game("arcade", "Arcade")],
+    })
+
+    await expect(
+      search.appSearch(viewer, { query: "a", limit: 10 })
+    ).resolves.toEqual({
+      users: [],
+      games: [],
+      results: [],
+    })
+  })
 
   it("centralizes accent/case-insensitive exact, prefix, contains ranking with alphabetic ties", async () => {
     const search = createInMemorySearchService({
@@ -76,9 +91,9 @@ describe("Search module", () => {
         game("cafe-racer", "Café Racer"),
         game("space-cafe", "Space Cafe"),
       ],
-    });
+    })
 
-    const result = await search.appSearch(viewer, { query: "CAFE", limit: 10 });
+    const result = await search.appSearch(viewer, { query: "CAFE", limit: 10 })
 
     expect(result.results.map((item) => `${item.type}:${item.label}`)).toEqual([
       "user:Zed exact by username",
@@ -88,8 +103,30 @@ describe("Search module", () => {
       "user:Cafe Runner",
       "user:Contains Café",
       "game:Space Cafe",
-    ]);
-  });
+    ])
+    expect(result.users.slice(0, 3).map((item) => item.username)).toEqual([
+      "cafe",
+      "cafealice",
+      "cafédev",
+    ])
+    expect(result.games.map((item) => item.slug)).toEqual([
+      "cafe-racer",
+      "space-cafe",
+    ])
+  })
+
+  it("returns per-entity groups without changing the flat combined limit", async () => {
+    const search = createInMemorySearchService({
+      profiles: [profile("arcadealice", "Arcade Alice")],
+      games: [game("arcade-racer", "Arcade Racer")],
+    })
+
+    const result = await search.appSearch(viewer, { query: "arcade", limit: 1 })
+
+    expect(result.users).toHaveLength(1)
+    expect(result.games).toHaveLength(1)
+    expect(result.results).toHaveLength(1)
+  })
 
   it("filters blocked, suspended/deleted profiles and inactive games before returning shared result shapes", async () => {
     const search = createInMemorySearchService({
@@ -97,16 +134,23 @@ describe("Search module", () => {
         profile("visible", "Visible Player"),
         profile("blocked", "Blocked Player", { userId: "blocked-by-viewer" }),
         profile("blocker", "Blocker Player", { userId: "blocks-viewer" }),
-        profile("suspended", "Suspended Player", { accountStatus: "suspended" }),
-        profile("deleted", "Deleted Player", { accountStatus: "account_deleted" }),
+        profile("suspended", "Suspended Player", {
+          accountStatus: "suspended",
+        }),
+        profile("deleted", "Deleted Player", {
+          accountStatus: "account_deleted",
+        }),
       ],
       games: [
         game("visible-game", "Visible Game"),
         game("inactive-game", "Inactive Game", { isActive: false }),
       ],
-    });
+    })
 
-    const result = await search.appSearch(viewer, { query: "player game", limit: 10 });
+    const result = await search.appSearch(viewer, {
+      query: "player game",
+      limit: 10,
+    })
 
     expect(result.results).toEqual([
       {
@@ -114,13 +158,15 @@ describe("Search module", () => {
         id: "game-visible-game",
         label: "Visible Game",
         href: "/game/visible-game",
+        slug: "visible-game",
       },
       {
         type: "user",
         id: "profile-visible",
         label: "Visible Player",
         href: "/@visible",
+        username: "visible",
       },
-    ]);
-  });
-});
+    ])
+  })
+})

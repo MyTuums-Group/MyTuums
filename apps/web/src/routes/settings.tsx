@@ -36,6 +36,7 @@ import {
   BIO_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   MAX_FAVORITE_GAMES,
+  SEARCH_MIN_QUERY_LENGTH,
 } from "@workspace/types"
 import {
   useEffect,
@@ -125,7 +126,7 @@ function SettingsPage() {
   const gameSearchQuery = trpc.search.useQuery(
     { query: gameSearch, limit: 8 },
     {
-      enabled: gameSearch.trim().length >= 2,
+      enabled: gameSearch.trim().length >= SEARCH_MIN_QUERY_LENGTH,
       retry: false,
       refetchOnWindowFocus: false,
     }
@@ -193,7 +194,7 @@ function SettingsPage() {
         .map((item) => ({
           id: item.id,
           name: item.label,
-          slug: item.href.split("/").filter(Boolean).at(-1) ?? item.label,
+          slug: item.slug,
         }))
         .filter(
           (game) =>
@@ -577,7 +578,7 @@ function ProfileSettings({
             </div>
           </div>
 
-          {gameSearch.trim().length >= 2 ? (
+          {gameSearch.trim().length >= SEARCH_MIN_QUERY_LENGTH ? (
             <div className="flex flex-wrap gap-2">
               {isGameSearchLoading ? (
                 <Skeleton className="h-8 w-36" />

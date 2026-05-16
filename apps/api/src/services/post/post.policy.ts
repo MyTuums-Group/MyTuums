@@ -8,16 +8,16 @@ import {
   failure,
   ValidationError,
   POST_TEXT_MAX_LENGTH,
+  graphemeLength,
+  normalizeBodyText,
 } from "@workspace/types";
-import { graphemeLength } from "./grapheme.js";
 
 /**
  * Validates and creates a PostBody.
  * Trims whitespace, normalizes line endings (\r\n → \n), counts grapheme clusters.
  */
 export function createPostBody(input: string): Result<PostBody> {
-  const normalized = input.replace(/\r\n?/g, "\n");
-  const trimmed = normalized.trim();
+  const trimmed = normalizeBodyText(input);
 
   if (trimmed.length === 0) {
     return failure(new ValidationError("Post text cannot be empty.", "body"));

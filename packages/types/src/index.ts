@@ -1,6 +1,7 @@
 // Cross-package domain types and shared constants.
 // Populated as domain entities are defined. This package exports only
 // stable value types — no service logic, DB clients, or React components.
+// Body-text normalization and grapheme counting are pure cross-domain helpers.
 
 // ── Value object types (branded types only — validation logic moved to services) ──
 export { type Username } from "./username.js"
@@ -8,6 +9,8 @@ export { type PostBody } from "./post-body.js"
 export { type CommentBody } from "./comment-body.js"
 export { type GameSlug } from "./game-slug.js"
 export { type Result, ValidationError, success, failure } from "./result.js"
+
+export { graphemeLength, normalizeBodyText } from "./grapheme.js"
 
 // ── Authorization ───────────────────────────────────────────────────
 export {

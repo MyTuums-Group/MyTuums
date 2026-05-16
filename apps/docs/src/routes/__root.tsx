@@ -17,16 +17,16 @@ import {
   type DocsAccessDeniedReason,
   type DocsAppUserState,
 } from "@/lib/docs-access"
-import { createTrpcClient, getWebAppBase, type DocsNavigation } from "@/lib/trpc"
+import { createTrpcClient, getWebAppBase, type DocsReaderBootstrap } from "@/lib/trpc"
 
 const docsClient = createTrpcClient()
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const docsAccess = await resolveDocsAccess<DocsNavigation>({
+    const docsAccess = await resolveDocsAccess<DocsReaderBootstrap>({
       loadAppUserState: async () =>
         (await docsClient.currentAppUser.query()) as DocsAppUserState,
-      loadNavigation: () => docsClient.docs.navigation.query(),
+      loadReaderBootstrap: () => docsClient.docs.navigation.query(),
       returnUrl: getCurrentDocsReturnUrl(),
       webAppBaseUrl: getWebAppBase(),
     })
@@ -47,8 +47,18 @@ function RootLayout() {
     return <DocsAccessDenied reason={docsAccess.reason} />
   }
 
+  if (docsAccess.kind !== "authorized") {
+    return null
+  }
+
   return (
-    <DocsShell navigation={docsAccess.navigation}>
+    <DocsShell
+      navigation={docsAccess.bootstrap.sections}
+      readerArtifact={{
+        homeEntry: docsAccess.bootstrap.homeEntry,
+        contentBuild: docsAccess.bootstrap.contentBuild,
+      }}
+    >
       <Outlet />
     </DocsShell>
   )

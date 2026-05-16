@@ -56,7 +56,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         author: {
           username: activeProfile?.username ?? "you",
           displayName: activeProfile?.displayName ?? "You",
-          avatarUrl: null,
+          avatarUrl: activeProfile?.avatarUrl ?? null,
         },
         gameTag: selectedGame
           ? {

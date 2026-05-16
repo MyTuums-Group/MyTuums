@@ -1,8 +1,12 @@
-import { COMMENT_TEXT_MAX_LENGTH } from "@workspace/types";
-import { graphemeLength } from "./post-text";
+import {
+  COMMENT_TEXT_MAX_LENGTH,
+  graphemeLength,
+  normalizeBodyText,
+} from "@workspace/types";
 
+/** Mirrors API comment body normalization (`normalizeBodyText`). */
 export function normalizeCommentText(text: string): string {
-  return text.replace(/\r\n?/g, "\n").trim();
+  return normalizeBodyText(text);
 }
 
 export function getCommentTextState(text: string) {

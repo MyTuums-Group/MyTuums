@@ -1,8 +1,13 @@
-import { z } from "zod";
-import { CONTACT_EMAIL_MAX_LENGTH, CONTACT_MESSAGE_MAX_LENGTH } from "@workspace/types";
-import { contactSubmissionService } from "../services/contact/index.js";
-import { mapContactSubmitErrorToTRPC } from "../transport/contact-errors.js";
-import { publicProcedure, router } from "../trpc.js";
+import { z } from "zod"
+import {
+  CONTACT_EMAIL_MAX_LENGTH,
+  CONTACT_MESSAGE_MAX_LENGTH,
+} from "@workspace/types"
+import { contactSubmissionService } from "../services/contact/index.js"
+import { mapContactSubmitErrorToTRPC } from "../transport/contact-errors.js"
+import { getRequestIp, getUserAgent } from "../transport/request-info.js"
+import { setRetryAfterHeader } from "../transport/rate-limit.js"
+import { publicProcedure, router } from "../trpc.js"
 
 export const contactRouter = router({
   submit: publicProcedure
@@ -18,7 +23,7 @@ export const contactRouter = router({
           "other",
         ]),
         message: z.string().max(CONTACT_MESSAGE_MAX_LENGTH + 100),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const result = await contactSubmissionService.submit({
@@ -33,29 +38,19 @@ export const contactRouter = router({
         message: input.message,
         ipAddress: getRequestIp(ctx.req),
         userAgent: getUserAgent(ctx.req.headers["user-agent"]),
-      });
+      })
 
       if (!result.ok) {
-        throw mapContactSubmitErrorToTRPC(result.error);
+        if (result.error.kind === "rate_limited") {
+          setRetryAfterHeader(ctx.reply, result.error.retryAfterSeconds)
+        }
+        throw mapContactSubmitErrorToTRPC(result.error)
       }
 
       return {
         id: result.value.id,
         emailStatus: result.value.emailStatus,
         retentionExpiresAt: result.value.retentionExpiresAt,
-      };
+      }
     }),
-});
-
-function getRequestIp(req: { ip?: string; headers: Record<string, unknown> }) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.trim().length > 0) {
-    return forwarded.split(",")[0]?.trim() ?? null;
-  }
-
-  return req.ip ?? null;
-}
-
-function getUserAgent(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
+})

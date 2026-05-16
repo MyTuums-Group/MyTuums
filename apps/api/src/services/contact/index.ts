@@ -1,19 +1,19 @@
-import { env } from "@workspace/config";
-import { sendEmail } from "../../email.js";
+import { env } from "@workspace/config"
+import { sendEmail } from "../../email.js"
 import {
   createContactSubmissionService,
   type ContactSubmitError,
   type ContactSubmissionService,
-} from "./contact.js";
-import { contactRepository } from "./contact.adapter.js";
-import { contactRateLimiter } from "./rate-limit.adapter.js";
+} from "./contact.js"
+import { contactRepository } from "./contact.adapter.js"
+import { postgresRateLimiter } from "../rate-limit/production.js"
 
-export type { ContactSubmitError, ContactSubmissionService };
+export type { ContactSubmitError, ContactSubmissionService }
 
 export const contactSubmissionService: ContactSubmissionService =
   createContactSubmissionService({
     repository: contactRepository,
-    rateLimiter: contactRateLimiter,
+    rateLimiter: postgresRateLimiter,
     email: { send: sendEmail },
     supportEmail: env.SUPPORT_EMAIL,
-  });
+  })

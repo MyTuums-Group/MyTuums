@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CONTACT_RATE_LIMIT,
   CONTACT_RETENTION_DAYS,
   createContactSubmissionService,
   type ContactEmailSender,
@@ -15,6 +16,8 @@ function createHarness(overrides?: {
   sendEmail?: ContactEmailSender["send"];
 }) {
   const records: ContactSubmissionRecord[] = [];
+  const rateLimitInputs: Array<Parameters<ContactRateLimiter["consume"]>[0]> =
+    [];
   const repository: ContactRepository = {
     insert(values) {
       const record: ContactSubmissionRecord = {
@@ -52,7 +55,10 @@ function createHarness(overrides?: {
   const rateLimiter =
     overrides?.rateLimiter ??
     ({
-      consume: vi.fn().mockResolvedValue({ allowed: true }),
+      consume: vi.fn((input: Parameters<ContactRateLimiter["consume"]>[0]) => {
+        rateLimitInputs.push(input);
+        return Promise.resolve({ allowed: true } as const);
+      }),
     } satisfies ContactRateLimiter);
 
   const send = overrides?.sendEmail ?? vi.fn().mockResolvedValue(undefined);
@@ -60,6 +66,7 @@ function createHarness(overrides?: {
 
   return {
     records,
+    rateLimitInputs,
     rateLimiter,
     send,
     service: createContactSubmissionService({
@@ -95,7 +102,7 @@ describe("contact submission service", () => {
   });
 
   it("stores and emails logged-out submissions with 180 day retention", async () => {
-    const { records, send, service } = createHarness();
+    const { rateLimitInputs, records, send, service } = createHarness();
 
     const result = await service.submit({
       viewer: null,
@@ -124,6 +131,18 @@ describe("contact submission service", () => {
       emailStatus: "sent",
     });
     expect(records[0]?.requestIpHash).toMatch(/^[a-f0-9]{64}$/);
+    const rateLimitInput = rateLimitInputs[0];
+    if (!rateLimitInput) {
+      throw new Error("Expected contact submission to consume a rate limit.");
+    }
+    expect(rateLimitInput.key).toMatch(/^ip:[a-f0-9]{64}$/);
+    expect(rateLimitInput.key).not.toContain("203.0.113.20");
+    expect(rateLimitInput).toMatchObject({
+      action: CONTACT_RATE_LIMIT.action,
+      limit: CONTACT_RATE_LIMIT.limit,
+      windowMs: CONTACT_RATE_LIMIT.windowMs,
+      now: NOW,
+    });
     expect(records[0]?.retentionExpiresAt).toEqual(
       new Date(NOW.getTime() + CONTACT_RETENTION_DAYS * 24 * 60 * 60 * 1000),
     );
@@ -137,7 +156,7 @@ describe("contact submission service", () => {
   });
 
   it("links logged-in submissions by userId and keeps email optional", async () => {
-    const { records, send, service } = createHarness();
+    const { rateLimitInputs, records, send, service } = createHarness();
 
     const result = await service.submit({
       viewer: {
@@ -156,6 +175,13 @@ describe("contact submission service", () => {
       userId: "user-1",
       email: null,
       category: "privacy_or_data",
+    });
+    expect(rateLimitInputs[0]).toEqual({
+      key: "user:user-1",
+      action: CONTACT_RATE_LIMIT.action,
+      limit: CONTACT_RATE_LIMIT.limit,
+      windowMs: CONTACT_RATE_LIMIT.windowMs,
+      now: NOW,
     });
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({

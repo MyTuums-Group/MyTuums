@@ -44,6 +44,7 @@ function baseRow(overrides: Partial<FeedPostRow> = {}): FeedPostRow {
     authorId: "alice",
     authorUsername: "alice",
     authorDisplayName: "Alice",
+    authorAvatarMediaId: null,
     authorAccountStatus: "active",
     text: "Hello world",
     gameTagId: null,
@@ -136,6 +137,34 @@ describe("post presentation", () => {
       }),
     );
     expect(unsigned.media).toBeNull();
+  });
+
+  it("toPostView signs author avatars and falls back when avatar media is missing", async () => {
+    const p = createPostPresentation({
+      media: createStubMediaService((id) => {
+        if (id === "avatar-media") {
+          return Promise.resolve({ ok: true, value: { readUrl: "https://cdn.example/avatar" } });
+        }
+        return Promise.resolve({ ok: false, error: { kind: "media_not_found" } });
+      }),
+      loadPostDetail: () => Promise.resolve(null),
+    });
+
+    await expect(
+      p.toPostView(viewerAlice, baseRow({ authorAvatarMediaId: "avatar-media" })),
+    ).resolves.toMatchObject({
+      author: {
+        avatarUrl: "https://cdn.example/avatar",
+      },
+    });
+
+    await expect(
+      p.toPostView(viewerAlice, baseRow({ authorAvatarMediaId: "stale-avatar-media" })),
+    ).resolves.toMatchObject({
+      author: {
+        avatarUrl: null,
+      },
+    });
   });
 
   it("toPostView includes gameTag only when id, slug, and name are present", async () => {

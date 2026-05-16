@@ -37,6 +37,7 @@ const modViewer: ViewerContext = {
 const basePost = {
   authorUsername: "bob",
   authorDisplayName: "Bob",
+  authorAvatarMediaId: null,
   text: "hello",
   gameTagId: null,
   gameTagSlug: null,

@@ -20,6 +20,12 @@ import {
   type AppSearchInput,
 } from "./services/search/index.js"
 import { searchQueries } from "./services/search/production.js"
+import {
+  RATE_LIMIT_POLICIES,
+  createUserIpRateLimitKey,
+} from "./services/rate-limit/index.js"
+import { getRequestIp } from "./transport/request-info.js"
+import { enforceRateLimit } from "./transport/rate-limit.js"
 
 const appSearch = createSearchService(searchQueries)
 
@@ -60,6 +66,19 @@ export const appRouter = router({
             : "",
         limit: input.limit ?? 10,
       }
+
+      if (searchInput.query) {
+        await enforceRateLimit({
+          key: createUserIpRateLimitKey({
+            userId: ctx.user.id,
+            ipAddress: getRequestIp(ctx.req),
+          }),
+          policy: RATE_LIMIT_POLICIES.search,
+          reply: ctx.reply,
+          message: "Too many search requests.",
+        })
+      }
+
       return appSearch.appSearch(viewer, searchInput)
     }),
 

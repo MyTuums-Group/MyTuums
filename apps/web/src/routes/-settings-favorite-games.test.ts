@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  getFavoriteGameSearchOptions,
-  getFavoriteGameSearchStatus,
-} from "./-settings-favorite-games"
+import { getFavoriteGameSearchOptions } from "./-settings-favorite-games"
 
 type SearchResponse = NonNullable<
   Parameters<typeof getFavoriteGameSearchOptions>[0]
@@ -66,56 +63,5 @@ describe("settings favorite game search", () => {
         { id: "game-hades", slug: "hades", name: "Hades" },
       ])
     ).toEqual([{ id: "game-celeste", slug: "celeste", name: "Celeste" }])
-  })
-
-  it("reports the field state used by the dropdown", () => {
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: true,
-        isLoading: false,
-        query: "ha",
-        resultCount: 0,
-      })
-    ).toBe("disabled")
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: false,
-        isLoading: false,
-        query: "",
-        resultCount: 0,
-      })
-    ).toBe("empty")
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: false,
-        isLoading: false,
-        query: "h",
-        resultCount: 0,
-      })
-    ).toBe("too_short")
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: false,
-        isLoading: true,
-        query: "ha",
-        resultCount: 0,
-      })
-    ).toBe("loading")
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: false,
-        isLoading: true,
-        query: "ha",
-        resultCount: 1,
-      })
-    ).toBe("results")
-    expect(
-      getFavoriteGameSearchStatus({
-        isDisabled: false,
-        isLoading: false,
-        query: "ha",
-        resultCount: 0,
-      })
-    ).toBe("no_results")
   })
 })

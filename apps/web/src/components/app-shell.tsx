@@ -48,7 +48,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent,
   type ReactNode,
 } from "react"
 import {
@@ -61,6 +60,12 @@ import {
 } from "@/components/app-shell-search"
 import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
+import {
+  getSearchTypeaheadStatus,
+  useSearchTypeaheadInteraction,
+  type SearchTypeaheadResultProps,
+  type SearchTypeaheadStatus,
+} from "@/lib/search-typeahead"
 import { getApiBase, trpc } from "@/lib/trpc"
 import { FOOTER_STATIC_LINKS } from "@/routes/-static-pages"
 
@@ -353,8 +358,6 @@ function HeaderLoadingState() {
 function SearchEntry() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState("")
-  const [isOpen, setIsOpen] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const trimmedQuery = query.trim()
   const debouncedQuery = useDebouncedValue(trimmedQuery, NAV_SEARCH_DEBOUNCE_MS)
   const canSearch = shouldStartNavSearch(trimmedQuery)
@@ -382,10 +385,31 @@ function SearchEntry() {
     hasCurrentQueryData && searchQuery.isFetching,
     NAV_SEARCH_LOADING_DELAY_MS
   )
-
-  useEffect(() => {
-    setHighlightedIndex(-1)
-  }, [trimmedQuery, searchQuery.data])
+  const errorMessage = hasCurrentQueryData
+    ? (searchQuery.error?.message ?? null)
+    : null
+  const typeaheadStatus = getSearchTypeaheadStatus({
+    errorMessage,
+    isLoading: isDebouncing || showLoading,
+    query: trimmedQuery,
+    resultCount: selectableResults.length,
+  })
+  const typeahead = useSearchTypeaheadInteraction<NavSearchResult>({
+    blurOnClosedEscape: true,
+    enterSelection: "highlighted",
+    getItem: (index) => selectableResults[index],
+    itemCount: selectableResults.length,
+    listboxId: "nav-search-results",
+    onSelect: (item) => {
+      window.location.href = item.href
+    },
+    resetKey: `${trimmedQuery}:${selectableResults
+      .map((item) => `${item.type}:${item.id}`)
+      .join("|")}`,
+    resultIdPrefix: "nav-search-result",
+    status: typeaheadStatus,
+  })
+  const openTypeahead = typeahead.open
 
   useEffect(() => {
     function handleGlobalSearchShortcut(event: globalThis.KeyboardEvent) {
@@ -396,60 +420,21 @@ function SearchEntry() {
 
       event.preventDefault()
       inputRef.current?.focus()
-      setIsOpen(true)
+      openTypeahead()
     }
 
     window.addEventListener("keydown", handleGlobalSearchShortcut)
     return () => {
       window.removeEventListener("keydown", handleGlobalSearchShortcut)
     }
-  }, [])
+  }, [openTypeahead])
 
   function navigateToDiscover(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
     window.location.href = getDiscoverSearchHref(trimmedQuery)
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown" && selectableResults.length > 0) {
-      event.preventDefault()
-      setIsOpen(true)
-      setHighlightedIndex((current) =>
-        current < selectableResults.length - 1 ? current + 1 : 0
-      )
-      return
-    }
-
-    if (event.key === "ArrowUp" && selectableResults.length > 0) {
-      event.preventDefault()
-      setIsOpen(true)
-      setHighlightedIndex((current) =>
-        current > 0 ? current - 1 : selectableResults.length - 1
-      )
-      return
-    }
-
-    if (event.key === "Enter" && highlightedIndex >= 0) {
-      const highlighted = selectableResults[highlightedIndex]
-      if (highlighted) {
-        event.preventDefault()
-        window.location.href = highlighted.href
-      }
-      return
-    }
-
-    if (event.key === "Escape") {
-      if (isOpen) {
-        event.preventDefault()
-        setIsOpen(false)
-        setHighlightedIndex(-1)
-      } else {
-        event.currentTarget.blur()
-      }
-    }
-  }
-
-  const showPanel = isOpen && query.length > 0
+  const showPanel = typeahead.isOpen && query.length > 0
 
   return (
     <>
@@ -457,18 +442,8 @@ function SearchEntry() {
         role="search"
         className="relative hidden w-64 lg:block xl:w-80"
         onSubmit={navigateToDiscover}
-        onFocus={() => setIsOpen(true)}
-        onBlur={(event) => {
-          const nextTarget = event.relatedTarget
-          if (
-            nextTarget instanceof Node &&
-            event.currentTarget.contains(nextTarget)
-          ) {
-            return
-          }
-          setIsOpen(false)
-          setHighlightedIndex(-1)
-        }}
+        onFocus={typeahead.open}
+        onBlur={typeahead.handleBlurWithin}
       >
         <MagnifyingGlass
           weight="bold"
@@ -481,19 +456,13 @@ function SearchEntry() {
           className="h-9 rounded-xl pr-3 pl-8"
           placeholder="Search players and games"
           aria-label="Search players and games"
-          aria-expanded={showPanel}
-          aria-controls="nav-search-results"
-          aria-activedescendant={
-            highlightedIndex >= 0
-              ? `nav-search-result-${highlightedIndex}`
-              : undefined
-          }
+          {...typeahead.getInputA11yProps(showPanel)}
           autoComplete="off"
           onChange={(event) => {
             setQuery(event.target.value)
-            setIsOpen(true)
+            typeahead.open()
           }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={typeahead.handleInputKeyDown}
         />
 
         {showPanel ? (
@@ -503,18 +472,13 @@ function SearchEntry() {
             className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
           >
             <NavSearchPanel
-              canSearch={canSearch}
-              errorMessage={
-                hasCurrentQueryData
-                  ? (searchQuery.error?.message ?? null)
-                  : null
-              }
+              errorMessage={errorMessage}
               games={groupedResults.games}
-              highlightedIndex={highlightedIndex}
-              isLoading={isDebouncing || showLoading}
+              getResultProps={typeahead.getResultProps}
+              highlightedIndex={typeahead.highlightedIndex}
               query={trimmedQuery}
+              status={typeaheadStatus}
               users={groupedResults.users}
-              onHighlight={setHighlightedIndex}
             />
           </div>
         ) : null}
@@ -535,33 +499,35 @@ function SearchEntry() {
 }
 
 function NavSearchPanel({
-  canSearch,
   errorMessage,
   games,
+  getResultProps,
   highlightedIndex,
-  isLoading,
-  onHighlight,
   query,
+  status,
   users,
 }: {
-  canSearch: boolean
   errorMessage: string | null
   games: GameSearchResult[]
+  getResultProps: (index: number) => SearchTypeaheadResultProps
   highlightedIndex: number
-  isLoading: boolean
-  onHighlight: (index: number) => void
   query: string
+  status: SearchTypeaheadStatus
   users: UserSearchResult[]
 }) {
-  if (!canSearch) {
+  if (status === "empty" || status === "too_short") {
     return <NavSearchState>Keep typing...</NavSearchState>
   }
 
-  if (errorMessage) {
-    return <NavSearchState tone="error">{errorMessage}</NavSearchState>
+  if (status === "error") {
+    return (
+      <NavSearchState tone="error">
+        {errorMessage ?? "Search failed."}
+      </NavSearchState>
+    )
   }
 
-  if (isLoading && users.length === 0 && games.length === 0) {
+  if (status === "loading") {
     return (
       <NavSearchState>
         <CircleNotch weight="bold" className="animate-spin" />
@@ -570,8 +536,12 @@ function NavSearchPanel({
     )
   }
 
-  if (users.length === 0 && games.length === 0) {
+  if (status === "no_results") {
     return <NavSearchState>No players or games found.</NavSearchState>
+  }
+
+  if (status === "disabled") {
+    return <NavSearchState>Search unavailable.</NavSearchState>
   }
 
   return (
@@ -581,8 +551,8 @@ function NavSearchPanel({
           title="Users"
           items={users}
           startIndex={0}
+          getResultProps={getResultProps}
           highlightedIndex={highlightedIndex}
-          onHighlight={onHighlight}
         />
       ) : null}
       {games.length > 0 ? (
@@ -590,8 +560,8 @@ function NavSearchPanel({
           title="Games"
           items={games}
           startIndex={users.length}
+          getResultProps={getResultProps}
           highlightedIndex={highlightedIndex}
-          onHighlight={onHighlight}
         />
       ) : null}
       <div className="border-t border-border/70 p-1">
@@ -608,15 +578,15 @@ function NavSearchPanel({
 }
 
 function NavSearchGroup({
+  getResultProps,
   highlightedIndex,
   items,
-  onHighlight,
   startIndex,
   title,
 }: {
+  getResultProps: (index: number) => SearchTypeaheadResultProps
   highlightedIndex: number
   items: NavSearchResult[]
-  onHighlight: (index: number) => void
   startIndex: number
   title: string
 }) {
@@ -632,15 +602,12 @@ function NavSearchGroup({
           return (
             <a
               key={`${item.type}-${item.id}`}
-              id={`nav-search-result-${absoluteIndex}`}
+              {...getResultProps(absoluteIndex)}
               href={item.href}
-              role="option"
-              aria-selected={isHighlighted}
               className={cn(
                 "flex min-h-11 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 isHighlighted ? "bg-muted text-foreground" : "hover:bg-muted"
               )}
-              onMouseEnter={() => onHighlight(absoluteIndex)}
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground ring-1 ring-foreground/10">
                 {item.type === "user" ? (

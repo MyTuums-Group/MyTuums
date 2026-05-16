@@ -61,6 +61,10 @@ export type SettingsProfile = {
   bio: string | null
   avatarMediaId: string | null
   bannerMediaId: string | null
+  /** Time-limited read URL when the user has avatar media; null if missing or unreadable */
+  avatarUrl: string | null
+  /** Time-limited read URL when the user has banner media; null if missing or unreadable */
+  bannerUrl: string | null
   favoriteGames: SettingsFavoriteGame[]
 }
 
@@ -159,8 +163,10 @@ export type SettingsService = {
 export function createSettingsService(deps: {
   adapter: SettingsPersistenceAdapter
   media: SettingsMediaPort
+  /** When set, settings profile payloads include CDN read URLs for existing media slots */
+  signMediaReadUrl?: (mediaId: string) => Promise<string | null>
 }): SettingsService {
-  const { adapter, media } = deps
+  const { adapter, media, signMediaReadUrl } = deps
 
   return {
     async getSettings(input) {
@@ -176,7 +182,11 @@ export function createSettingsService(deps: {
       ])
 
       return {
-        profile: toSettingsProfile(profile, favoriteGames),
+        profile: await finalizeSettingsProfile(
+          profile,
+          favoriteGames,
+          signMediaReadUrl
+        ),
         account: {
           email: input.email,
         },
@@ -213,9 +223,23 @@ export function createSettingsService(deps: {
 
       if (!Array.isArray(favoriteGames)) return favoriteGames
 
+      // Only attach new uploads. Already-attached media sits in DB status `attached`;
+      // `attachMedia` requires `ready`, so resubmitting unchanged ids would fail (e.g. user
+      // adds banner while avatar id is unchanged).
+      const avatarIdToAttach =
+        input.avatarMediaId != null &&
+        input.avatarMediaId !== current.avatarMediaId
+          ? input.avatarMediaId
+          : undefined
+      const bannerIdToAttach =
+        input.bannerMediaId != null &&
+        input.bannerMediaId !== current.bannerMediaId
+          ? input.bannerMediaId
+          : undefined
+
       const avatarResult = await attachProfileMediaIfPresent({
         media,
-        mediaId: input.avatarMediaId,
+        mediaId: avatarIdToAttach,
         userId,
         slot: "avatar",
         expectedPurpose: "profile_avatar",
@@ -224,7 +248,7 @@ export function createSettingsService(deps: {
 
       const bannerResult = await attachProfileMediaIfPresent({
         media,
-        mediaId: input.bannerMediaId,
+        mediaId: bannerIdToAttach,
         userId,
         slot: "banner",
         expectedPurpose: "profile_banner",
@@ -247,7 +271,11 @@ export function createSettingsService(deps: {
 
       return {
         ok: true,
-        value: toSettingsProfile(updated, favoriteGames),
+        value: await finalizeSettingsProfile(
+          updated,
+          favoriteGames,
+          signMediaReadUrl
+        ),
       }
     },
   }
@@ -479,10 +507,12 @@ async function attachProfileMediaIfPresent(input: {
   return { ok: true, value: { mediaId: result.value.mediaId } }
 }
 
+type SettingsProfileBase = Omit<SettingsProfile, "avatarUrl" | "bannerUrl">
+
 function toSettingsProfile(
   row: SettingsProfileRow,
   favoriteGames: SettingsGameRow[]
-): SettingsProfile {
+): SettingsProfileBase {
   return {
     username: row.username,
     displayName: row.displayName,
@@ -495,4 +525,24 @@ function toSettingsProfile(
       name: game.name,
     })),
   }
+}
+
+async function finalizeSettingsProfile(
+  row: SettingsProfileRow,
+  favoriteGames: SettingsGameRow[],
+  signMediaReadUrl?: (mediaId: string) => Promise<string | null>
+): Promise<SettingsProfile> {
+  const base = toSettingsProfile(row, favoriteGames)
+  if (!signMediaReadUrl) {
+    return { ...base, avatarUrl: null, bannerUrl: null }
+  }
+  const [avatarUrl, bannerUrl] = await Promise.all([
+    row.avatarMediaId
+      ? signMediaReadUrl(row.avatarMediaId)
+      : Promise.resolve(null),
+    row.bannerMediaId
+      ? signMediaReadUrl(row.bannerMediaId)
+      : Promise.resolve(null),
+  ])
+  return { ...base, avatarUrl, bannerUrl }
 }

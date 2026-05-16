@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { authorization } from "../authorization/index.js"
 import type { FeedPageInput } from "../services/feed/index.js"
@@ -36,8 +35,12 @@ import { postPresentation } from "../services/post/presentation.production.js"
 import { getOwnerByUsername } from "../services/profile/index.js"
 import { mapProfileAccessErrorToTRPC } from "../transport/profile-errors.js"
 import {
+  mapDiscoverFeedFilterErrorToTRPC,
   mapCreatePostErrorToTRPC,
   mapDeleteOwnPostErrorToTRPC,
+  mapPostAppStateErrorToTRPC,
+  mapPostAvailabilityErrorToTRPC,
+  mapPostPresentationErrorToTRPC,
 } from "../transport/post-errors.js"
 import {
   mapCreateCommentErrorToTRPC,
@@ -122,10 +125,8 @@ export const postRouter = router({
       if (gameSlug) {
         const catalogGame = await findBySlug(gameSlug)
         if (!catalogGame?.isActive) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Choose an active game from the catalog to filter Discover.",
+          throw mapDiscoverFeedFilterErrorToTRPC({
+            kind: "inactive_game_filter",
           })
         }
         gameSlug = catalogGame.slug
@@ -178,10 +179,7 @@ export const postRouter = router({
       const viewer = await getViewerFromContext(ctx)
       const row = await feedVisibilityQueries.postDetail(viewer, input.publicId)
       if (!row) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "This post is not available.",
-        })
+        throw mapPostAvailabilityErrorToTRPC({ kind: "post_not_available" })
       }
 
       return postPresentation.toPostView(viewer, row)
@@ -198,9 +196,8 @@ export const postRouter = router({
     .mutation(async ({ ctx, input }) => {
       const appUserState = await getCurrentAppUserState(ctx)
       if (appUserState.kind !== "active_onboarded_profile") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You need a verified onboarded profile to create posts.",
+        throw mapPostAppStateErrorToTRPC({
+          kind: "profile_required_for_post",
         })
       }
 
@@ -231,9 +228,8 @@ export const postRouter = router({
       )
 
       if (!row) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Created post could not be loaded.",
+        throw mapPostPresentationErrorToTRPC({
+          kind: "created_post_unavailable",
         })
       }
 
@@ -276,10 +272,7 @@ export const postRouter = router({
       const viewer = await getViewerFromContext(ctx)
       const row = await feedVisibilityQueries.postDetail(viewer, input.publicId)
       if (!row) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "This post is not available.",
-        })
+        throw mapPostAvailabilityErrorToTRPC({ kind: "post_not_available" })
       }
 
       try {
@@ -291,8 +284,8 @@ export const postRouter = router({
         return commentPresentation.toCommentPageResponse(viewer, page)
       } catch (error) {
         if (error instanceof InvalidCommentCursorError) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
+          throw mapPostPresentationErrorToTRPC({
+            kind: "invalid_comment_cursor",
             message: error.message,
           })
         }
@@ -310,9 +303,8 @@ export const postRouter = router({
     .mutation(async ({ ctx, input }) => {
       const appUserState = await getCurrentAppUserState(ctx)
       if (appUserState.kind !== "active_onboarded_profile") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You need a verified onboarded profile to comment.",
+        throw mapPostAppStateErrorToTRPC({
+          kind: "profile_required_for_comment",
         })
       }
 
@@ -324,10 +316,7 @@ export const postRouter = router({
         input.publicId
       )
       if (!postRow) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "This post is not available.",
-        })
+        throw mapPostAvailabilityErrorToTRPC({ kind: "post_not_available" })
       }
 
       await enforceRateLimit({
@@ -403,8 +392,8 @@ async function toFeedPageInputOrThrow(
     return await postPresentation.toFeedPageInput(viewer, input)
   } catch (error) {
     if (error instanceof InvalidFeedCursorError) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
+      throw mapPostPresentationErrorToTRPC({
+        kind: "invalid_feed_cursor",
         message: error.message,
       })
     }

@@ -9,11 +9,12 @@ import {
   profile as profileTable,
   report as reportTable,
 } from "@workspace/db";
-import type {
-  ModerationActionType,
-  ReportReason,
-  ReportTargetType,
-  TargetRef,
+import {
+  URGENT_REPORT_REASONS,
+  type ModerationActionType,
+  type ReportReason,
+  type ReportTargetType,
+  type TargetRef,
 } from "@workspace/types";
 import { authorization } from "../../authorization/index.js";
 import { isStaff } from "../visibility/memory.js";
@@ -30,13 +31,6 @@ import type {
   SubmitReportError,
   SubmitReportInput,
 } from "./moderation.core.js";
-
-const URGENT_REPORT_REASONS = new Set<ReportReason>([
-  "self_harm",
-  "illegal_or_dangerous",
-  "privacy",
-  "underage_or_safety",
-]);
 
 type ServiceResult<TValue, TError> =
   | { ok: true; value: TValue }

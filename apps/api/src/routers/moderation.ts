@@ -1,20 +1,22 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
-  MODERATION_ACTIONS,
-  PUBLIC_REMOVAL_REASONS,
-  REPORT_REASONS,
-  moderationService,
-} from "../services/moderation/index.js";
+  MODERATION_CASE_ACTION_VALUES,
+  MODERATION_INTERNAL_NOTES_MAX_LENGTH,
+  PUBLIC_REMOVAL_REASON_VALUES,
+  REPORT_NOTES_MAX_LENGTH,
+  REPORT_REASON_VALUES,
+} from "@workspace/types";
+import { moderationService } from "../services/moderation/index.js";
 import type {
   ModerationCaseCommandError,
   SubmitReportError,
 } from "../services/moderation/index.js";
 import { protectedProcedure, router } from "../trpc.js";
 
-const reportReasonSchema = z.enum(REPORT_REASONS);
-const publicRemovalReasonSchema = z.enum(PUBLIC_REMOVAL_REASONS);
-const moderationActionSchema = z.enum(MODERATION_ACTIONS);
+const reportReasonSchema = z.enum(REPORT_REASON_VALUES);
+const publicRemovalReasonSchema = z.enum(PUBLIC_REMOVAL_REASON_VALUES);
+const moderationActionSchema = z.enum(MODERATION_CASE_ACTION_VALUES);
 
 const reportTargetSchema = z.discriminatedUnion("type", [
   z.object({
@@ -37,7 +39,7 @@ export const moderationRouter = router({
       z.object({
         target: reportTargetSchema,
         reason: reportReasonSchema,
-        notes: z.string().max(2000).nullable().optional(),
+        notes: z.string().max(REPORT_NOTES_MAX_LENGTH).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -131,7 +133,7 @@ export const moderationRouter = router({
       z.object({
         caseId: z.string().uuid(),
         reason: reportReasonSchema,
-        internalNotes: z.string().max(4000),
+        internalNotes: z.string().max(MODERATION_INTERNAL_NOTES_MAX_LENGTH),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -154,7 +156,7 @@ export const moderationRouter = router({
         action: moderationActionSchema,
         reason: reportReasonSchema,
         publicReason: publicRemovalReasonSchema.nullable().optional(),
-        internalNotes: z.string().max(4000),
+        internalNotes: z.string().max(MODERATION_INTERNAL_NOTES_MAX_LENGTH),
         expectedTargetUpdatedAt: z.coerce.date().nullable().optional(),
         conflictOverride: z.boolean().optional(),
       }),

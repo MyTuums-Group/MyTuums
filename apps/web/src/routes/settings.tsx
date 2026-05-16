@@ -1,10 +1,12 @@
 import {
   Camera,
   Check,
+  CircleNotch,
   Desktop,
   GameController,
   Info,
   Key,
+  MagnifyingGlass,
   Moon,
   ShieldCheck,
   Sun,
@@ -45,6 +47,8 @@ import {
   type ChangeEvent,
   type Dispatch,
   type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
   type SetStateAction,
 } from "react"
 import type { Theme } from "@/components/theme-provider"
@@ -52,6 +56,12 @@ import { useTheme } from "@/components/theme-provider"
 import { AccountDeletionDialog } from "@/components/account-deletion-dialog"
 import { changePassword } from "@/lib/auth-client"
 import { trpc } from "@/lib/trpc"
+import {
+  getFavoriteGameSearchOptions,
+  getFavoriteGameSearchStatus,
+  type FavoriteGame,
+  type FavoriteGameSearchStatus,
+} from "@/routes/-settings-favorite-games"
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -67,7 +77,6 @@ const SETTINGS_TABS = [
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]
 type MediaSlot = "avatar" | "banner"
-type FavoriteGame = { id: string; slug: string; name: string }
 
 type ProfileFormState = {
   displayName: string
@@ -189,19 +198,10 @@ function SettingsPage() {
 
   const gameResults = useMemo(
     () =>
-      gameSearchQuery.data?.results
-        .filter((item) => item.type === "game")
-        .map((item) => ({
-          id: item.id,
-          name: item.label,
-          slug: item.slug,
-        }))
-        .filter(
-          (game) =>
-            !profileForm.favoriteGames.some(
-              (favorite) => favorite.id === game.id
-            )
-        ) ?? [],
+      getFavoriteGameSearchOptions(
+        gameSearchQuery.data,
+        profileForm.favoriteGames
+      ),
     [gameSearchQuery.data, profileForm.favoriteGames]
   )
 
@@ -410,6 +410,7 @@ function SettingsPage() {
           form={profileForm}
           gameResults={gameResults}
           gameSearch={gameSearch}
+          gameSearchError={gameSearchQuery.error?.message ?? null}
           isGameSearchLoading={gameSearchQuery.isFetching}
           isSaving={updateProfileMutation.isPending}
           mediaPreviews={mediaPreviews}
@@ -494,6 +495,7 @@ function ProfileSettings({
   form,
   gameResults,
   gameSearch,
+  gameSearchError,
   isGameSearchLoading,
   isSaving,
   mediaPreviews,
@@ -511,6 +513,7 @@ function ProfileSettings({
   form: ProfileFormState
   gameResults: FavoriteGame[]
   gameSearch: string
+  gameSearchError: string | null
   isGameSearchLoading: boolean
   isSaving: boolean
   mediaPreviews: Record<MediaSlot, string | null>
@@ -563,43 +566,16 @@ function ProfileSettings({
               </p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="favorite-game-search">Favorite games</Label>
-              <Input
-                id="favorite-game-search"
-                value={gameSearch}
-                placeholder="Search games"
-                disabled={form.favoriteGames.length >= MAX_FAVORITE_GAMES}
-                onChange={(event) => onGameSearchChange(event.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                {form.favoriteGames.length}/{MAX_FAVORITE_GAMES}
-              </p>
-            </div>
+            <FavoriteGameSearchField
+              gameResults={gameResults}
+              gameSearch={gameSearch}
+              errorMessage={gameSearchError}
+              isLoading={isGameSearchLoading}
+              selectedCount={form.favoriteGames.length}
+              onAddFavoriteGame={onAddFavoriteGame}
+              onGameSearchChange={onGameSearchChange}
+            />
           </div>
-
-          {gameSearch.trim().length >= SEARCH_MIN_QUERY_LENGTH ? (
-            <div className="flex flex-wrap gap-2">
-              {isGameSearchLoading ? (
-                <Skeleton className="h-8 w-36" />
-              ) : gameResults.length > 0 ? (
-                gameResults.map((game) => (
-                  <Button
-                    key={game.id}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onAddFavoriteGame(game)}
-                  >
-                    <GameController weight="bold" />
-                    {game.name}
-                  </Button>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No games found.</p>
-              )}
-            </div>
-          ) : null}
 
           {form.favoriteGames.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -663,6 +639,268 @@ function ProfileSettings({
         </form>
       </CardContent>
     </Card>
+  )
+}
+
+function FavoriteGameSearchField({
+  errorMessage,
+  gameResults,
+  gameSearch,
+  isLoading,
+  onAddFavoriteGame,
+  onGameSearchChange,
+  selectedCount,
+}: {
+  errorMessage: string | null
+  gameResults: FavoriteGame[]
+  gameSearch: string
+  isLoading: boolean
+  onAddFavoriteGame: (game: FavoriteGame) => void
+  onGameSearchChange: (value: string) => void
+  selectedCount: number
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const isDisabled = selectedCount >= MAX_FAVORITE_GAMES
+  const status = getFavoriteGameSearchStatus({
+    isDisabled,
+    isLoading,
+    query: gameSearch,
+    resultCount: gameResults.length,
+  })
+  const listboxId = "favorite-game-search-results"
+  const activeResultId =
+    status === "results" && highlightedIndex >= 0
+      ? `favorite-game-search-result-${highlightedIndex}`
+      : undefined
+  const showPanel = isOpen && !isDisabled
+
+  useEffect(() => {
+    setHighlightedIndex(gameResults.length > 0 ? 0 : -1)
+  }, [gameResults, gameSearch])
+
+  function selectGame(game: FavoriteGame) {
+    onAddFavoriteGame(game)
+    setIsOpen(false)
+    setHighlightedIndex(-1)
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault()
+      setIsOpen(true)
+      if (gameResults.length === 0) return
+      setHighlightedIndex((current) =>
+        current < gameResults.length - 1 ? current + 1 : 0
+      )
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault()
+      setIsOpen(true)
+      if (gameResults.length === 0) return
+      setHighlightedIndex((current) =>
+        current > 0 ? current - 1 : gameResults.length - 1
+      )
+      return
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault()
+      const selectedGame =
+        status === "results"
+          ? gameResults[highlightedIndex >= 0 ? highlightedIndex : 0]
+          : undefined
+      if (selectedGame) selectGame(selectedGame)
+      return
+    }
+
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault()
+      setIsOpen(false)
+      setHighlightedIndex(-1)
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-2"
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget
+        if (
+          nextTarget instanceof Node &&
+          event.currentTarget.contains(nextTarget)
+        ) {
+          return
+        }
+        setIsOpen(false)
+        setHighlightedIndex(-1)
+      }}
+    >
+      <Label htmlFor="favorite-game-search">Favorite games</Label>
+      <div className="relative">
+        <MagnifyingGlass
+          weight="bold"
+          className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          id="favorite-game-search"
+          value={gameSearch}
+          type="search"
+          role="combobox"
+          className="pr-3 pl-8"
+          placeholder="Search games"
+          disabled={isDisabled}
+          aria-autocomplete="list"
+          aria-expanded={showPanel}
+          aria-controls={listboxId}
+          aria-activedescendant={activeResultId}
+          autoComplete="off"
+          onChange={(event) => {
+            onGameSearchChange(event.target.value)
+            setIsOpen(true)
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+        />
+
+        {showPanel ? (
+          <div
+            id={listboxId}
+            role="listbox"
+            className="absolute top-full right-0 left-0 z-30 mt-2 overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
+          >
+            <FavoriteGameSearchPanel
+              errorMessage={errorMessage}
+              gameResults={gameResults}
+              highlightedIndex={highlightedIndex}
+              status={status}
+              onHighlight={setHighlightedIndex}
+              onSelect={selectGame}
+            />
+          </div>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {selectedCount}/{MAX_FAVORITE_GAMES}
+      </p>
+    </div>
+  )
+}
+
+function FavoriteGameSearchPanel({
+  errorMessage,
+  gameResults,
+  highlightedIndex,
+  onHighlight,
+  onSelect,
+  status,
+}: {
+  errorMessage: string | null
+  gameResults: FavoriteGame[]
+  highlightedIndex: number
+  onHighlight: (index: number) => void
+  onSelect: (game: FavoriteGame) => void
+  status: FavoriteGameSearchStatus
+}) {
+  if (
+    errorMessage &&
+    status !== "empty" &&
+    status !== "too_short" &&
+    status !== "disabled"
+  ) {
+    return (
+      <FavoriteGameSearchState tone="error">
+        {errorMessage}
+      </FavoriteGameSearchState>
+    )
+  }
+
+  if (status === "empty") {
+    return (
+      <FavoriteGameSearchState>
+        Start typing to find games.
+      </FavoriteGameSearchState>
+    )
+  }
+
+  if (status === "too_short") {
+    return <FavoriteGameSearchState>Keep typing...</FavoriteGameSearchState>
+  }
+
+  if (status === "loading") {
+    return (
+      <FavoriteGameSearchState>
+        <CircleNotch weight="bold" className="size-4 animate-spin" />
+        Searching games...
+      </FavoriteGameSearchState>
+    )
+  }
+
+  if (status === "no_results") {
+    return <FavoriteGameSearchState>No games found.</FavoriteGameSearchState>
+  }
+
+  if (status === "disabled") {
+    return (
+      <FavoriteGameSearchState>
+        Favorite game limit reached.
+      </FavoriteGameSearchState>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5 p-1">
+      {gameResults.map((game, index) => {
+        const isHighlighted = highlightedIndex === index
+        return (
+          <button
+            key={game.id}
+            id={`favorite-game-search-result-${index}`}
+            type="button"
+            role="option"
+            aria-selected={isHighlighted}
+            className={cn(
+              "flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+              isHighlighted ? "bg-muted text-foreground" : "hover:bg-muted"
+            )}
+            onMouseDown={(event) => event.preventDefault()}
+            onMouseEnter={() => onHighlight(index)}
+            onClick={() => onSelect(game)}
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground ring-1 ring-foreground/10">
+              <GameController weight="bold" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{game.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                Game
+              </span>
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function FavoriteGameSearchState({
+  children,
+  tone = "muted",
+}: {
+  children: ReactNode
+  tone?: "muted" | "error"
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-12 items-center gap-2 px-3 py-2 text-sm",
+        tone === "error" ? "text-destructive" : "text-muted-foreground"
+      )}
+    >
+      {children}
+    </div>
   )
 }
 

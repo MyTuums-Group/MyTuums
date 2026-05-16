@@ -1,9 +1,15 @@
 /**
  * Canonical content visibility rules — single source used by authorization
- * adapters, feed in-memory queries, and feed SQL predicates.
+ * adapters, feed in-memory queries, and feed SQL predicates. Feed list/detail
+ * post and comment rules are delegated to `feed-policy.ts`.
  */
 
 import type { AccountStatus, TargetRef, ViewerContext } from "@workspace/types";
+import {
+  evaluateFeedCommentVisibility,
+  evaluateFeedPostVisibility,
+  isFeedAuthorBlocked,
+} from "./feed-policy.js";
 
 /** Staff roles see moderation-visible content everywhere. */
 export function isStaff(ctx: ViewerContext): boolean {
@@ -77,14 +83,15 @@ export function canViewFeedPost(
     removedAt: Date | null;
   },
 ): boolean {
-  if (isStaff(ctx)) return true;
-  if (ctx.blockedUserIds.includes(post.authorId)) return false;
-  if (ctx.blockedByUserIds.includes(post.authorId)) return false;
-  if (post.authorAccountStatus !== "active") return false;
-  if (post.deletedAt) return false;
-  if (ctx.userId === post.authorId) return true;
-  if (post.removedAt) return false;
-  return true;
+  return evaluateFeedPostVisibility({
+    viewerUserId: ctx.userId,
+    viewerIsStaff: isStaff(ctx),
+    authorId: post.authorId,
+    authorIsBlockedForFeed: isFeedAuthorBlocked(ctx, post.authorId),
+    authorAccountStatus: post.authorAccountStatus,
+    deletedAt: post.deletedAt,
+    removedAt: post.removedAt,
+  });
 }
 
 export function canViewFeedComment(
@@ -96,14 +103,15 @@ export function canViewFeedComment(
     removedAt: Date | null;
   },
 ): boolean {
-  if (ctx.userId === comment.authorId) return true;
-  if (isStaff(ctx)) return true;
-  if (ctx.blockedUserIds.includes(comment.authorId)) return false;
-  if (ctx.blockedByUserIds.includes(comment.authorId)) return false;
-  if (comment.authorAccountStatus !== "active") return false;
-  if (comment.deletedAt) return false;
-  if (comment.removedAt) return false;
-  return true;
+  return evaluateFeedCommentVisibility({
+    viewerUserId: ctx.userId,
+    viewerIsStaff: isStaff(ctx),
+    authorId: comment.authorId,
+    authorIsBlockedForFeed: isFeedAuthorBlocked(ctx, comment.authorId),
+    authorAccountStatus: comment.authorAccountStatus,
+    deletedAt: comment.deletedAt,
+    removedAt: comment.removedAt,
+  });
 }
 
 export function canViewTarget(ctx: ViewerContext, target: TargetRef): boolean {

@@ -55,6 +55,11 @@ import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
 import { AccountDeletionDialog } from "@/components/account-deletion-dialog"
 import { changePassword } from "@/lib/auth-client"
+import {
+  describeMediaUploadFailure,
+  uploadBlobViaPutXhr,
+  validateClientMediaUpload,
+} from "@/lib/media-upload-client"
 import { trpc } from "@/lib/trpc"
 import {
   getFavoriteGameSearchOptions,
@@ -77,6 +82,15 @@ const SETTINGS_TABS = [
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]
 type MediaSlot = "avatar" | "banner"
+type ProfileSlotUpload = {
+  file: File
+  localPreviewUrl: string
+  status: "uploading" | "failed"
+  progress: number
+  mediaId: string
+  uploadUrl: string
+  message?: string
+}
 
 type ProfileFormState = {
   displayName: string
@@ -106,6 +120,13 @@ const EMPTY_PASSWORD_FORM: PasswordFormState = {
   confirmPassword: "",
 }
 
+function profileSlotLocksSave(upload: ProfileSlotUpload | null) {
+  return (
+    upload !== null &&
+    (upload.status === "uploading" || upload.status === "failed")
+  )
+}
+
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile")
   const [profileForm, setProfileForm] =
@@ -124,7 +145,15 @@ function SettingsPage() {
   const [mediaPreviews, setMediaPreviews] = useState<
     Record<MediaSlot, string | null>
   >({ avatar: null, banner: null })
-  const [uploadingSlot, setUploadingSlot] = useState<MediaSlot | null>(null)
+  const [baselineMediaIds, setBaselineMediaIds] = useState<
+    Record<MediaSlot, string | null>
+  >({ avatar: null, banner: null })
+  const [slotIssues, setSlotIssues] = useState<Record<MediaSlot, string | null>>(
+    { avatar: null, banner: null }
+  )
+  const [slotUploadStates, setSlotUploadStates] = useState<
+    Record<MediaSlot, ProfileSlotUpload | null>
+  >({ avatar: null, banner: null })
   const { theme, setTheme } = useTheme()
   const utils = trpc.useUtils()
 
@@ -142,6 +171,8 @@ function SettingsPage() {
   )
   const createUploadMutation = trpc.media.createUpload.useMutation()
   const confirmUploadMutation = trpc.media.confirmUpload.useMutation()
+  const retryUploadMutation = trpc.media.retryUpload.useMutation()
+  const removeUploadMutation = trpc.media.removeUpload.useMutation()
   const updateProfileMutation = trpc.settings.updateProfile.useMutation({
     async onSuccess(profile) {
       setProfileForm({
@@ -150,6 +181,10 @@ function SettingsPage() {
         avatarMediaId: profile.avatarMediaId,
         bannerMediaId: profile.bannerMediaId,
         favoriteGames: profile.favoriteGames,
+      })
+      setBaselineMediaIds({
+        avatar: profile.avatarMediaId,
+        banner: profile.bannerMediaId,
       })
       setProfileMessage("Profile saved.")
       setProfileError(null)
@@ -193,6 +228,10 @@ function SettingsPage() {
       bannerMediaId: settingsQuery.data.profile.bannerMediaId,
       favoriteGames: settingsQuery.data.profile.favoriteGames,
     })
+    setBaselineMediaIds({
+      avatar: settingsQuery.data.profile.avatarMediaId,
+      banner: settingsQuery.data.profile.bannerMediaId,
+    })
     setTheme(settingsQuery.data.display.theme)
   }, [settingsQuery.data, setTheme])
 
@@ -221,52 +260,278 @@ function SettingsPage() {
 
   const settings = settingsQuery.data
 
-  async function handleMediaSelected(slot: MediaSlot, file: File | null) {
-    if (!file) return
+  const profileSlotsBusy =
+    profileSlotLocksSave(slotUploadStates.avatar) ||
+    profileSlotLocksSave(slotUploadStates.banner)
 
-    try {
-      setUploadingSlot(slot)
-      setProfileError(null)
-
-      const upload = await createUploadMutation.mutateAsync({
-        mimeType: file.type,
-        byteSize: file.size,
-        purpose: slot === "avatar" ? "profile_avatar" : "profile_banner",
-      })
-
-      const uploadResponse = await fetch(upload.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-          "x-ms-blob-type": "BlockBlob",
-        },
-        body: file,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed.")
-      }
-
-      await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId })
-      const objectUrl = URL.createObjectURL(file)
-      setMediaPreviews((current) => ({ ...current, [slot]: objectUrl }))
-      setProfileForm((current) => ({
+  function markSlotUploadFailed(slot: MediaSlot, message: string) {
+    setSlotUploadStates((current) => {
+      const active = current[slot]
+      if (!active) return current
+      return {
         ...current,
-        [slot === "avatar" ? "avatarMediaId" : "bannerMediaId"]: upload.mediaId,
-      }))
-    } catch (error) {
-      setProfileError(getErrorMessage(error))
-    } finally {
-      setUploadingSlot(null)
-    }
+        [slot]: { ...active, status: "failed", message },
+      }
+    })
+    setSlotIssues((current) => ({ ...current, [slot]: message }))
   }
 
-  function removeMedia(slot: MediaSlot) {
-    setMediaPreviews((current) => ({ ...current, [slot]: null }))
+  async function handleProfileSlotMediaSelected(
+    slot: MediaSlot,
+    file: File | null
+  ) {
+    if (!file) return
+
+    setProfileMessage(null)
+    setProfileError(null)
+    setSlotIssues((current) => ({ ...current, [slot]: null }))
+
+    const purpose = slot === "avatar" ? "profile_avatar" : "profile_banner"
+    const validated = validateClientMediaUpload({
+      mimeType: file.type,
+      byteSize: file.size,
+      purpose,
+    })
+
+    if (!validated.ok) {
+      setSlotIssues((current) => ({
+        ...current,
+        [slot]: validated.issue.message,
+      }))
+      return
+    }
+
+    const previewUrlLocal = URL.createObjectURL(file)
+
+    setMediaPreviews((current) => {
+      const previousPreview = current[slot]
+      if (previousPreview) URL.revokeObjectURL(previousPreview)
+      return { ...current, [slot]: null }
+    })
+
+    setSlotUploadStates((current) => {
+      const existing = current[slot]
+      if (existing?.localPreviewUrl)
+        URL.revokeObjectURL(existing.localPreviewUrl)
+      return {
+        ...current,
+        [slot]: {
+          file,
+          localPreviewUrl: previewUrlLocal,
+          status: "uploading",
+          progress: 0,
+          mediaId: "",
+          uploadUrl: "",
+        },
+      }
+    })
+
+    let intent: { mediaId: string; uploadUrl: string }
+    try {
+      intent = await createUploadMutation.mutateAsync({
+        mimeType: validated.mimeType,
+        byteSize: validated.byteSize,
+        purpose,
+      })
+
+      setSlotUploadStates((current) => {
+        const active = current[slot]
+        if (!active) return current
+        return {
+          ...current,
+          [slot]: {
+            ...active,
+            mediaId: intent.mediaId,
+            uploadUrl: intent.uploadUrl,
+          },
+        }
+      })
+    } catch (error) {
+      markSlotUploadFailed(
+        slot,
+        describeMediaUploadFailure(error, "intent")
+      )
+      return
+    }
+
+    try {
+      await uploadBlobViaPutXhr({
+        uploadUrl: intent.uploadUrl,
+        file,
+        onProgress: (progress) =>
+          setSlotUploadStates((current) => {
+            const active = current[slot]
+            if (!active || active.status !== "uploading") return current
+            return {
+              ...current,
+              [slot]: { ...active, progress },
+            }
+          }),
+      })
+    } catch (error) {
+      markSlotUploadFailed(slot, describeMediaUploadFailure(error, "blob"))
+      return
+    }
+
+    try {
+      await confirmUploadMutation.mutateAsync({ mediaId: intent.mediaId })
+    } catch (error) {
+      markSlotUploadFailed(
+        slot,
+        describeMediaUploadFailure(error, "confirm")
+      )
+      return
+    }
+
+    const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
+
+    setMediaPreviews((current) => ({
+      ...current,
+      [slot]: previewUrlLocal,
+    }))
     setProfileForm((current) => ({
       ...current,
-      [slot === "avatar" ? "avatarMediaId" : "bannerMediaId"]: null,
+      [fieldKey]: intent.mediaId,
     }))
+    setSlotIssues((current) => ({ ...current, [slot]: null }))
+    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
+  }
+
+  async function retryProfileSlotUpload(slot: MediaSlot) {
+    const upload = slotUploadStates[slot]
+    if (!upload?.mediaId) return
+
+    setProfileError(null)
+    setSlotIssues((current) => ({ ...current, [slot]: null }))
+
+    const previewUrlLocal = upload.localPreviewUrl
+
+    setSlotUploadStates((current) => {
+      const active = current[slot]
+      if (!active) return current
+      return {
+        ...current,
+        [slot]: {
+          ...active,
+          status: "uploading",
+          progress: 0,
+          message: undefined,
+        },
+      }
+    })
+
+    let reissued: { uploadUrl: string }
+    try {
+      reissued = await retryUploadMutation.mutateAsync({
+        mediaId: upload.mediaId,
+      })
+    } catch (error) {
+      markSlotUploadFailed(
+        slot,
+        describeMediaUploadFailure(error, "intent")
+      )
+      return
+    }
+
+    try {
+      await uploadBlobViaPutXhr({
+        uploadUrl: reissued.uploadUrl,
+        file: upload.file,
+        onProgress: (progress) =>
+          setSlotUploadStates((current) => {
+            const active = current[slot]
+            if (!active || active.status !== "uploading") return current
+            return {
+              ...current,
+              [slot]: { ...active, progress },
+            }
+          }),
+      })
+    } catch (error) {
+      markSlotUploadFailed(slot, describeMediaUploadFailure(error, "blob"))
+      return
+    }
+
+    try {
+      await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId })
+    } catch (error) {
+      markSlotUploadFailed(
+        slot,
+        describeMediaUploadFailure(error, "confirm")
+      )
+      return
+    }
+
+    const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
+
+    setMediaPreviews((current) => ({
+      ...current,
+      [slot]: previewUrlLocal,
+    }))
+    setProfileForm((current) => ({
+      ...current,
+      [fieldKey]: upload.mediaId,
+    }))
+    setSlotIssues((current) => ({ ...current, [slot]: null }))
+    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
+  }
+
+  async function removeProfileSlotMedia(slot: MediaSlot) {
+    setProfileMessage(null)
+    setProfileError(null)
+    setSlotIssues((current) => ({ ...current, [slot]: null }))
+
+    const activeUpload = slotUploadStates[slot]
+    try {
+      if (activeUpload?.mediaId)
+        await removeUploadMutation.mutateAsync({
+          mediaId: activeUpload.mediaId,
+        })
+    } catch (error) {
+      setProfileError(getErrorMessage(error))
+      return
+    }
+
+    if (activeUpload?.localPreviewUrl)
+      URL.revokeObjectURL(activeUpload.localPreviewUrl)
+
+    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
+
+    const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
+    const baselineId = baselineMediaIds[slot]
+    const currentId = profileForm[fieldKey]
+
+    if (currentId && baselineId !== currentId) {
+      try {
+        await removeUploadMutation.mutateAsync({ mediaId: currentId })
+      } catch (error) {
+        setProfileError(getErrorMessage(error))
+        return
+      }
+
+      setProfileForm((current) => ({
+        ...current,
+        [fieldKey]: baselineId,
+      }))
+
+      setMediaPreviews((current) => {
+        const preview = current[slot]
+        if (preview) URL.revokeObjectURL(preview)
+        return { ...current, [slot]: null }
+      })
+      return
+    }
+
+    setProfileForm((current) => ({
+      ...current,
+      [fieldKey]: null,
+    }))
+
+    setMediaPreviews((current) => {
+      const preview = current[slot]
+      if (preview) URL.revokeObjectURL(preview)
+      return { ...current, [slot]: null }
+    })
   }
 
   function addFavoriteGame(game: FavoriteGame) {
@@ -413,15 +678,24 @@ function SettingsPage() {
           gameSearchError={gameSearchQuery.error?.message ?? null}
           isGameSearchLoading={gameSearchQuery.isFetching}
           isSaving={updateProfileMutation.isPending}
+          isProfileBusy={profileSlotsBusy}
+          slotIssues={slotIssues}
+          slotUploadStates={slotUploadStates}
           mediaPreviews={mediaPreviews}
           message={profileMessage}
           error={profileError ?? updateProfileMutation.error?.message ?? null}
-          uploadingSlot={uploadingSlot}
           onAddFavoriteGame={addFavoriteGame}
           onGameSearchChange={setGameSearch}
-          onMediaSelected={handleMediaSelected}
+          onMediaSelected={(slot, file) => {
+            void handleProfileSlotMediaSelected(slot, file)
+          }}
           onRemoveFavoriteGame={removeFavoriteGame}
-          onRemoveMedia={removeMedia}
+          onRemoveMedia={(slot) => {
+            void removeProfileSlotMedia(slot)
+          }}
+          onRetrySlotUpload={(slot) => {
+            void retryProfileSlotUpload(slot)
+          }}
           onSubmit={handleProfileSubmit}
           setForm={setProfileForm}
         />
@@ -498,6 +772,7 @@ function ProfileSettings({
   gameSearchError,
   isGameSearchLoading,
   isSaving,
+  isProfileBusy,
   mediaPreviews,
   message,
   onAddFavoriteGame,
@@ -505,9 +780,11 @@ function ProfileSettings({
   onMediaSelected,
   onRemoveFavoriteGame,
   onRemoveMedia,
+  onRetrySlotUpload,
   onSubmit,
   setForm,
-  uploadingSlot,
+  slotIssues,
+  slotUploadStates,
 }: {
   error: string | null
   form: ProfileFormState
@@ -516,16 +793,19 @@ function ProfileSettings({
   gameSearchError: string | null
   isGameSearchLoading: boolean
   isSaving: boolean
+  isProfileBusy: boolean
   mediaPreviews: Record<MediaSlot, string | null>
   message: string | null
   onAddFavoriteGame: (game: FavoriteGame) => void
   onGameSearchChange: (value: string) => void
-  onMediaSelected: (slot: MediaSlot, file: File | null) => Promise<void>
+  onMediaSelected: (slot: MediaSlot, file: File | null) => void
   onRemoveFavoriteGame: (gameId: string) => void
   onRemoveMedia: (slot: MediaSlot) => void
+  onRetrySlotUpload: (slot: MediaSlot) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   setForm: Dispatch<SetStateAction<ProfileFormState>>
-  uploadingSlot: MediaSlot | null
+  slotIssues: Record<MediaSlot, string | null>
+  slotUploadStates: Record<MediaSlot, ProfileSlotUpload | null>
 }) {
   return (
     <Card className="shadow-sm">
@@ -617,22 +897,30 @@ function ProfileSettings({
               mediaId={form.avatarMediaId}
               previewUrl={mediaPreviews.avatar}
               slot="avatar"
-              uploadingSlot={uploadingSlot}
+              slotIssue={slotIssues.avatar}
+              slotUpload={slotUploadStates.avatar}
               onMediaSelected={onMediaSelected}
               onRemoveMedia={onRemoveMedia}
+              onRetrySlotUpload={onRetrySlotUpload}
             />
             <MediaField
               label="Banner"
               mediaId={form.bannerMediaId}
               previewUrl={mediaPreviews.banner}
               slot="banner"
-              uploadingSlot={uploadingSlot}
+              slotIssue={slotIssues.banner}
+              slotUpload={slotUploadStates.banner}
               onMediaSelected={onMediaSelected}
               onRemoveMedia={onRemoveMedia}
+              onRetrySlotUpload={onRetrySlotUpload}
             />
           </div>
 
-          <Button type="submit" className="w-fit" disabled={isSaving}>
+          <Button
+            type="submit"
+            className="w-fit"
+            disabled={isSaving || isProfileBusy}
+          >
             <Check weight="bold" />
             {isSaving ? "Saving..." : "Save profile"}
           </Button>
@@ -909,36 +1197,41 @@ function MediaField({
   mediaId,
   onMediaSelected,
   onRemoveMedia,
+  onRetrySlotUpload,
   previewUrl,
   slot,
-  uploadingSlot,
+  slotIssue,
+  slotUpload,
 }: {
   label: string
   mediaId: string | null
-  onMediaSelected: (slot: MediaSlot, file: File | null) => Promise<void>
+  onMediaSelected: (slot: MediaSlot, file: File | null) => void
   onRemoveMedia: (slot: MediaSlot) => void
+  onRetrySlotUpload: (slot: MediaSlot) => void
   previewUrl: string | null
   slot: MediaSlot
-  uploadingSlot: MediaSlot | null
+  slotIssue: string | null
+  slotUpload: ProfileSlotUpload | null
 }) {
   const inputId = `${slot}-media`
-  const isUploading = uploadingSlot === slot
+  const previewDisplay =
+    slotUpload?.localPreviewUrl ?? previewUrl ?? undefined
 
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-muted/35 p-3 ring-1 ring-foreground/10">
       <div className="flex items-center gap-3">
         {slot === "avatar" ? (
           <Avatar size="lg">
-            <AvatarImage src={previewUrl ?? undefined} alt={label} />
+            <AvatarImage src={previewDisplay} alt={label} />
             <AvatarFallback>
               <User weight="bold" />
             </AvatarFallback>
           </Avatar>
         ) : (
           <div className="flex aspect-[5/2] h-16 w-36 items-center justify-center rounded-lg bg-background text-muted-foreground ring-1 ring-foreground/10">
-            {previewUrl ? (
+            {previewDisplay ? (
               <img
-                src={previewUrl}
+                src={previewDisplay}
                 alt={label}
                 className="size-full object-cover"
               />
@@ -955,29 +1248,48 @@ function MediaField({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Input
           id={inputId}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          disabled={isUploading}
+          disabled={slotUpload?.status === "uploading"}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
             void onMediaSelected(slot, event.target.files?.[0] ?? null)
             event.target.value = ""
           }}
         />
+        {slotUpload?.status === "failed" && slotUpload.mediaId ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onRetrySlotUpload(slot)}
+          >
+            Retry
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="outline"
-          disabled={!mediaId || isUploading}
           onClick={() => onRemoveMedia(slot)}
         >
           <Trash weight="bold" />
           Remove
         </Button>
       </div>
-      {isUploading ? (
-        <p className="text-xs text-muted-foreground">Uploading...</p>
+
+      {slotUpload?.status === "uploading" ? (
+        <p className="text-xs text-muted-foreground">
+          Uploading {slotUpload.progress}%
+        </p>
+      ) : null}
+
+      {slotUpload?.status === "failed" ? (
+        <p className="text-xs text-destructive">
+          {slotUpload.message ?? slotIssue ?? "Upload failed."}
+        </p>
+      ) : slotIssue ? (
+        <p className="text-xs text-destructive">{slotIssue}</p>
       ) : null}
     </div>
   )

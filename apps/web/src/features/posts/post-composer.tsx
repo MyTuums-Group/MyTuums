@@ -4,6 +4,11 @@ import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import { Textarea } from "@workspace/ui/components/textarea";
+import {
+  describeMediaUploadFailure,
+  uploadBlobViaPutXhr,
+  validateClientMediaUpload,
+} from "@/lib/media-upload-client";
 import { trpc } from "@/lib/trpc";
 import { getPostTextState } from "./post-text";
 import {
@@ -336,6 +341,19 @@ export function PostComposer({ onCreated }: PostComposerProps) {
   async function startUpload(file: File) {
     const previewUrl = URL.createObjectURL(file);
     setErrorMessage(null);
+
+    const validated = validateClientMediaUpload({
+      mimeType: file.type,
+      byteSize: file.size,
+      purpose: "post_attachment",
+    });
+
+    if (!validated.ok) {
+      URL.revokeObjectURL(previewUrl);
+      setErrorMessage(validated.issue.message);
+      return;
+    }
+
     setUpload({
       file,
       previewUrl,
@@ -345,28 +363,48 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       uploadUrl: "",
     });
 
+    let intent: Awaited<ReturnType<typeof createUploadMutation.mutateAsync>>;
     try {
-      const intent = await createUploadMutation.mutateAsync({
-        mimeType: file.type,
-        byteSize: file.size,
-        purpose: "post_attachment",
+      intent = await createUploadMutation.mutateAsync({
+        mimeType: validated.mimeType,
+        byteSize: validated.byteSize,
+        purpose: validated.purpose,
       });
       setUpload((current) =>
         current
           ? { ...current, mediaId: intent.mediaId, uploadUrl: intent.uploadUrl }
           : current
       );
-      await uploadFile(intent.uploadUrl, file, (progress) => {
-        setUpload((current) => (current ? { ...current, progress } : current));
+    } catch (error) {
+      setErrorMessage(describeMediaUploadFailure(error, "intent"));
+      setUpload((current) =>
+        current ? { ...current, status: "failed" } : current
+      );
+      return;
+    }
+
+    try {
+      await uploadBlobViaPutXhr({
+        uploadUrl: intent.uploadUrl,
+        file,
+        onProgress: (progress) =>
+          setUpload((current) => (current ? { ...current, progress } : current)),
       });
+    } catch (error) {
+      setErrorMessage(describeMediaUploadFailure(error, "blob"));
+      setUpload((current) =>
+        current ? { ...current, status: "failed" } : current
+      );
+      return;
+    }
+
+    try {
       await confirmUploadMutation.mutateAsync({ mediaId: intent.mediaId });
       setUpload((current) =>
         current ? { ...current, status: "ready", progress: 100 } : current
       );
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Upload failed."
-      );
+      setErrorMessage(describeMediaUploadFailure(error, "confirm"));
       setUpload((current) =>
         current ? { ...current, status: "failed" } : current
       );
@@ -375,22 +413,45 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
   async function retryUpload() {
     if (!upload?.mediaId) return;
+    setErrorMessage(null);
     setUpload({ ...upload, status: "uploading", progress: 0 });
+
+    let retryUploadUrl: string;
     try {
       const retry = await retryUploadMutation.mutateAsync({
         mediaId: upload.mediaId,
       });
-      await uploadFile(retry.uploadUrl, upload.file, (progress) => {
-        setUpload((current) => (current ? { ...current, progress } : current));
+      retryUploadUrl = retry.uploadUrl;
+    } catch (error) {
+      setErrorMessage(describeMediaUploadFailure(error, "intent"));
+      setUpload((current) =>
+        current ? { ...current, status: "failed" } : current
+      );
+      return;
+    }
+
+    try {
+      await uploadBlobViaPutXhr({
+        uploadUrl: retryUploadUrl,
+        file: upload.file,
+        onProgress: (progress) =>
+          setUpload((current) => (current ? { ...current, progress } : current)),
       });
+    } catch (error) {
+      setErrorMessage(describeMediaUploadFailure(error, "blob"));
+      setUpload((current) =>
+        current ? { ...current, status: "failed" } : current
+      );
+      return;
+    }
+
+    try {
       await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId });
       setUpload((current) =>
         current ? { ...current, status: "ready", progress: 100 } : current
       );
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Upload failed."
-      );
+      setErrorMessage(describeMediaUploadFailure(error, "confirm"));
       setUpload((current) =>
         current ? { ...current, status: "failed" } : current
       );
@@ -420,27 +481,3 @@ type UploadState = {
   mediaId: string;
   uploadUrl: string;
 };
-
-function uploadFile(
-  uploadUrl: string,
-  file: File,
-  onProgress: (progress: number) => void
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("x-ms-blob-type", "BlockBlob");
-    xhr.setRequestHeader("Content-Type", file.type);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error("Blob upload failed."));
-    };
-    xhr.onerror = () => reject(new Error("Blob upload failed."));
-    xhr.send(file);
-  });
-}

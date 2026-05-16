@@ -12,6 +12,7 @@
     "docs:validate": "pnpm --filter @workspace/docs-content validate",
     "db:check": "pnpm --filter @workspace/db db:check",
     "smoke": "pnpm --filter web smoke",
+    "smoke:setup": "node scripts/smoke-setup.mjs",
     "axe:smoke": "pnpm --filter web axe:smoke",
     "infra": "docker compose up -d",
     "infra:down": "docker compose down",

@@ -1,4 +1,4 @@
-export { db } from "./client.js"
+export { closeDatabaseConnection, db } from "./client.js"
 export type { Database, Transaction } from "./client.js"
 
 // All tables — import as `import { user, post, ... } from "@workspace/db"`

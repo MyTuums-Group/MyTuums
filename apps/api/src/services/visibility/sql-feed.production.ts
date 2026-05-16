@@ -1,21 +1,19 @@
 /**
- * Drizzle WHERE fragments for feed queries — mirrors in-memory feed predicates.
+ * Drizzle WHERE fragments for feed queries — must stay equivalent to
+ * `evaluateFeedPostVisibility` / `evaluateFeedCommentVisibility` in `feed-policy.ts`.
  */
 
 import { and, eq, isNull, notInArray, or } from "drizzle-orm";
 import { comment, post, user } from "@workspace/db";
 import type { ViewerContext } from "@workspace/types";
+import { feedBlockedAuthorIds } from "./feed-policy.js";
 import { isStaff } from "./memory.js";
-
-function blockedPairIds(viewer: ViewerContext): string[] {
-  return [...new Set([...viewer.blockedUserIds, ...viewer.blockedByUserIds])];
-}
 
 function blockedAuthorPredicate(
   viewer: ViewerContext,
   authorColumn: typeof post.authorId | typeof comment.authorId,
 ) {
-  const blockedIds = blockedPairIds(viewer);
+  const blockedIds = feedBlockedAuthorIds(viewer);
   if (blockedIds.length === 0) return undefined;
   return notInArray(authorColumn, blockedIds);
 }

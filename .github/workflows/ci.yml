@@ -145,7 +145,7 @@ jobs:
       - name: Start Azurite
         run: |
           mkdir -p /tmp/mytuums-azurite
-          pnpm dlx --package=azurite@3.35.0 azurite-blob \
+          npx -y -p azurite@3.35.0 azurite-blob \
             --blobHost 127.0.0.1 \
             --blobPort 10000 \
             --location /tmp/mytuums-azurite \

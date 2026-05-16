@@ -56,9 +56,8 @@ import { useTheme } from "@/components/theme-provider"
 import { AccountDeletionDialog } from "@/components/account-deletion-dialog"
 import { changePassword } from "@/lib/auth-client"
 import {
-  describeMediaUploadFailure,
-  uploadBlobViaPutXhr,
-  validateClientMediaUpload,
+  useMediaUploadWorkflow,
+  type ClientMediaUploadState,
 } from "@/lib/media-upload-client"
 import { trpc } from "@/lib/trpc"
 import {
@@ -82,15 +81,6 @@ const SETTINGS_TABS = [
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]
 type MediaSlot = "avatar" | "banner"
-type ProfileSlotUpload = {
-  file: File
-  localPreviewUrl: string
-  status: "uploading" | "failed"
-  progress: number
-  mediaId: string
-  uploadUrl: string
-  message?: string
-}
 
 type ProfileFormState = {
   displayName: string
@@ -120,13 +110,6 @@ const EMPTY_PASSWORD_FORM: PasswordFormState = {
   confirmPassword: "",
 }
 
-function profileSlotLocksSave(upload: ProfileSlotUpload | null) {
-  return (
-    upload !== null &&
-    (upload.status === "uploading" || upload.status === "failed")
-  )
-}
-
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile")
   const [profileForm, setProfileForm] =
@@ -142,17 +125,8 @@ function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [gameSearch, setGameSearch] = useState("")
-  const [mediaPreviews, setMediaPreviews] = useState<
-    Record<MediaSlot, string | null>
-  >({ avatar: null, banner: null })
   const [baselineMediaIds, setBaselineMediaIds] = useState<
     Record<MediaSlot, string | null>
-  >({ avatar: null, banner: null })
-  const [slotIssues, setSlotIssues] = useState<Record<MediaSlot, string | null>>(
-    { avatar: null, banner: null }
-  )
-  const [slotUploadStates, setSlotUploadStates] = useState<
-    Record<MediaSlot, ProfileSlotUpload | null>
   >({ avatar: null, banner: null })
   const { theme, setTheme } = useTheme()
   const utils = trpc.useUtils()
@@ -169,12 +143,12 @@ function SettingsPage() {
       refetchOnWindowFocus: false,
     }
   )
-  const createUploadMutation = trpc.media.createUpload.useMutation()
-  const confirmUploadMutation = trpc.media.confirmUpload.useMutation()
-  const retryUploadMutation = trpc.media.retryUpload.useMutation()
-  const removeUploadMutation = trpc.media.removeUpload.useMutation()
+  const avatarUpload = useMediaUploadWorkflow({ purpose: "profile_avatar" })
+  const bannerUpload = useMediaUploadWorkflow({ purpose: "profile_banner" })
   const updateProfileMutation = trpc.settings.updateProfile.useMutation({
     async onSuccess(profile) {
+      avatarUpload.clearLocal()
+      bannerUpload.clearLocal()
       setProfileForm({
         displayName: profile.displayName ?? "",
         bio: profile.bio ?? "",
@@ -238,6 +212,28 @@ function SettingsPage() {
     setTheme(settingsQuery.data.display.theme)
   }, [settingsQuery.data, setTheme])
 
+  useEffect(() => {
+    const mediaId = avatarUpload.readyUpload?.mediaId
+    if (!mediaId) return
+
+    setProfileForm((current) =>
+      current.avatarMediaId === mediaId
+        ? current
+        : { ...current, avatarMediaId: mediaId }
+    )
+  }, [avatarUpload.readyUpload?.mediaId])
+
+  useEffect(() => {
+    const mediaId = bannerUpload.readyUpload?.mediaId
+    if (!mediaId) return
+
+    setProfileForm((current) =>
+      current.bannerMediaId === mediaId
+        ? current
+        : { ...current, bannerMediaId: mediaId }
+    )
+  }, [bannerUpload.readyUpload?.mediaId])
+
   const gameResults = useMemo(
     () =>
       getFavoriteGameSearchOptions(
@@ -263,17 +259,21 @@ function SettingsPage() {
 
   const settings = settingsQuery.data
 
+  const slotIssues: Record<MediaSlot, string | null> = {
+    avatar: avatarUpload.errorMessage,
+    banner: bannerUpload.errorMessage,
+  }
+  const slotUploadStates: Record<MediaSlot, ClientMediaUploadState | null> = {
+    avatar: avatarUpload.upload,
+    banner: bannerUpload.upload,
+  }
   const profileSlotsBusy =
-    profileSlotLocksSave(slotUploadStates.avatar) ||
-    profileSlotLocksSave(slotUploadStates.banner)
+    avatarUpload.blocksSubmit || bannerUpload.blocksSubmit
 
   /** Server-signed URLs plus in-flight/blob previews — order matches MediaField internals */
   function resolvedProfileSlotPreviewUrl(slot: MediaSlot): string | undefined {
-    const uploading = slotUploadStates[slot]?.localPreviewUrl
-    if (uploading) return uploading
-
-    const blob = mediaPreviews[slot]
-    if (blob) return blob
+    const localPreview = uploadWorkflowForSlot(slot).upload?.previewUrl
+    if (localPreview) return localPreview
 
     const formMediaId =
       slot === "avatar" ? profileForm.avatarMediaId : profileForm.bannerMediaId
@@ -291,16 +291,8 @@ function SettingsPage() {
     return signed ?? undefined
   }
 
-  function markSlotUploadFailed(slot: MediaSlot, message: string) {
-    setSlotUploadStates((current) => {
-      const active = current[slot]
-      if (!active) return current
-      return {
-        ...current,
-        [slot]: { ...active, status: "failed", message },
-      }
-    })
-    setSlotIssues((current) => ({ ...current, [slot]: message }))
+  function uploadWorkflowForSlot(slot: MediaSlot) {
+    return slot === "avatar" ? avatarUpload : bannerUpload
   }
 
   async function handleProfileSlotMediaSelected(
@@ -311,241 +303,36 @@ function SettingsPage() {
 
     setProfileMessage(null)
     setProfileError(null)
-    setSlotIssues((current) => ({ ...current, [slot]: null }))
-
-    const purpose = slot === "avatar" ? "profile_avatar" : "profile_banner"
-    const validated = validateClientMediaUpload({
-      mimeType: file.type,
-      byteSize: file.size,
-      purpose,
-    })
-
-    if (!validated.ok) {
-      setSlotIssues((current) => ({
-        ...current,
-        [slot]: validated.issue.message,
-      }))
-      return
-    }
-
-    const previewUrlLocal = URL.createObjectURL(file)
-
-    setMediaPreviews((current) => {
-      const previousPreview = current[slot]
-      if (previousPreview) URL.revokeObjectURL(previousPreview)
-      return { ...current, [slot]: null }
-    })
-
-    setSlotUploadStates((current) => {
-      const existing = current[slot]
-      if (existing?.localPreviewUrl)
-        URL.revokeObjectURL(existing.localPreviewUrl)
-      return {
-        ...current,
-        [slot]: {
-          file,
-          localPreviewUrl: previewUrlLocal,
-          status: "uploading",
-          progress: 0,
-          mediaId: "",
-          uploadUrl: "",
-        },
-      }
-    })
-
-    let intent: { mediaId: string; uploadUrl: string }
-    try {
-      intent = await createUploadMutation.mutateAsync({
-        mimeType: validated.mimeType,
-        byteSize: validated.byteSize,
-        purpose,
-      })
-
-      setSlotUploadStates((current) => {
-        const active = current[slot]
-        if (!active) return current
-        return {
-          ...current,
-          [slot]: {
-            ...active,
-            mediaId: intent.mediaId,
-            uploadUrl: intent.uploadUrl,
-          },
-        }
-      })
-    } catch (error) {
-      markSlotUploadFailed(
-        slot,
-        describeMediaUploadFailure(error, "intent")
-      )
-      return
-    }
-
-    try {
-      await uploadBlobViaPutXhr({
-        uploadUrl: intent.uploadUrl,
-        file,
-        onProgress: (progress) =>
-          setSlotUploadStates((current) => {
-            const active = current[slot]
-            if (!active || active.status !== "uploading") return current
-            return {
-              ...current,
-              [slot]: { ...active, progress },
-            }
-          }),
-      })
-    } catch (error) {
-      markSlotUploadFailed(slot, describeMediaUploadFailure(error, "blob"))
-      return
-    }
-
-    try {
-      await confirmUploadMutation.mutateAsync({ mediaId: intent.mediaId })
-    } catch (error) {
-      markSlotUploadFailed(
-        slot,
-        describeMediaUploadFailure(error, "confirm")
-      )
-      return
-    }
-
-    const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
-
-    setMediaPreviews((current) => ({
-      ...current,
-      [slot]: previewUrlLocal,
-    }))
-    setProfileForm((current) => ({
-      ...current,
-      [fieldKey]: intent.mediaId,
-    }))
-    setSlotIssues((current) => ({ ...current, [slot]: null }))
-    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
+    await uploadWorkflowForSlot(slot).start(file)
   }
 
   async function retryProfileSlotUpload(slot: MediaSlot) {
-    const upload = slotUploadStates[slot]
-    if (!upload?.mediaId) return
-
     setProfileError(null)
-    setSlotIssues((current) => ({ ...current, [slot]: null }))
-
-    const previewUrlLocal = upload.localPreviewUrl
-
-    setSlotUploadStates((current) => {
-      const active = current[slot]
-      if (!active) return current
-      return {
-        ...current,
-        [slot]: {
-          ...active,
-          status: "uploading",
-          progress: 0,
-          message: undefined,
-        },
-      }
-    })
-
-    let reissued: { uploadUrl: string }
-    try {
-      reissued = await retryUploadMutation.mutateAsync({
-        mediaId: upload.mediaId,
-      })
-    } catch (error) {
-      markSlotUploadFailed(
-        slot,
-        describeMediaUploadFailure(error, "intent")
-      )
-      return
-    }
-
-    try {
-      await uploadBlobViaPutXhr({
-        uploadUrl: reissued.uploadUrl,
-        file: upload.file,
-        onProgress: (progress) =>
-          setSlotUploadStates((current) => {
-            const active = current[slot]
-            if (!active || active.status !== "uploading") return current
-            return {
-              ...current,
-              [slot]: { ...active, progress },
-            }
-          }),
-      })
-    } catch (error) {
-      markSlotUploadFailed(slot, describeMediaUploadFailure(error, "blob"))
-      return
-    }
-
-    try {
-      await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId })
-    } catch (error) {
-      markSlotUploadFailed(
-        slot,
-        describeMediaUploadFailure(error, "confirm")
-      )
-      return
-    }
-
-    const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
-
-    setMediaPreviews((current) => ({
-      ...current,
-      [slot]: previewUrlLocal,
-    }))
-    setProfileForm((current) => ({
-      ...current,
-      [fieldKey]: upload.mediaId,
-    }))
-    setSlotIssues((current) => ({ ...current, [slot]: null }))
-    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
+    await uploadWorkflowForSlot(slot).retry()
   }
 
   async function removeProfileSlotMedia(slot: MediaSlot) {
     setProfileMessage(null)
     setProfileError(null)
-    setSlotIssues((current) => ({ ...current, [slot]: null }))
 
-    const activeUpload = slotUploadStates[slot]
-    try {
-      if (activeUpload?.mediaId)
-        await removeUploadMutation.mutateAsync({
-          mediaId: activeUpload.mediaId,
-        })
-    } catch (error) {
-      setProfileError(getErrorMessage(error))
-      return
+    const activeUpload = uploadWorkflowForSlot(slot).upload
+    if (activeUpload) {
+      const result = await uploadWorkflowForSlot(slot).remove()
+      if (!result.ok) {
+        setProfileError(result.message)
+        return
+      }
     }
-
-    if (activeUpload?.localPreviewUrl)
-      URL.revokeObjectURL(activeUpload.localPreviewUrl)
-
-    setSlotUploadStates((current) => ({ ...current, [slot]: null }))
 
     const fieldKey = slot === "avatar" ? "avatarMediaId" : "bannerMediaId"
     const baselineId = baselineMediaIds[slot]
     const currentId = profileForm[fieldKey]
 
     if (currentId && baselineId !== currentId) {
-      try {
-        await removeUploadMutation.mutateAsync({ mediaId: currentId })
-      } catch (error) {
-        setProfileError(getErrorMessage(error))
-        return
-      }
-
       setProfileForm((current) => ({
         ...current,
         [fieldKey]: baselineId,
       }))
-
-      setMediaPreviews((current) => {
-        const preview = current[slot]
-        if (preview) URL.revokeObjectURL(preview)
-        return { ...current, [slot]: null }
-      })
       return
     }
 
@@ -553,12 +340,6 @@ function SettingsPage() {
       ...current,
       [fieldKey]: null,
     }))
-
-    setMediaPreviews((current) => {
-      const preview = current[slot]
-      if (preview) URL.revokeObjectURL(preview)
-      return { ...current, [slot]: null }
-    })
   }
 
   function addFavoriteGame(game: FavoriteGame) {
@@ -832,7 +613,7 @@ function ProfileSettings({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   setForm: Dispatch<SetStateAction<ProfileFormState>>
   slotIssues: Record<MediaSlot, string | null>
-  slotUploadStates: Record<MediaSlot, ProfileSlotUpload | null>
+  slotUploadStates: Record<MediaSlot, ClientMediaUploadState | null>
 }) {
   return (
     <Card className="shadow-sm">
@@ -1238,11 +1019,10 @@ function MediaField({
   previewUrl: string | null
   slot: MediaSlot
   slotIssue: string | null
-  slotUpload: ProfileSlotUpload | null
+  slotUpload: ClientMediaUploadState | null
 }) {
   const inputId = `${slot}-media`
-  const previewDisplay =
-    slotUpload?.localPreviewUrl ?? previewUrl ?? undefined
+  const previewDisplay = slotUpload?.previewUrl ?? previewUrl ?? undefined
 
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-muted/35 p-3 ring-1 ring-foreground/10">
@@ -1313,7 +1093,7 @@ function MediaField({
 
       {slotUpload?.status === "failed" ? (
         <p className="text-xs text-destructive">
-          {slotUpload.message ?? slotIssue ?? "Upload failed."}
+          {slotUpload.errorMessage ?? slotIssue ?? "Upload failed."}
         </p>
       ) : slotIssue ? (
         <p className="text-xs text-destructive">{slotIssue}</p>

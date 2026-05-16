@@ -18,6 +18,11 @@ export type OnboardingError =
 
 export type ProfileAccessError = { kind: "not_found" } | { kind: "not_visible" }
 
+export type UsernameAvailability =
+  | { status: "invalid"; normalizedUsername: string; message: string }
+  | { status: "taken"; normalizedUsername: string; message: string }
+  | { status: "available"; normalizedUsername: string }
+
 export type ProfileRow = {
   id: string
   userId: string
@@ -84,6 +89,7 @@ export type ProfileService = {
     userId: string,
     input: ProfileOnboardingInput
   ): Promise<Result<PublicProfile, OnboardingError>>
+  checkUsernameAvailability(username: string): Promise<UsernameAvailability>
   getMyProfile(userId: string): Promise<PublicProfile | null>
   getByUsername(
     username: string,
@@ -170,6 +176,36 @@ export function createProfileService(
           return { ok: false, error: { kind: "username_taken" } }
         }
         throw err
+      }
+    },
+
+    async checkUsernameAvailability(username) {
+      const validated = validateOnboardingInput({ username })
+      const normalizedUsername = username.trim().toLowerCase()
+      if (!validated.ok) {
+        return {
+          status: "invalid",
+          normalizedUsername,
+          message: validated.error.message,
+        }
+      }
+
+      const [existingProfile, usernameHeld] = await Promise.all([
+        adapter.findByUsername(validated.value.username),
+        adapter.isUsernameHeld(validated.value.username, new Date()),
+      ])
+
+      if (existingProfile || usernameHeld) {
+        return {
+          status: "taken",
+          normalizedUsername: validated.value.username,
+          message: "This username is already taken.",
+        }
+      }
+
+      return {
+        status: "available",
+        normalizedUsername: validated.value.username,
       }
     },
 

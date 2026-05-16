@@ -1,22 +1,23 @@
-import { z } from "zod";
+import { z } from "zod"
 import {
   USERNAME_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
-} from "@workspace/types";
-import { protectedProcedure, publicProcedure, router } from "../trpc.js";
-import { authorization } from "../authorization/index.js";
+} from "@workspace/types"
+import { protectedProcedure, publicProcedure, router } from "../trpc.js"
+import { authorization } from "../authorization/index.js"
 import {
   submitOnboarding,
+  checkUsernameAvailability,
   getByUsername,
   checkProfileExists,
   getMyProfile,
-} from "../services/profile/index.js";
+} from "../services/profile/index.js"
 import {
   mapOnboardingErrorToTRPC,
   mapProfileAccessErrorToTRPC,
-} from "../transport/profile-errors.js";
+} from "../transport/profile-errors.js"
 
 // ── Router ───────────────────────────────────────────────────────────
 
@@ -26,8 +27,8 @@ export const profileRouter = router({
    * Returns null if the user has not completed onboarding yet.
    */
   getMyProfile: protectedProcedure.query(async ({ ctx }) => {
-    const profile = await getMyProfile(ctx.user.id);
-    return profile;
+    const profile = await getMyProfile(ctx.user.id)
+    return profile
   }),
 
   /**
@@ -37,14 +38,11 @@ export const profileRouter = router({
   submitOnboarding: protectedProcedure
     .input(
       z.object({
-        username: z
-          .string()
-          .min(USERNAME_MIN_LENGTH)
-          .max(USERNAME_MAX_LENGTH),
+        username: z.string().min(USERNAME_MIN_LENGTH).max(USERNAME_MAX_LENGTH),
         displayName: z.string().max(DISPLAY_NAME_MAX_LENGTH).optional(),
         bio: z.string().max(BIO_MAX_LENGTH).optional(),
         favoriteGameIds: z.array(z.string().uuid()).max(5).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const result = await submitOnboarding(ctx.user.id, {
@@ -52,11 +50,25 @@ export const profileRouter = router({
         displayName: input.displayName ?? null,
         bio: input.bio ?? null,
         favoriteGameIds: input.favoriteGameIds ?? [],
-      });
+      })
       if (!result.ok) {
-        throw mapOnboardingErrorToTRPC(result.error);
+        throw mapOnboardingErrorToTRPC(result.error)
       }
-      return result.value;
+      return result.value
+    }),
+
+  /**
+   * Check onboarding username availability before profile creation.
+   * The unique constraint remains the race guard at submit time.
+   */
+  checkUsernameAvailability: protectedProcedure
+    .input(
+      z.object({
+        username: z.string().min(1).max(100),
+      })
+    )
+    .query(async ({ input }) => {
+      return checkUsernameAvailability(input.username)
     }),
 
   /**
@@ -69,12 +81,16 @@ export const profileRouter = router({
     .query(async ({ ctx, input }) => {
       const viewerCtx = ctx.session?.user
         ? await authorization.getViewerContext({ userId: ctx.session.user.id })
-        : null;
-      const result = await getByUsername(input.username, viewerCtx, authorization);
+        : null
+      const result = await getByUsername(
+        input.username,
+        viewerCtx,
+        authorization
+      )
       if (!result.ok) {
-        throw mapProfileAccessErrorToTRPC(result.error);
+        throw mapProfileAccessErrorToTRPC(result.error)
       }
-      return result.value;
+      return result.value
     }),
 
   /**
@@ -82,6 +98,6 @@ export const profileRouter = router({
    * Used by the frontend route guard to redirect to onboarding.
    */
   checkExists: protectedProcedure.query(async ({ ctx }) => {
-    return checkProfileExists(ctx.user.id);
+    return checkProfileExists(ctx.user.id)
   }),
-});
+})

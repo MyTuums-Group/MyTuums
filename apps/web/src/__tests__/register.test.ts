@@ -20,3 +20,11 @@ describe("register route account identity fields", () => {
     expect(routeSource).not.toContain('name: form.get("name")');
   });
 });
+
+describe("register route password confirmation", () => {
+  it("asks for a matching password confirmation before account creation", () => {
+    expect(routeSource).toContain('name="password"');
+    expect(routeSource).toContain('name="confirmPassword"');
+    expect(routeSource).toContain("validateRegistrationPasswordConfirmation");
+  });
+});

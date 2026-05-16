@@ -14,24 +14,24 @@ export type DocsAccessDeniedReason =
   | "forbidden_role"
   | "service_unavailable"
 
-export type DocsAccessDecision<TNavigation> =
-  | { kind: "authorized"; navigation: TNavigation }
+export type DocsAccessDecision<TBootstrap> =
+  | { kind: "authorized"; bootstrap: TBootstrap }
   | { kind: "redirect"; target: "login" | "verify-email"; href: string }
   | { kind: "denied"; reason: DocsAccessDeniedReason }
 
-export type ResolveDocsAccessInput<TNavigation> = {
+export type ResolveDocsAccessInput<TBootstrap> = {
   loadAppUserState: () => Promise<DocsAppUserState>
-  loadNavigation: () => Promise<TNavigation>
+  loadReaderBootstrap: () => Promise<TBootstrap>
   returnUrl: string
   webAppBaseUrl: string
 }
 
-export async function resolveDocsAccess<TNavigation>({
+export async function resolveDocsAccess<TBootstrap>({
   loadAppUserState,
-  loadNavigation,
+  loadReaderBootstrap,
   returnUrl,
   webAppBaseUrl,
-}: ResolveDocsAccessInput<TNavigation>): Promise<DocsAccessDecision<TNavigation>> {
+}: ResolveDocsAccessInput<TBootstrap>): Promise<DocsAccessDecision<TBootstrap>> {
   const appUserState = await loadAppUserState()
 
   if (appUserState.kind === "unauthenticated") {
@@ -55,8 +55,8 @@ export async function resolveDocsAccess<TNavigation>({
   }
 
   try {
-    const navigation = await loadNavigation()
-    return { kind: "authorized", navigation }
+    const bootstrap = await loadReaderBootstrap()
+    return { kind: "authorized", bootstrap }
   } catch (error) {
     const code = getTransportErrorCode(error)
 

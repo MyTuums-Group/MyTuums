@@ -3,13 +3,33 @@ import { resolveDocsAccess } from "../lib/docs-access"
 
 const docsReturnUrl = "https://docs.mytuums.com/docs/platform/overview?tab=setup"
 const webAppBaseUrl = "https://mytuums.com"
-const navigation = [
-  {
-    id: "platform",
-    title: "Platform",
-    pages: [{ slug: "overview", title: "Overview" }],
+const readerBootstrap = {
+  sections: [
+    {
+      id: "platform",
+      title: "Platform",
+      pages: [
+        {
+          slug: "overview",
+          title: "Overview",
+          sourcePath: "CONTEXT.md",
+          kind: "context" as const,
+          diagramIds: [] as string[],
+        },
+      ],
+    },
+  ],
+  homeEntry: {
+    sectionId: "platform",
+    pageSlug: "overview",
+    pageTitle: "Overview",
   },
-]
+  contentBuild: {
+    environment: "test",
+    generatedAt: "2026-01-01T00:00:00.000Z",
+    commitSha: "abc1234",
+  },
+}
 
 class TransportError extends Error {
   readonly data: { code: string }
@@ -26,7 +46,7 @@ describe("resolveDocsAccess", () => {
     await expect(
       resolveDocsAccess({
         loadAppUserState: () => Promise.resolve({ kind: "unauthenticated" }),
-        loadNavigation: () => Promise.reject(new Error("navigation should not load")),
+        loadReaderBootstrap: () => Promise.reject(new Error("reader bootstrap should not load")),
         returnUrl: docsReturnUrl,
         webAppBaseUrl,
       })
@@ -45,7 +65,7 @@ describe("resolveDocsAccess", () => {
             kind: "authenticated_unverified",
             user: { id: "user-1" },
           }),
-        loadNavigation: () => Promise.reject(new Error("navigation should not load")),
+        loadReaderBootstrap: () => Promise.reject(new Error("reader bootstrap should not load")),
         returnUrl: docsReturnUrl,
         webAppBaseUrl,
       })
@@ -59,7 +79,7 @@ describe("resolveDocsAccess", () => {
   it.each(["suspended", "account_deleted"] as const)(
     "denies %s users before docs navigation loads",
     async (accountStatus) => {
-      let navigationLoaded = false
+      let bootstrapLoaded = false
 
       await expect(
         resolveDocsAccess({
@@ -69,16 +89,16 @@ describe("resolveDocsAccess", () => {
               user: { id: "user-1" },
               accountStatus,
             }),
-          loadNavigation: () => {
-            navigationLoaded = true
-            return Promise.resolve(navigation)
+          loadReaderBootstrap: () => {
+            bootstrapLoaded = true
+            return Promise.resolve(readerBootstrap)
           },
           returnUrl: docsReturnUrl,
           webAppBaseUrl,
         })
       ).resolves.toEqual({ kind: "denied", reason: "inactive_account" })
 
-      expect(navigationLoaded).toBe(false)
+      expect(bootstrapLoaded).toBe(false)
     }
   )
 
@@ -91,7 +111,7 @@ describe("resolveDocsAccess", () => {
             user: { id: "user-1" },
             profile: { username: "player" },
           }),
-        loadNavigation: () => Promise.reject(new TransportError("FORBIDDEN")),
+        loadReaderBootstrap: () => Promise.reject(new TransportError("FORBIDDEN")),
         returnUrl: docsReturnUrl,
         webAppBaseUrl,
       })
@@ -106,10 +126,10 @@ describe("resolveDocsAccess", () => {
             kind: "verified_profileless",
             user: { id: "admin-1" },
           }),
-        loadNavigation: () => Promise.resolve(navigation),
+        loadReaderBootstrap: () => Promise.resolve(readerBootstrap),
         returnUrl: docsReturnUrl,
         webAppBaseUrl,
       })
-    ).resolves.toEqual({ kind: "authorized", navigation })
+    ).resolves.toEqual({ kind: "authorized", bootstrap: readerBootstrap })
   })
 })

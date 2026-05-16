@@ -8,7 +8,8 @@ type DocsEnv = {
   VITE_WEB_APP_URL?: string
 }
 
-export type DocsNavigation = inferRouterOutputs<AppRouter>["docs"]["navigation"]
+export type DocsReaderBootstrap = inferRouterOutputs<AppRouter>["docs"]["navigation"]
+export type DocsNavigation = DocsReaderBootstrap["sections"]
 export type DocsPageRead = inferRouterOutputs<AppRouter>["docs"]["page"]
 export type DocsDiagramRead = inferRouterOutputs<AppRouter>["docs"]["diagram"]
 export type DocsSearchResult = inferRouterOutputs<AppRouter>["docs"]["search"][number]

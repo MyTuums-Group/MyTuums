@@ -8,16 +8,16 @@ import {
   failure,
   ValidationError,
   COMMENT_TEXT_MAX_LENGTH,
+  graphemeLength,
+  normalizeBodyText,
 } from "@workspace/types";
-import { graphemeLength } from "../post/grapheme.js";
 
 /**
  * Validates and creates a CommentBody.
  * Same rules as PostBody but max 300 grapheme clusters.
  */
 export function createCommentBody(input: string): Result<CommentBody> {
-  const normalized = input.replace(/\r\n?/g, "\n");
-  const trimmed = normalized.trim();
+  const trimmed = normalizeBodyText(input);
 
   if (trimmed.length === 0) {
     return failure(new ValidationError("Comment text cannot be empty.", "body"));

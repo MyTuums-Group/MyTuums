@@ -32,9 +32,21 @@ export interface DocsManifestSection {
   pages: DocsManifestPage[];
 }
 
+export interface DocsManifestHome {
+  sectionId: string;
+  pageSlug: string;
+}
+
+export interface DocsArtifactHomeEntry {
+  sectionId: string;
+  pageSlug: string;
+  pageTitle: string;
+}
+
 export interface DocsManifest {
   version: 1;
   sections: DocsManifestSection[];
+  home?: DocsManifestHome;
 }
 
 export interface DocsHeading {
@@ -112,6 +124,7 @@ export interface DocsArtifact {
   version: 1;
   manifestPath: string;
   build: DocsBuildMetadata;
+  homeEntry: DocsArtifactHomeEntry;
   sections: DocsSection[];
   pages: DocsPage[];
   searchIndex: DocsSearchEntry[];

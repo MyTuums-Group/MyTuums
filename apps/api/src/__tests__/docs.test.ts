@@ -15,6 +15,11 @@ const artifact: DocsArtifact = {
     generatedAt: "2026-05-13T00:00:00.000Z",
     commitSha: "abc1234",
   },
+  homeEntry: {
+    sectionId: "platform",
+    pageSlug: "overview",
+    pageTitle: "Overview",
+  },
   sections: [
     {
       id: "platform",
@@ -110,7 +115,11 @@ describe("Docs service", () => {
   it("allows verified admin and owner viewers without profile onboarding to read docs", async () => {
     const service = createInMemoryDocsService(artifact);
 
-    await expect(service.getNavigation(createViewer())).resolves.toEqual(artifact.sections);
+    await expect(service.getNavigation(createViewer())).resolves.toEqual({
+      sections: artifact.sections,
+      homeEntry: artifact.homeEntry,
+      contentBuild: artifact.build,
+    });
     await expect(
       service.getPage(createViewer(), {
         sectionSlug: "platform",
@@ -142,7 +151,11 @@ describe("Docs service", () => {
           account: { ...activeAdmin, role: "owner" },
         }),
       ),
-    ).resolves.toEqual(artifact.sections);
+    ).resolves.toEqual({
+      sections: artifact.sections,
+      homeEntry: artifact.homeEntry,
+      contentBuild: artifact.build,
+    });
   });
 
   it("denies docs reads for disallowed viewer states", async () => {

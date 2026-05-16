@@ -3,8 +3,9 @@ import {
   CONTACT_EMAIL_MAX_LENGTH,
   CONTACT_MESSAGE_MAX_LENGTH,
   type ContactCategory,
+  graphemeLength,
+  normalizeBodyText,
 } from "@workspace/types";
-import { graphemeLength } from "../post/grapheme.js";
 
 export const CONTACT_RETENTION_DAYS = 180;
 export const CONTACT_RATE_LIMIT = {
@@ -251,7 +252,7 @@ function normalizeOptional(value: string | null | undefined): string | null {
 }
 
 function normalizeMessage(value: string): string {
-  return value.replace(/\r\n?/g, "\n").trim();
+  return normalizeBodyText(value);
 }
 
 function normalizeUserAgent(value: string | null | undefined): string | null {

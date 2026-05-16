@@ -1,5 +1,9 @@
 {
   "version": 1,
+  "home": {
+    "sectionId": "orientation",
+    "pageSlug": "orientation/product-context"
+  },
   "sections": [
     {
       "id": "orientation",

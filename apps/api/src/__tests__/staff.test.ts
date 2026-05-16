@@ -363,6 +363,103 @@ describe("Staff service", () => {
     expect(snapshot.invalidatedSessions).toEqual(["user-1"])
   })
 
+  it("uses the account action policy for direct staff mutation requests", async () => {
+    const service = createInMemoryStaffService({
+      users: [
+        {
+          id: "admin-1",
+          email: "admin@example.com",
+          emailVerified: true,
+          role: "admin",
+          accountStatus: "active",
+          suspendedUntil: null,
+          suspensionPublicReason: null,
+        },
+        {
+          id: "active-user",
+          email: "active-user@example.com",
+          emailVerified: true,
+          role: "user",
+          accountStatus: "active",
+          suspendedUntil: null,
+          suspensionPublicReason: null,
+        },
+        {
+          id: "suspended-user",
+          email: "suspended-user@example.com",
+          emailVerified: true,
+          role: "user",
+          accountStatus: "suspended",
+          suspendedUntil: null,
+          suspensionPublicReason: "terms_violation",
+        },
+        {
+          id: "deleted-user",
+          email: "deleted-user@example.com",
+          emailVerified: true,
+          role: "user",
+          accountStatus: "account_deleted",
+          suspendedUntil: null,
+          suspensionPublicReason: null,
+        },
+      ],
+      roleChangeAudits: [],
+      moderationCases: [],
+      invalidatedSessions: [],
+    })
+
+    await expect(
+      service.unsuspendUser({
+        actorId: "admin-1",
+        targetUserId: "active-user",
+        internalNotes: "No active suspension to clear.",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: { kind: "suspension_not_allowed" },
+    })
+
+    await expect(
+      service.changeRole({
+        actorId: "admin-1",
+        targetUserId: "deleted-user",
+        newRole: "moderator",
+        internalNotes: "Trying to restore staff status.",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: { kind: "role_change_not_allowed" },
+    })
+
+    await expect(
+      service.suspendUser({
+        actorId: "admin-1",
+        targetUserId: "deleted-user",
+        duration: "7d",
+        internalNotes: "Deleted account cannot be suspended.",
+        publicReason: "terms_violation",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: { kind: "suspension_not_allowed" },
+    })
+
+    await expect(
+      service.confirmUnderage({
+        actorId: "admin-1",
+        targetUserId: "suspended-user",
+        internalNotes: "Confirmed age restriction still applies.",
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        targetUserId: "suspended-user",
+        suspendedUntil: null,
+        publicReason: "underage",
+      },
+    })
+  })
+
   it("bootstraps exactly one verified owner idempotently with the one-time secret", async () => {
     const service = createOwnerBootstrapService()
 

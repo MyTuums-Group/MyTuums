@@ -1,8 +1,18 @@
 import type {
   AccountStatus,
   Result,
+  StaffAccountAction,
+  StaffAccountActions,
   SuspensionDuration,
   UserRole,
+} from "@workspace/types"
+import {
+  canChangeStaffRole,
+  canInspectStaffRole,
+  canPerformStaffAccountAction,
+  getStaffAccountActionPolicy,
+  isStaffRole,
+  isStaffRoleDemotion,
 } from "@workspace/types"
 
 export type StaffUserRow = {
@@ -73,12 +83,7 @@ export type OwnerBootstrapMutation = {
   oldRole: UserRole
 }
 
-export type StaffUserActions = {
-  canSuspend: boolean
-  canUnsuspend: boolean
-  canConfirmUnderage: boolean
-  roleOptions: Array<Exclude<UserRole, "owner">>
-}
+export type StaffUserActions = StaffAccountActions
 
 export type StaffUserDetail = {
   id: string
@@ -219,6 +224,7 @@ export function createStaffService(repository: StaffRepository): StaffService {
     duration: SuspensionDuration
     internalNotes: string
     publicReason: string
+    policyAction: StaffAccountAction
   }): Promise<Result<SuspendUserOutput, SuspendUserError>> {
     const actor = await repository.findUserById(input.actorId)
     if (!actor) return { ok: false, error: { kind: "actor_not_found" } }
@@ -230,7 +236,13 @@ export function createStaffService(repository: StaffRepository): StaffService {
       return { ok: false, error: { kind: "internal_notes_required" } }
     }
 
-    if (!canSuspendRole(actor.role, target.role)) {
+    if (
+      !canPerformStaffAccountAction({
+        actorRole: actor.role,
+        target,
+        action: input.policyAction,
+      })
+    ) {
       return { ok: false, error: { kind: "suspension_not_allowed" } }
     }
 
@@ -260,7 +272,7 @@ export function createStaffService(repository: StaffRepository): StaffService {
       const target = await repository.findUserById(input.targetUserId)
       if (!target) return { ok: false, error: { kind: "target_not_found" } }
 
-      if (!canInspectRole(actorResult.value.role, target.role)) {
+      if (!canInspectStaffRole(actorResult.value.role, target.role)) {
         return { ok: false, error: { kind: "staff_access_not_allowed" } }
       }
 
@@ -283,7 +295,9 @@ export function createStaffService(repository: StaffRepository): StaffService {
       return {
         ok: true,
         value: rows
-          .filter((row) => canInspectRole(actorResult.value.role, row.role))
+          .filter((row) =>
+            canInspectStaffRole(actorResult.value.role, row.role)
+          )
           .map(toStaffUserSearchItem),
       }
     },
@@ -300,7 +314,15 @@ export function createStaffService(repository: StaffRepository): StaffService {
         return { ok: false, error: { kind: "internal_notes_required" } }
       }
 
-      if (!canChangeRole(actor.role, target.role, input.newRole)) {
+      if (
+        input.newRole === "owner" ||
+        !canChangeStaffRole({
+          actorRole: actor.role,
+          currentTargetRole: target.role,
+          targetAccountStatus: target.accountStatus,
+          newRole: input.newRole,
+        })
+      ) {
         return { ok: false, error: { kind: "role_change_not_allowed" } }
       }
 
@@ -312,7 +334,7 @@ export function createStaffService(repository: StaffRepository): StaffService {
         newRole: input.newRole,
         internalNotes,
         unassignOpenCases:
-          isRoleDemotion(oldRole, input.newRole) && isStaffRole(oldRole),
+          isStaffRoleDemotion(oldRole, input.newRole) && isStaffRole(oldRole),
       })
 
       return {
@@ -321,13 +343,16 @@ export function createStaffService(repository: StaffRepository): StaffService {
       }
     },
 
-    suspendUser,
+    suspendUser(input) {
+      return suspendUser({ ...input, policyAction: "suspend" })
+    },
 
     confirmUnderage(input) {
       return suspendUser({
         ...input,
         duration: "indefinite",
         publicReason: "underage",
+        policyAction: "confirm_underage",
       })
     },
 
@@ -342,7 +367,13 @@ export function createStaffService(repository: StaffRepository): StaffService {
         return { ok: false, error: { kind: "internal_notes_required" } }
       }
 
-      if (!canSuspendRole(actor.role, target.role)) {
+      if (
+        !canPerformStaffAccountAction({
+          actorRole: actor.role,
+          target,
+          action: "unsuspend",
+        })
+      ) {
         return { ok: false, error: { kind: "suspension_not_allowed" } }
       }
 
@@ -539,34 +570,7 @@ function staffActionsForUser(
   actorRole: UserRole,
   target: StaffUserRow
 ): StaffUserActions {
-  const targetIsDeleted = target.accountStatus === "account_deleted"
-  const canSuspendTarget =
-    !targetIsDeleted && canSuspendRole(actorRole, target.role)
-  const roleOptions = targetIsDeleted
-    ? []
-    : (["user", "moderator", "admin"] as const).filter((newRole) =>
-        canChangeRole(actorRole, target.role, newRole)
-      )
-
-  return {
-    canSuspend: canSuspendTarget && target.accountStatus !== "suspended",
-    canUnsuspend: canSuspendTarget && target.accountStatus === "suspended",
-    canConfirmUnderage: canSuspendTarget,
-    roleOptions,
-  }
-}
-
-function canInspectRole(actorRole: UserRole, targetRole: UserRole): boolean {
-  switch (actorRole) {
-    case "owner":
-      return true
-    case "admin":
-      return targetRole === "user" || targetRole === "moderator"
-    case "moderator":
-      return targetRole === "user"
-    case "user":
-      return false
-  }
+  return getStaffAccountActionPolicy({ actorRole, target }).actions
 }
 
 function unassignOpenModerationCases(
@@ -581,69 +585,6 @@ function unassignOpenModerationCases(
     ) {
       moderationCase.assigneeId = null
     }
-  }
-}
-
-function canChangeRole(
-  actorRole: UserRole,
-  currentTargetRole: UserRole,
-  newRole: UserRole
-): boolean {
-  if (newRole === "owner" || currentTargetRole === "owner") return false
-
-  if (actorRole === "owner") {
-    return newRole !== currentTargetRole
-  }
-
-  if (actorRole === "admin") {
-    const allowedRoles = new Set<UserRole>(["user", "moderator"])
-    return (
-      allowedRoles.has(currentTargetRole) &&
-      allowedRoles.has(newRole) &&
-      newRole !== currentTargetRole
-    )
-  }
-
-  return false
-}
-
-function canSuspendRole(actorRole: UserRole, targetRole: UserRole): boolean {
-  if (targetRole === "owner") return false
-
-  switch (actorRole) {
-    case "owner":
-      return (
-        targetRole === "user" ||
-        targetRole === "moderator" ||
-        targetRole === "admin"
-      )
-    case "admin":
-      return targetRole === "user" || targetRole === "moderator"
-    case "moderator":
-      return targetRole === "user"
-    case "user":
-      return false
-  }
-}
-
-function isRoleDemotion(oldRole: UserRole, newRole: UserRole): boolean {
-  return roleRank(newRole) < roleRank(oldRole)
-}
-
-function isStaffRole(role: UserRole): boolean {
-  return role === "moderator" || role === "admin" || role === "owner"
-}
-
-function roleRank(role: UserRole): number {
-  switch (role) {
-    case "user":
-      return 0
-    case "moderator":
-      return 1
-    case "admin":
-      return 2
-    case "owner":
-      return 3
   }
 }
 

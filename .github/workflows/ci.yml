@@ -144,14 +144,19 @@ jobs:
           cache: pnpm
       - name: Start Azurite
         run: |
-          docker run -d --name mytuums-azurite -p 10000:10000 mcr.microsoft.com/azure-storage/azurite:latest azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck
+          mkdir -p /tmp/mytuums-azurite
+          npx -y -p azurite@3.35.0 azurite-blob \
+            --blobHost 127.0.0.1 \
+            --blobPort 10000 \
+            --location /tmp/mytuums-azurite \
+            --skipApiVersionCheck > /tmp/mytuums-azurite.log 2>&1 &
           for i in {1..30}; do
             if (echo > /dev/tcp/127.0.0.1/10000) >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
           done
-          docker logs mytuums-azurite
+          cat /tmp/mytuums-azurite.log
           exit 1
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web exec playwright install --with-deps chromium

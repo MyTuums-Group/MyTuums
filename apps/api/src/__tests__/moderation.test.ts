@@ -1,3 +1,4 @@
+import { URGENT_REPORT_REASONS } from "@workspace/types";
 import { describe, expect, it } from "vitest";
 import { createInMemoryModerationService } from "../services/moderation/moderation.core.js";
 
@@ -559,5 +560,12 @@ describe("moderation service", () => {
         actions: [],
       },
     });
+  });
+});
+
+describe("report reason catalogue", () => {
+  it("marks safety-sensitive reasons as urgent for triage", () => {
+    expect(URGENT_REPORT_REASONS.has("self_harm")).toBe(true);
+    expect(URGENT_REPORT_REASONS.has("spam")).toBe(false);
   });
 });

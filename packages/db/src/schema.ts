@@ -21,7 +21,7 @@ import {
   type MediaStatus,
   type ModerationActionType,
   type NotificationType,
-  type ReportReason,
+  REPORT_REASON_VALUES,
   type ReportTargetType,
   type UserRole,
 } from "@workspace/types"
@@ -66,17 +66,6 @@ const CASE_PRIORITIES = [
   "normal",
   "urgent",
 ] as const satisfies readonly CasePriority[]
-
-const REPORT_REASONS = [
-  "self_harm",
-  "illegal_or_dangerous",
-  "privacy",
-  "underage_or_safety",
-  "harassment",
-  "spam",
-  "impersonation",
-  "other",
-] as const satisfies readonly ReportReason[]
 
 const REPORT_TARGET_TYPES = [
   "post",
@@ -677,7 +666,7 @@ export const report = pgTable(
     }).notNull(),
     targetId: uuid("target_id").notNull(),
     reason: text("reason", {
-      enum: REPORT_REASONS,
+      enum: REPORT_REASON_VALUES,
     }).notNull(),
     /** Free-text notes from the reporter */
     notes: text("notes"),
@@ -711,7 +700,7 @@ export const moderationAction = pgTable(
       enum: MODERATION_ACTION_TYPES,
     }).notNull(),
     reason: text("reason", {
-      enum: REPORT_REASONS,
+      enum: REPORT_REASON_VALUES,
     }).notNull(),
     /** Shown to the content author (user-facing) */
     publicReason: text("public_reason"),

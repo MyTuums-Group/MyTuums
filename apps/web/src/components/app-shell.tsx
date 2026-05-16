@@ -1,8 +1,11 @@
 import {
+  ArrowRight,
   Bell,
+  CircleNotch,
   Compass,
   Desktop,
   Gear,
+  GameController,
   House,
   List,
   MagnifyingGlass,
@@ -28,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { Input } from "@workspace/ui/components/input"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Sheet,
@@ -38,7 +42,23 @@ import {
   SheetTrigger,
 } from "@workspace/ui/components/sheet"
 import { cn } from "@workspace/ui/lib/utils"
-import { useState, type ReactNode } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react"
+import {
+  getDiscoverSearchHref,
+  groupNavSearchResults,
+  shouldStartNavSearch,
+  type GameSearchResult,
+  type NavSearchResult,
+  type UserSearchResult,
+} from "@/components/app-shell-search"
 import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
 import { getApiBase, trpc } from "@/lib/trpc"
@@ -108,6 +128,10 @@ const FOOTER_SECTIONS = [
     ),
   },
 ]
+
+const NAV_SEARCH_RESULT_LIMIT = 20
+const NAV_SEARCH_DEBOUNCE_MS = 200
+const NAV_SEARCH_LOADING_DELAY_MS = 150
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -327,19 +351,174 @@ function HeaderLoadingState() {
 }
 
 function SearchEntry() {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const trimmedQuery = query.trim()
+  const debouncedQuery = useDebouncedValue(trimmedQuery, NAV_SEARCH_DEBOUNCE_MS)
+  const canSearch = shouldStartNavSearch(trimmedQuery)
+  const hasCurrentQueryData = canSearch && debouncedQuery === trimmedQuery
+  const isDebouncing = canSearch && debouncedQuery !== trimmedQuery
+  const searchQuery = trpc.search.useQuery(
+    { query: debouncedQuery, limit: NAV_SEARCH_RESULT_LIMIT },
+    {
+      enabled: shouldStartNavSearch(debouncedQuery),
+      retry: false,
+      refetchOnWindowFocus: false,
+      staleTime: 10_000,
+    }
+  )
+  const groupedResults = useMemo(
+    () =>
+      groupNavSearchResults(hasCurrentQueryData ? searchQuery.data : undefined),
+    [hasCurrentQueryData, searchQuery.data]
+  )
+  const selectableResults = useMemo(
+    () => [...groupedResults.users, ...groupedResults.games],
+    [groupedResults.games, groupedResults.users]
+  )
+  const showLoading = useDelayedFlag(
+    hasCurrentQueryData && searchQuery.isFetching,
+    NAV_SEARCH_LOADING_DELAY_MS
+  )
+
+  useEffect(() => {
+    setHighlightedIndex(-1)
+  }, [trimmedQuery, searchQuery.data])
+
+  useEffect(() => {
+    function handleGlobalSearchShortcut(event: globalThis.KeyboardEvent) {
+      if (event.key !== "/" || event.altKey || event.ctrlKey || event.metaKey) {
+        return
+      }
+      if (isEditableTarget(event.target)) return
+
+      event.preventDefault()
+      inputRef.current?.focus()
+      setIsOpen(true)
+    }
+
+    window.addEventListener("keydown", handleGlobalSearchShortcut)
+    return () => {
+      window.removeEventListener("keydown", handleGlobalSearchShortcut)
+    }
+  }, [])
+
+  function navigateToDiscover(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    window.location.href = getDiscoverSearchHref(trimmedQuery)
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" && selectableResults.length > 0) {
+      event.preventDefault()
+      setIsOpen(true)
+      setHighlightedIndex((current) =>
+        current < selectableResults.length - 1 ? current + 1 : 0
+      )
+      return
+    }
+
+    if (event.key === "ArrowUp" && selectableResults.length > 0) {
+      event.preventDefault()
+      setIsOpen(true)
+      setHighlightedIndex((current) =>
+        current > 0 ? current - 1 : selectableResults.length - 1
+      )
+      return
+    }
+
+    if (event.key === "Enter" && highlightedIndex >= 0) {
+      const highlighted = selectableResults[highlightedIndex]
+      if (highlighted) {
+        event.preventDefault()
+        window.location.href = highlighted.href
+      }
+      return
+    }
+
+    if (event.key === "Escape") {
+      if (isOpen) {
+        event.preventDefault()
+        setIsOpen(false)
+        setHighlightedIndex(-1)
+      } else {
+        event.currentTarget.blur()
+      }
+    }
+  }
+
+  const showPanel = isOpen && query.length > 0
+
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="hidden min-w-52 justify-start gap-2 text-muted-foreground lg:inline-flex"
-        asChild
+      <form
+        role="search"
+        className="relative hidden w-64 lg:block xl:w-80"
+        onSubmit={navigateToDiscover}
+        onFocus={() => setIsOpen(true)}
+        onBlur={(event) => {
+          const nextTarget = event.relatedTarget
+          if (
+            nextTarget instanceof Node &&
+            event.currentTarget.contains(nextTarget)
+          ) {
+            return
+          }
+          setIsOpen(false)
+          setHighlightedIndex(-1)
+        }}
       >
-        <a href="/discover">
-          <MagnifyingGlass weight="bold" />
-          Search players and games
-        </a>
-      </Button>
+        <MagnifyingGlass
+          weight="bold"
+          className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          ref={inputRef}
+          value={query}
+          type="search"
+          className="h-9 rounded-xl pr-3 pl-8"
+          placeholder="Search players and games"
+          aria-label="Search players and games"
+          aria-expanded={showPanel}
+          aria-controls="nav-search-results"
+          aria-activedescendant={
+            highlightedIndex >= 0
+              ? `nav-search-result-${highlightedIndex}`
+              : undefined
+          }
+          autoComplete="off"
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setIsOpen(true)
+          }}
+          onKeyDown={handleKeyDown}
+        />
+
+        {showPanel ? (
+          <div
+            id="nav-search-results"
+            role="listbox"
+            className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
+          >
+            <NavSearchPanel
+              canSearch={canSearch}
+              errorMessage={
+                hasCurrentQueryData
+                  ? (searchQuery.error?.message ?? null)
+                  : null
+              }
+              games={groupedResults.games}
+              highlightedIndex={highlightedIndex}
+              isLoading={isDebouncing || showLoading}
+              query={trimmedQuery}
+              users={groupedResults.users}
+              onHighlight={setHighlightedIndex}
+            />
+          </div>
+        ) : null}
+      </form>
 
       <Button
         variant="ghost"
@@ -352,6 +531,154 @@ function SearchEntry() {
         </a>
       </Button>
     </>
+  )
+}
+
+function NavSearchPanel({
+  canSearch,
+  errorMessage,
+  games,
+  highlightedIndex,
+  isLoading,
+  onHighlight,
+  query,
+  users,
+}: {
+  canSearch: boolean
+  errorMessage: string | null
+  games: GameSearchResult[]
+  highlightedIndex: number
+  isLoading: boolean
+  onHighlight: (index: number) => void
+  query: string
+  users: UserSearchResult[]
+}) {
+  if (!canSearch) {
+    return <NavSearchState>Keep typing...</NavSearchState>
+  }
+
+  if (errorMessage) {
+    return <NavSearchState tone="error">{errorMessage}</NavSearchState>
+  }
+
+  if (isLoading && users.length === 0 && games.length === 0) {
+    return (
+      <NavSearchState>
+        <CircleNotch weight="bold" className="animate-spin" />
+        Searching...
+      </NavSearchState>
+    )
+  }
+
+  if (users.length === 0 && games.length === 0) {
+    return <NavSearchState>No players or games found.</NavSearchState>
+  }
+
+  return (
+    <div className="py-1">
+      {users.length > 0 ? (
+        <NavSearchGroup
+          title="Users"
+          items={users}
+          startIndex={0}
+          highlightedIndex={highlightedIndex}
+          onHighlight={onHighlight}
+        />
+      ) : null}
+      {games.length > 0 ? (
+        <NavSearchGroup
+          title="Games"
+          items={games}
+          startIndex={users.length}
+          highlightedIndex={highlightedIndex}
+          onHighlight={onHighlight}
+        />
+      ) : null}
+      <div className="border-t border-border/70 p-1">
+        <a
+          href={getDiscoverSearchHref(query)}
+          className="flex min-h-9 items-center justify-between rounded-md px-2.5 text-sm font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <span>See all</span>
+          <ArrowRight weight="bold" />
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function NavSearchGroup({
+  highlightedIndex,
+  items,
+  onHighlight,
+  startIndex,
+  title,
+}: {
+  highlightedIndex: number
+  items: NavSearchResult[]
+  onHighlight: (index: number) => void
+  startIndex: number
+  title: string
+}) {
+  return (
+    <div className="px-1 py-1">
+      <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+        {title}
+      </p>
+      <div className="flex flex-col gap-0.5">
+        {items.map((item, index) => {
+          const absoluteIndex = startIndex + index
+          const isHighlighted = highlightedIndex === absoluteIndex
+          return (
+            <a
+              key={`${item.type}-${item.id}`}
+              id={`nav-search-result-${absoluteIndex}`}
+              href={item.href}
+              role="option"
+              aria-selected={isHighlighted}
+              className={cn(
+                "flex min-h-11 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                isHighlighted ? "bg-muted text-foreground" : "hover:bg-muted"
+              )}
+              onMouseEnter={() => onHighlight(absoluteIndex)}
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground ring-1 ring-foreground/10">
+                {item.type === "user" ? (
+                  <User weight="bold" />
+                ) : (
+                  <GameController weight="bold" />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{item.label}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {item.type === "user" ? `@${item.username}` : "Game"}
+                </span>
+              </span>
+            </a>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function NavSearchState({
+  children,
+  tone = "muted",
+}: {
+  children: ReactNode
+  tone?: "muted" | "error"
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-12 items-center gap-2 px-3 py-2 text-sm",
+        tone === "error" ? "text-destructive" : "text-muted-foreground"
+      )}
+    >
+      {children}
+    </div>
   )
 }
 
@@ -769,4 +1096,53 @@ function isNavActive(pathname: string, href: string, exact = false) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, delayMs)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [delayMs, value])
+
+  return debouncedValue
+}
+
+function useDelayedFlag(active: boolean, delayMs: number) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    if (!active) {
+      setIsVisible(false)
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsVisible(true)
+    }, delayMs)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [active, delayMs])
+
+  return isVisible
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+
+  const tagName = target.tagName.toLowerCase()
+  return (
+    target.isContentEditable ||
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select"
+  )
 }

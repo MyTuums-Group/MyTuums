@@ -1,27 +1,39 @@
-import { db, game, profile, user } from "@workspace/db";
-import { eq, or, sql, type SQL } from "drizzle-orm";
-import type { SearchQueryAdapter } from "./index.js";
+import { db, game, profile, user } from "@workspace/db"
+import { and, eq, notInArray, or, sql, type SQL } from "drizzle-orm"
+import type { SearchQueryAdapter } from "./index.js"
 
 function escapeLikeWildcards(term: string): string {
-  return term.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+  return term
+    .replaceAll("\\", "\\\\")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_")
 }
 
 /** Substring match on an expression; pattern must use `escape '\\'`. */
 function exprLikeContains(expression: SQL, term: string): SQL {
-  const pattern = `%${escapeLikeWildcards(term)}%`;
-  return sql`(${expression} like ${pattern} escape '\\')`;
+  const pattern = `%${escapeLikeWildcards(term)}%`
+  return sql`(${expression} like ${pattern} escape '\\')`
 }
 
 export const searchQueries: SearchQueryAdapter = {
-  async searchProfiles({ viewer: _viewer, terms, limit }) {
-    if (terms.length === 0) return [];
+  async searchProfiles({ viewer, terms, limit }) {
+    if (terms.length === 0) return []
 
     const clauses = terms.flatMap((term) => [
-      exprLikeContains(sql`public.immutable_unaccent(lower(${profile.username}))`, term),
-      exprLikeContains(sql`public.immutable_unaccent(lower(coalesce(${profile.displayName}, '')))`, term),
-    ]);
+      exprLikeContains(
+        sql`public.immutable_unaccent(lower(${profile.username}))`,
+        term
+      ),
+      exprLikeContains(
+        sql`public.immutable_unaccent(lower(coalesce(${profile.displayName}, '')))`,
+        term
+      ),
+    ])
 
-    const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses);
+    const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses)
+    const blockedPairIds = [
+      ...new Set([...viewer.blockedUserIds, ...viewer.blockedByUserIds]),
+    ]
 
     return db
       .select({
@@ -33,20 +45,37 @@ export const searchQueries: SearchQueryAdapter = {
       })
       .from(profile)
       .innerJoin(user, eq(profile.userId, user.id))
-      .where(whereClause)
-      .limit(limit);
+      .where(
+        and(
+          whereClause,
+          eq(user.accountStatus, "active"),
+          blockedPairIds.length > 0
+            ? notInArray(profile.userId, blockedPairIds)
+            : undefined
+        )
+      )
+      .limit(limit)
   },
 
   async searchGames({ terms, limit }) {
-    if (terms.length === 0) return [];
+    if (terms.length === 0) return []
 
     const clauses = terms.flatMap((term) => [
-      exprLikeContains(sql`public.immutable_unaccent(lower(${game.slug}))`, term),
-      exprLikeContains(sql`public.immutable_unaccent(lower(${game.name}))`, term),
-      exprLikeContains(sql`public.immutable_unaccent(lower(coalesce(${game.aliases}::text, '')))`, term),
-    ]);
+      exprLikeContains(
+        sql`public.immutable_unaccent(lower(${game.slug}))`,
+        term
+      ),
+      exprLikeContains(
+        sql`public.immutable_unaccent(lower(${game.name}))`,
+        term
+      ),
+      exprLikeContains(
+        sql`public.immutable_unaccent(lower(coalesce(${game.aliases}::text, '')))`,
+        term
+      ),
+    ])
 
-    const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses);
+    const whereClause = clauses.length === 1 ? clauses[0]! : or(...clauses)
 
     const rows = await db
       .select({
@@ -57,12 +86,12 @@ export const searchQueries: SearchQueryAdapter = {
         isActive: game.isActive,
       })
       .from(game)
-      .where(whereClause)
-      .limit(limit);
+      .where(and(whereClause, eq(game.isActive, true)))
+      .limit(limit)
 
     return rows.map((row) => ({
       ...row,
       aliases: row.aliases ?? [],
-    }));
+    }))
   },
-};
+}

@@ -1,3 +1,4 @@
+import type { Icon } from "@phosphor-icons/react"
 import {
   ChatCircleDots,
   Check,
@@ -7,7 +8,6 @@ import {
   UserPlus,
 } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
-import type { AppRouter, inferRouterOutputs } from "@workspace/api-contract"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Button } from "@workspace/ui/components/button"
@@ -19,14 +19,23 @@ import {
 } from "@workspace/ui/components/card"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  type NotificationIconKind,
+  type NotificationListItem,
+  getNotificationPresentation,
+} from "@/features/notifications/notification-presentation"
 import { trpc } from "@/lib/trpc"
+
+const NOTIFICATION_ICONS: Record<NotificationIconKind, Icon> = {
+  follow: UserPlus,
+  heart: HeartStraight,
+  chat: ChatCircleDots,
+  moderation: ShieldWarning,
+}
 
 export const Route = createFileRoute("/notifications")({
   component: NotificationsPage,
 })
-
-type RouterOutputs = inferRouterOutputs<AppRouter>
-type NotificationItem = RouterOutputs["notification"]["list"][number]
 
 function NotificationsPage() {
   const utils = trpc.useUtils()
@@ -101,7 +110,7 @@ function NotificationsPage() {
   )
 }
 
-function NotificationRow({ item }: { item: NotificationItem }) {
+function NotificationRow({ item }: { item: NotificationListItem }) {
   const utils = trpc.useUtils()
   const markReadMutation = trpc.notification.markRead.useMutation({
     async onSuccess() {
@@ -111,8 +120,9 @@ function NotificationRow({ item }: { item: NotificationItem }) {
       ])
     },
   })
-  const href = notificationHref(item)
-  const Icon = notificationIcon(item.type)
+  const { href, iconKind, title, targetPreview } =
+    getNotificationPresentation(item)
+  const Icon = NOTIFICATION_ICONS[iconKind]
 
   return (
     <a
@@ -140,7 +150,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <p className="text-sm leading-5 font-medium text-foreground">
-            {notificationText(item)}
+            {title}
           </p>
           {!item.isRead ? (
             <span
@@ -157,7 +167,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
         </div>
 
         <p className="line-clamp-2 text-sm break-words text-muted-foreground">
-          {targetPreview(item)}
+          {targetPreview}
         </p>
 
         <time
@@ -189,70 +199,6 @@ function NotificationSkeleton() {
       ))}
     </div>
   )
-}
-
-function notificationIcon(type: NotificationItem["type"]) {
-  switch (type) {
-    case "follow":
-      return UserPlus
-    case "post_like":
-    case "comment_like":
-      return HeartStraight
-    case "post_comment":
-      return ChatCircleDots
-    case "content_removed":
-      return ShieldWarning
-  }
-}
-
-function notificationText(item: NotificationItem): string {
-  const actor = item.actor
-    ? (item.actor.displayName ?? `@${item.actor.username}`)
-    : null
-
-  switch (item.type) {
-    case "follow":
-      return `${actor ?? "Someone"} followed you`
-    case "post_like":
-      return `${actor ?? "Someone"} liked your post`
-    case "post_comment":
-      return `${actor ?? "Someone"} commented on your post`
-    case "comment_like":
-      return `${actor ?? "Someone"} liked your comment`
-    case "content_removed":
-      return item.target.kind === "removed_content"
-        ? `Your ${item.target.targetType} was removed`
-        : "Your content was removed"
-  }
-}
-
-function targetPreview(item: NotificationItem): string {
-  switch (item.target.kind) {
-    case "profile":
-      return `@${item.target.username}`
-    case "post":
-    case "comment":
-      return item.target.preview
-    case "removed_content":
-      return item.target.publicReason
-        ? `Reason: ${item.target.publicReason}`
-        : "Moderation update"
-  }
-}
-
-function notificationHref(item: NotificationItem): string {
-  switch (item.target.kind) {
-    case "profile":
-      return `/@${item.target.username}`
-    case "post":
-      return `/post/${item.target.publicId}`
-    case "comment":
-      return `/post/${item.target.postPublicId}#comment-${item.target.commentId}`
-    case "removed_content":
-      return item.target.postPublicId
-        ? `/post/${item.target.postPublicId}`
-        : "/notifications"
-  }
 }
 
 function getInitials(name: string): string {

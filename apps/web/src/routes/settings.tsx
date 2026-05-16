@@ -922,7 +922,7 @@ function ProfileSettings({
             <MediaField
               label="Avatar"
               mediaId={form.avatarMediaId}
-              previewUrl={previewUrlForSlot("avatar")}
+              previewUrl={previewUrlForSlot("avatar") ?? null}
               slot="avatar"
               slotIssue={slotIssues.avatar}
               slotUpload={slotUploadStates.avatar}
@@ -933,7 +933,7 @@ function ProfileSettings({
             <MediaField
               label="Banner"
               mediaId={form.bannerMediaId}
-              previewUrl={previewUrlForSlot("banner")}
+              previewUrl={previewUrlForSlot("banner") ?? null}
               slot="banner"
               slotIssue={slotIssues.banner}
               slotUpload={slotUploadStates.banner}

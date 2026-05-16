@@ -56,7 +56,7 @@ export type PostViewModel = {
   author: {
     username: string;
     displayName: string | null;
-    avatarUrl: null;
+    avatarUrl: string | null;
   };
   gameTag: { id: string; slug: string; name: string } | null;
   media: {
@@ -100,13 +100,18 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
 
   async function toPostView(viewer: ViewerContext, row: FeedPostRow): Promise<PostViewModel> {
     const showRemovedPlaceholder = row.removedAt !== null && !isStaff(viewer);
+    const [authorAvatarUrl, postMedia] = await Promise.all([
+      toAuthorAvatarUrl(media, row.authorAvatarMediaId),
+      showRemovedPlaceholder ? Promise.resolve(null) : toMediaView(media, row),
+    ]);
+
     return {
       publicId: row.publicId,
       text: showRemovedPlaceholder ? "" : row.text,
       author: {
         username: row.authorUsername,
         displayName: row.authorDisplayName,
-        avatarUrl: null,
+        avatarUrl: authorAvatarUrl,
       },
       gameTag:
         row.gameTagId && row.gameTagSlug && row.gameTagName
@@ -116,7 +121,7 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
               name: row.gameTagName,
             }
           : null,
-      media: showRemovedPlaceholder ? null : await toMediaView(media, row),
+      media: postMedia,
       likeCount: row.likeCount,
       likedByViewer: row.likedByViewer ?? false,
       commentCount: row.commentCount,
@@ -166,6 +171,15 @@ export function createPostPresentation({ media, loadPostDetail }: PostPresentati
       };
     },
   };
+}
+
+async function toAuthorAvatarUrl(
+  media: Pick<MediaService, "signReadUrl">,
+  mediaId: string | null,
+): Promise<string | null> {
+  if (!mediaId) return null;
+  const signed = await media.signReadUrl(mediaId);
+  return signed.ok ? signed.value.readUrl : null;
 }
 
 async function toMediaView(

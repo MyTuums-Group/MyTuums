@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm"
 import {
   comment as commentTable,
   db,
@@ -8,16 +8,27 @@ import {
   post as postTable,
   profile as profileTable,
   report as reportTable,
-} from "@workspace/db";
+} from "@workspace/db"
 import {
-  URGENT_REPORT_REASONS,
   type ModerationActionType,
   type ReportReason,
   type ReportTargetType,
   type TargetRef,
-} from "@workspace/types";
-import { authorization } from "../../authorization/index.js";
-import { isStaff } from "../visibility/memory.js";
+} from "@workspace/types"
+import { authorization } from "../../authorization/index.js"
+import {
+  caseActionMatchesTarget,
+  hasTargetUpdateConflict,
+  isContentRemovalAction,
+  isSameStateCaseActionRetry,
+  isStaffRole,
+  normalizePublicRemovalReason,
+  normalizeRequiredInternalNotes,
+} from "./case-command-policy.js"
+import {
+  compareCasesForQueue,
+  toModerationCaseTargetDetail,
+} from "./case-read-model.js"
 import type {
   ModerationActionRecord,
   ModerationCaseCommandError,
@@ -30,27 +41,38 @@ import type {
   ReportableTargetInput,
   SubmitReportError,
   SubmitReportInput,
-} from "./moderation.core.js";
+} from "./moderation.core.js"
+import {
+  ACTIVE_REPORT_CASE_STATUSES,
+  initialCasePriorityForReport,
+  normalizeReportNotes,
+  reportVolumeWindowStart,
+  shouldEscalateCasePriority,
+} from "./report-intake.js"
+import {
+  contentRemovalNotificationData,
+  shouldCreateContentRemovalNotification,
+} from "./side-effects.js"
 
 type ServiceResult<TValue, TError> =
   | { ok: true; value: TValue }
-  | { ok: false; error: TError };
+  | { ok: false; error: TError }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 type ResolvedTarget = {
-  targetType: ReportTargetType;
-  targetId: string;
-  ownerId: string;
-  postId: string | null;
-  text: string | null;
-  label: string;
-  deletedAt: Date | null;
-  removedAt: Date | null;
-  removalPublicReason: string | null;
-  updatedAt: Date | null;
-  targetRef: TargetRef;
-};
+  targetType: ReportTargetType
+  targetId: string
+  ownerId: string
+  postId: string | null
+  text: string | null
+  label: string
+  deletedAt: Date | null
+  removedAt: Date | null
+  removalPublicReason: string | null
+  updatedAt: Date | null
+  targetRef: TargetRef
+}
 
 export const moderationService: ModerationService = {
   submitReport,
@@ -61,23 +83,25 @@ export const moderationService: ModerationService = {
   actionCase,
   listCases,
   getCase,
-};
+}
 
 async function submitReport(
-  input: SubmitReportInput,
+  input: SubmitReportInput
 ): Promise<ServiceResult<ModerationReportRecord, SubmitReportError>> {
-  const viewer = await authorization.getViewerContext({ userId: input.reporterId });
+  const viewer = await authorization.getViewerContext({
+    userId: input.reporterId,
+  })
   if (!viewer.userId) {
-    return { ok: false, error: { kind: "reporter_not_found" } };
+    return { ok: false, error: { kind: "reporter_not_found" } }
   }
 
-  const target = await resolvePublicTarget(input.target);
+  const target = await resolvePublicTarget(input.target)
   if (!target) {
-    return { ok: false, error: { kind: "target_not_found" } };
+    return { ok: false, error: { kind: "target_not_found" } }
   }
 
   if (!authorization.canView(viewer, target.targetRef)) {
-    return { ok: false, error: { kind: "target_not_visible" } };
+    return { ok: false, error: { kind: "target_not_visible" } }
   }
 
   return db.transaction(async (tx) => {
@@ -85,13 +109,13 @@ async function submitReport(
       reporterId: input.reporterId,
       targetType: target.targetType,
       targetId: target.targetId,
-    });
+    })
     if (duplicate) {
-      return { ok: false, error: { kind: "duplicate_report" } };
+      return { ok: false, error: { kind: "duplicate_report" } }
     }
 
-    const now = new Date();
-    let caseRow = await findOpenCaseForTarget(tx, target);
+    const now = new Date()
+    let caseRow = await findOpenCaseForTarget(tx, target)
     if (!caseRow) {
       const [createdCase] = await tx
         .insert(moderationCase)
@@ -99,14 +123,14 @@ async function submitReport(
           targetType: target.targetType,
           targetId: target.targetId,
           status: "open",
-          priority: URGENT_REPORT_REASONS.has(input.reason) ? "urgent" : "normal",
+          priority: initialCasePriorityForReport(input.reason),
           createdAt: now,
         })
-        .returning();
+        .returning()
       if (!createdCase) {
-        throw new Error("Failed to create moderation case.");
+        throw new Error("Failed to create moderation case.")
       }
-      caseRow = createdCase;
+      caseRow = createdCase
     }
 
     const [createdReport] = await tx
@@ -116,37 +140,43 @@ async function submitReport(
         targetType: target.targetType,
         targetId: target.targetId,
         reason: input.reason,
-        notes: input.notes?.trim() ? input.notes.trim() : null,
+        notes: normalizeReportNotes(input.notes),
         moderationCaseId: caseRow.id,
         createdAt: now,
       })
-      .returning();
+      .returning()
     if (!createdReport) {
-      throw new Error("Failed to create report.");
+      throw new Error("Failed to create report.")
     }
 
     if (
-      URGENT_REPORT_REASONS.has(input.reason) ||
-      (await uniqueReportersInLast24Hours(tx, caseRow.id, now)) >= 3
+      shouldEscalateCasePriority({
+        reason: input.reason,
+        uniqueReporterCountWithinWindow: await uniqueReportersInLast24Hours(
+          tx,
+          caseRow.id,
+          now
+        ),
+      })
     ) {
       const [updatedCase] = await tx
         .update(moderationCase)
         .set({ priority: "urgent" })
         .where(eq(moderationCase.id, caseRow.id))
-        .returning();
-      if (updatedCase) caseRow = updatedCase;
+        .returning()
+      if (updatedCase) caseRow = updatedCase
     }
 
-    return { ok: true, value: mapReportRow(createdReport) };
-  });
+    return { ok: true, value: mapReportRow(createdReport) }
+  })
 }
 
 async function claimCase(input: {
-  actorId: string;
-  caseId: string;
+  actorId: string
+  caseId: string
 }): Promise<ServiceResult<ModerationCaseRecord, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
 
   const [updated] = await db
     .update(moderationCase)
@@ -155,21 +185,21 @@ async function claimCase(input: {
       assigneeId: input.actorId,
     })
     .where(eq(moderationCase.id, input.caseId))
-    .returning();
+    .returning()
 
-  if (!updated) return { ok: false, error: { kind: "case_not_found" } };
-  return { ok: true, value: mapCaseRow(updated) };
+  if (!updated) return { ok: false, error: { kind: "case_not_found" } }
+  return { ok: true, value: mapCaseRow(updated) }
 }
 
 async function assignCase(input: {
-  actorId: string;
-  caseId: string;
-  assigneeId: string;
+  actorId: string
+  caseId: string
+  assigneeId: string
 }): Promise<ServiceResult<ModerationCaseRecord, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
-  const assignee = await ensureStaff(input.assigneeId);
-  if (!assignee.ok) return { ok: false, error: { kind: "assignee_not_found" } };
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
+  const assignee = await ensureStaff(input.assigneeId)
+  if (!assignee.ok) return { ok: false, error: { kind: "assignee_not_found" } }
 
   const [updated] = await db
     .update(moderationCase)
@@ -178,18 +208,18 @@ async function assignCase(input: {
       assigneeId: input.assigneeId,
     })
     .where(eq(moderationCase.id, input.caseId))
-    .returning();
+    .returning()
 
-  if (!updated) return { ok: false, error: { kind: "case_not_found" } };
-  return { ok: true, value: mapCaseRow(updated) };
+  if (!updated) return { ok: false, error: { kind: "case_not_found" } }
+  return { ok: true, value: mapCaseRow(updated) }
 }
 
 async function unassignCase(input: {
-  actorId: string;
-  caseId: string;
+  actorId: string
+  caseId: string
 }): Promise<ServiceResult<ModerationCaseRecord, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
 
   const [updated] = await db
     .update(moderationCase)
@@ -198,32 +228,32 @@ async function unassignCase(input: {
       assigneeId: null,
     })
     .where(eq(moderationCase.id, input.caseId))
-    .returning();
+    .returning()
 
-  if (!updated) return { ok: false, error: { kind: "case_not_found" } };
-  return { ok: true, value: mapCaseRow(updated) };
+  if (!updated) return { ok: false, error: { kind: "case_not_found" } }
+  return { ok: true, value: mapCaseRow(updated) }
 }
 
 async function dismissCase(input: {
-  actorId: string;
-  caseId: string;
-  reason: ReportReason;
-  internalNotes: string;
+  actorId: string
+  caseId: string
+  reason: ReportReason
+  internalNotes: string
 }): Promise<ServiceResult<ModerationCaseRecord, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
-  const notes = input.internalNotes.trim();
-  if (!notes) return { ok: false, error: { kind: "internal_notes_required" } };
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
+  const notes = normalizeRequiredInternalNotes(input.internalNotes)
+  if (!notes) return { ok: false, error: { kind: "internal_notes_required" } }
 
   return db.transaction(async (tx) => {
     const [caseRow] = await tx
       .select()
       .from(moderationCase)
       .where(eq(moderationCase.id, input.caseId))
-      .limit(1);
-    if (!caseRow) return { ok: false, error: { kind: "case_not_found" } };
+      .limit(1)
+    if (!caseRow) return { ok: false, error: { kind: "case_not_found" } }
 
-    const now = new Date();
+    const now = new Date()
     await insertAction(tx, {
       caseId: input.caseId,
       actorId: input.actorId,
@@ -233,36 +263,36 @@ async function dismissCase(input: {
       internalNotes: notes,
       conflictOverride: false,
       createdAt: now,
-    });
+    })
 
     const [updated] = await tx
       .update(moderationCase)
       .set({ status: "dismissed", resolvedAt: now })
       .where(eq(moderationCase.id, input.caseId))
-      .returning();
-    if (!updated) throw new Error("Failed to dismiss moderation case.");
+      .returning()
+    if (!updated) throw new Error("Failed to dismiss moderation case.")
 
-    return { ok: true, value: mapCaseRow(updated) };
-  });
+    return { ok: true, value: mapCaseRow(updated) }
+  })
 }
 
 async function actionCase(input: {
-  actorId: string;
-  caseId: string;
-  action: ModerationActionType;
-  reason: ReportReason;
-  publicReason?: string | null;
-  internalNotes: string;
-  expectedTargetUpdatedAt?: Date | null;
-  conflictOverride?: boolean;
+  actorId: string
+  caseId: string
+  action: ModerationActionType
+  reason: ReportReason
+  publicReason?: string | null
+  internalNotes: string
+  expectedTargetUpdatedAt?: Date | null
+  conflictOverride?: boolean
 }): Promise<ServiceResult<ModerationCaseRecord, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
-  const notes = input.internalNotes.trim();
-  if (!notes) return { ok: false, error: { kind: "internal_notes_required" } };
-  const publicReason = input.publicReason?.trim() ?? "";
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
+  const notes = normalizeRequiredInternalNotes(input.internalNotes)
+  if (!notes) return { ok: false, error: { kind: "internal_notes_required" } }
+  const publicReason = normalizePublicRemovalReason(input.publicReason)
   if (isContentRemovalAction(input.action) && !publicReason) {
-    return { ok: false, error: { kind: "public_reason_required" } };
+    return { ok: false, error: { kind: "public_reason_required" } }
   }
 
   return db.transaction(async (tx) => {
@@ -270,30 +300,31 @@ async function actionCase(input: {
       .select()
       .from(moderationCase)
       .where(eq(moderationCase.id, input.caseId))
-      .limit(1);
-    if (!caseRow) return { ok: false, error: { kind: "case_not_found" } };
+      .limit(1)
+    if (!caseRow) return { ok: false, error: { kind: "case_not_found" } }
 
-    const target = await resolveCaseTarget(tx, caseRow);
-    if (!target) return { ok: false, error: { kind: "target_not_found" } };
+    const target = await resolveCaseTarget(tx, caseRow)
+    if (!target) return { ok: false, error: { kind: "target_not_found" } }
 
-    if (!actionMatchesTarget(input.action, caseRow.targetType)) {
-      return { ok: false, error: { kind: "invalid_action_for_target" } };
+    if (!caseActionMatchesTarget(input.action, caseRow.targetType)) {
+      return { ok: false, error: { kind: "invalid_action_for_target" } }
     }
 
-    if (isSameStateRetry(input.action, target)) {
-      return { ok: true, value: mapCaseRow(caseRow) };
+    if (isSameStateCaseActionRetry(input.action, target)) {
+      return { ok: true, value: mapCaseRow(caseRow) }
     }
 
     if (
-      input.expectedTargetUpdatedAt &&
-      target.updatedAt &&
-      target.updatedAt.getTime() !== input.expectedTargetUpdatedAt.getTime() &&
-      input.conflictOverride !== true
+      hasTargetUpdateConflict({
+        expectedUpdatedAt: input.expectedTargetUpdatedAt,
+        actualUpdatedAt: target.updatedAt,
+        conflictOverride: input.conflictOverride,
+      })
     ) {
-      return { ok: false, error: { kind: "target_conflict" } };
+      return { ok: false, error: { kind: "target_conflict" } }
     }
 
-    const now = new Date();
+    const now = new Date()
     if (input.action === "remove_post") {
       await tx
         .update(postTable)
@@ -302,9 +333,14 @@ async function actionCase(input: {
           removalPublicReason: publicReason,
           updatedAt: now,
         })
-        .where(eq(postTable.id, target.targetId));
-      if (!target.deletedAt) {
-        await insertRemovalNotification(tx, input.actorId, target, publicReason);
+        .where(eq(postTable.id, target.targetId))
+      if (shouldCreateContentRemovalNotification(target)) {
+        await insertRemovalNotification(
+          tx,
+          input.actorId,
+          target,
+          publicReason ?? ""
+        )
       }
     } else if (input.action === "restore_post") {
       await tx
@@ -314,7 +350,7 @@ async function actionCase(input: {
           removalPublicReason: null,
           updatedAt: now,
         })
-        .where(eq(postTable.id, target.targetId));
+        .where(eq(postTable.id, target.targetId))
     } else if (input.action === "remove_comment") {
       await tx
         .update(commentTable)
@@ -323,7 +359,7 @@ async function actionCase(input: {
           removalPublicReason: publicReason,
           updatedAt: now,
         })
-        .where(eq(commentTable.id, target.targetId));
+        .where(eq(commentTable.id, target.targetId))
       if (!target.deletedAt && target.postId) {
         await tx
           .update(postTable)
@@ -331,8 +367,15 @@ async function actionCase(input: {
             commentCount: sql<number>`greatest(${postTable.commentCount} - 1, 0)`,
             updatedAt: now,
           })
-          .where(eq(postTable.id, target.postId));
-        await insertRemovalNotification(tx, input.actorId, target, publicReason);
+          .where(eq(postTable.id, target.postId))
+        if (shouldCreateContentRemovalNotification(target)) {
+          await insertRemovalNotification(
+            tx,
+            input.actorId,
+            target,
+            publicReason ?? ""
+          )
+        }
       }
     } else if (input.action === "restore_comment") {
       await tx
@@ -342,7 +385,7 @@ async function actionCase(input: {
           removalPublicReason: null,
           updatedAt: now,
         })
-        .where(eq(commentTable.id, target.targetId));
+        .where(eq(commentTable.id, target.targetId))
       if (!target.deletedAt && target.postId) {
         await tx
           .update(postTable)
@@ -350,7 +393,7 @@ async function actionCase(input: {
             commentCount: sql<number>`${postTable.commentCount} + 1`,
             updatedAt: now,
           })
-          .where(eq(postTable.id, target.postId));
+          .where(eq(postTable.id, target.postId))
       }
     }
 
@@ -363,34 +406,41 @@ async function actionCase(input: {
       internalNotes: notes,
       conflictOverride: input.conflictOverride === true,
       createdAt: now,
-    });
+    })
 
     const [updatedCase] = await tx
       .update(moderationCase)
       .set({ status: "actioned", resolvedAt: now })
       .where(eq(moderationCase.id, input.caseId))
-      .returning();
-    if (!updatedCase) throw new Error("Failed to update moderation case.");
+      .returning()
+    if (!updatedCase) throw new Error("Failed to update moderation case.")
 
-    return { ok: true, value: mapCaseRow(updatedCase) };
-  });
+    return { ok: true, value: mapCaseRow(updatedCase) }
+  })
 }
 
 async function listCases(input: {
-  actorId: string;
-}): Promise<ServiceResult<ModerationCaseSummary[], ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
+  actorId: string
+}): Promise<
+  ServiceResult<ModerationCaseSummary[], ModerationCaseCommandError>
+> {
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
 
   const [caseRows, reportRows] = await Promise.all([
     db.select().from(moderationCase),
-    db.select({ moderationCaseId: reportTable.moderationCaseId }).from(reportTable),
-  ]);
+    db
+      .select({ moderationCaseId: reportTable.moderationCaseId })
+      .from(reportTable),
+  ])
 
-  const reportCounts = new Map<string, number>();
+  const reportCounts = new Map<string, number>()
   for (const row of reportRows) {
-    if (!row.moderationCaseId) continue;
-    reportCounts.set(row.moderationCaseId, (reportCounts.get(row.moderationCaseId) ?? 0) + 1);
+    if (!row.moderationCaseId) continue
+    reportCounts.set(
+      row.moderationCaseId,
+      (reportCounts.get(row.moderationCaseId) ?? 0) + 1
+    )
   }
 
   const summaries = caseRows
@@ -398,24 +448,24 @@ async function listCases(input: {
       ...mapCaseRow(row),
       reportCount: reportCounts.get(row.id) ?? 0,
     }))
-    .sort(compareCasesForQueue);
+    .sort(compareCasesForQueue)
 
-  return { ok: true, value: summaries };
+  return { ok: true, value: summaries }
 }
 
 async function getCase(input: {
-  actorId: string;
-  caseId: string;
+  actorId: string
+  caseId: string
 }): Promise<ServiceResult<ModerationCaseDetail, ModerationCaseCommandError>> {
-  const staff = await ensureStaff(input.actorId);
-  if (!staff.ok) return staff;
+  const staff = await ensureStaff(input.actorId)
+  if (!staff.ok) return staff
 
   const [caseRow] = await db
     .select()
     .from(moderationCase)
     .where(eq(moderationCase.id, input.caseId))
-    .limit(1);
-  if (!caseRow) return { ok: false, error: { kind: "case_not_found" } };
+    .limit(1)
+  if (!caseRow) return { ok: false, error: { kind: "case_not_found" } }
 
   const [reportRows, actionRows, target] = await Promise.all([
     db
@@ -427,7 +477,7 @@ async function getCase(input: {
       .from(moderationAction)
       .where(eq(moderationAction.caseId, input.caseId)),
     resolveCaseTarget(db, caseRow),
-  ]);
+  ])
 
   return {
     ok: true,
@@ -437,11 +487,11 @@ async function getCase(input: {
       reports: reportRows.map(mapReportRow),
       actions: actionRows.map(mapActionRow),
     },
-  };
+  }
 }
 
 async function resolvePublicTarget(
-  input: ReportableTargetInput,
+  input: ReportableTargetInput
 ): Promise<ResolvedTarget | null> {
   if (input.type === "post") {
     const [row] = await db
@@ -457,8 +507,8 @@ async function resolvePublicTarget(
       })
       .from(postTable)
       .where(eq(postTable.publicId, input.publicId))
-      .limit(1);
-    if (!row) return null;
+      .limit(1)
+    if (!row) return null
     return {
       targetType: "post",
       targetId: row.id,
@@ -477,7 +527,7 @@ async function resolvePublicTarget(
         deletedAt: row.deletedAt,
         removedAt: row.removedAt,
       },
-    };
+    }
   }
 
   if (input.type === "comment") {
@@ -494,8 +544,8 @@ async function resolvePublicTarget(
       })
       .from(commentTable)
       .where(eq(commentTable.id, input.commentId))
-      .limit(1);
-    if (!row) return null;
+      .limit(1)
+    if (!row) return null
     return {
       targetType: "comment",
       targetId: row.id,
@@ -515,7 +565,7 @@ async function resolvePublicTarget(
         deletedAt: row.deletedAt,
         removedAt: row.removedAt,
       },
-    };
+    }
   }
 
   const [row] = await db
@@ -526,8 +576,8 @@ async function resolvePublicTarget(
     })
     .from(profileTable)
     .where(eq(profileTable.username, input.username))
-    .limit(1);
-  if (!row) return null;
+    .limit(1)
+  if (!row) return null
   return {
     targetType: "profile",
     targetId: row.id,
@@ -540,12 +590,12 @@ async function resolvePublicTarget(
     removalPublicReason: null,
     updatedAt: null,
     targetRef: { type: "profile", userId: row.userId },
-  };
+  }
 }
 
 async function resolveCaseTarget(
   query: Pick<Tx, "select"> | typeof db,
-  caseRow: typeof moderationCase.$inferSelect,
+  caseRow: typeof moderationCase.$inferSelect
 ): Promise<ResolvedTarget | null> {
   if (caseRow.targetType === "post") {
     const [row] = await query
@@ -561,8 +611,8 @@ async function resolveCaseTarget(
       })
       .from(postTable)
       .where(eq(postTable.id, caseRow.targetId))
-      .limit(1);
-    if (!row) return null;
+      .limit(1)
+    if (!row) return null
     return {
       targetType: "post",
       targetId: row.id,
@@ -581,7 +631,7 @@ async function resolveCaseTarget(
         deletedAt: row.deletedAt,
         removedAt: row.removedAt,
       },
-    };
+    }
   }
   if (caseRow.targetType === "comment") {
     const [row] = await query
@@ -597,8 +647,8 @@ async function resolveCaseTarget(
       })
       .from(commentTable)
       .where(eq(commentTable.id, caseRow.targetId))
-      .limit(1);
-    if (!row) return null;
+      .limit(1)
+    if (!row) return null
     return {
       targetType: "comment",
       targetId: row.id,
@@ -618,7 +668,7 @@ async function resolveCaseTarget(
         deletedAt: row.deletedAt,
         removedAt: row.removedAt,
       },
-    };
+    }
   }
 
   const [row] = await query
@@ -629,8 +679,8 @@ async function resolveCaseTarget(
     })
     .from(profileTable)
     .where(eq(profileTable.id, caseRow.targetId))
-    .limit(1);
-  if (!row) return null;
+    .limit(1)
+  if (!row) return null
   return {
     targetType: "profile",
     targetId: row.id,
@@ -643,30 +693,30 @@ async function resolveCaseTarget(
     removalPublicReason: null,
     updatedAt: null,
     targetRef: { type: "profile", userId: row.userId },
-  };
+  }
 }
 
 async function findDuplicateActiveReport(
   tx: Tx,
-  input: { reporterId: string; targetType: ReportTargetType; targetId: string },
+  input: { reporterId: string; targetType: ReportTargetType; targetId: string }
 ) {
   const [row] = await tx
     .select({ id: reportTable.id })
     .from(reportTable)
     .innerJoin(
       moderationCase,
-      eq(reportTable.moderationCaseId, moderationCase.id),
+      eq(reportTable.moderationCaseId, moderationCase.id)
     )
     .where(
       and(
         eq(reportTable.reporterId, input.reporterId),
         eq(reportTable.targetType, input.targetType),
         eq(reportTable.targetId, input.targetId),
-        inArray(moderationCase.status, ["open", "reviewing"]),
-      ),
+        inArray(moderationCase.status, ACTIVE_REPORT_CASE_STATUSES)
+      )
     )
-    .limit(1);
-  return row ?? null;
+    .limit(1)
+  return row ?? null
 }
 
 async function findOpenCaseForTarget(tx: Tx, target: ResolvedTarget) {
@@ -677,43 +727,42 @@ async function findOpenCaseForTarget(tx: Tx, target: ResolvedTarget) {
       and(
         eq(moderationCase.targetType, target.targetType),
         eq(moderationCase.targetId, target.targetId),
-        eq(moderationCase.status, "open"),
-      ),
+        eq(moderationCase.status, "open")
+      )
     )
-    .limit(1);
-  return row ?? null;
+    .limit(1)
+  return row ?? null
 }
 
 async function uniqueReportersInLast24Hours(
   tx: Tx,
   caseId: string,
-  asOf: Date,
+  asOf: Date
 ): Promise<number> {
-  const windowStart = new Date(asOf.getTime() - 24 * 60 * 60 * 1000);
+  const windowStart = reportVolumeWindowStart(asOf)
   const rows = await tx
     .select({ reporterId: reportTable.reporterId })
     .from(reportTable)
     .where(
       and(
         eq(reportTable.moderationCaseId, caseId),
-        gte(reportTable.createdAt, windowStart),
-      ),
-    );
-  return new Set(rows.map((row) => row.reporterId)).size;
+        gte(reportTable.createdAt, windowStart)
+      )
+    )
+  return new Set(rows.map((row) => row.reporterId)).size
 }
 
 async function ensureStaff(
-  actorId: string,
+  actorId: string
 ): Promise<ServiceResult<true, ModerationCaseCommandError>> {
-  const viewer = await authorization.getViewerContext({ userId: actorId });
-  if (!isStaff(viewer)) return { ok: false, error: { kind: "forbidden" } };
-  return { ok: true, value: true };
+  const viewer = await authorization.getViewerContext({ userId: actorId })
+  if (!viewer.isAuthenticated || !viewer.role || !isStaffRole(viewer.role)) {
+    return { ok: false, error: { kind: "forbidden" } }
+  }
+  return { ok: true, value: true }
 }
 
-async function insertAction(
-  tx: Tx,
-  input: Omit<ModerationActionRecord, "id">,
-) {
+async function insertAction(tx: Tx, input: Omit<ModerationActionRecord, "id">) {
   await tx.insert(moderationAction).values({
     caseId: input.caseId,
     actorId: input.actorId,
@@ -723,29 +772,29 @@ async function insertAction(
     internalNotes: input.internalNotes,
     conflictOverride: input.conflictOverride,
     createdAt: input.createdAt,
-  });
+  })
 }
 
 async function insertRemovalNotification(
   tx: Tx,
   actorId: string,
   target: ResolvedTarget,
-  publicReason: string,
+  publicReason: string
 ) {
   await tx.insert(notification).values({
     recipientId: target.ownerId,
     type: "content_removed",
     actorId,
-    data: {
+    data: contentRemovalNotificationData({
       targetType: target.targetType,
       targetId: target.targetId,
       publicReason,
-    },
-  });
+    }),
+  })
 }
 
 function mapCaseRow(
-  row: typeof moderationCase.$inferSelect,
+  row: typeof moderationCase.$inferSelect
 ): ModerationCaseRecord {
   return {
     id: row.id,
@@ -756,12 +805,14 @@ function mapCaseRow(
     assigneeId: row.assigneeId,
     createdAt: row.createdAt,
     resolvedAt: row.resolvedAt,
-  };
+  }
 }
 
-function mapReportRow(row: typeof reportTable.$inferSelect): ModerationReportRecord {
+function mapReportRow(
+  row: typeof reportTable.$inferSelect
+): ModerationReportRecord {
   if (!row.moderationCaseId) {
-    throw new Error("Report is missing moderationCaseId.");
+    throw new Error("Report is missing moderationCaseId.")
   }
   return {
     id: row.id,
@@ -772,11 +823,11 @@ function mapReportRow(row: typeof reportTable.$inferSelect): ModerationReportRec
     notes: row.notes,
     moderationCaseId: row.moderationCaseId,
     createdAt: row.createdAt,
-  };
+  }
 }
 
 function mapActionRow(
-  row: typeof moderationAction.$inferSelect,
+  row: typeof moderationAction.$inferSelect
 ): ModerationActionRecord {
   return {
     id: row.id,
@@ -788,11 +839,13 @@ function mapActionRow(
     internalNotes: row.internalNotes,
     conflictOverride: row.conflictOverride,
     createdAt: row.createdAt,
-  };
+  }
 }
 
-function toCaseTargetDetail(target: ResolvedTarget): ModerationCaseTargetDetail {
-  return {
+function toCaseTargetDetail(
+  target: ResolvedTarget
+): ModerationCaseTargetDetail {
+  return toModerationCaseTargetDetail({
     type: target.targetType,
     id: target.targetId,
     authorId: target.ownerId,
@@ -802,45 +855,5 @@ function toCaseTargetDetail(target: ResolvedTarget): ModerationCaseTargetDetail 
     removedAt: target.removedAt,
     removalPublicReason: target.removalPublicReason,
     updatedAt: target.updatedAt,
-  };
-}
-
-function isContentRemovalAction(action: ModerationActionType): boolean {
-  return action === "remove_post" || action === "remove_comment";
-}
-
-function actionMatchesTarget(
-  action: ModerationActionType,
-  targetType: ReportTargetType,
-): boolean {
-  if (targetType === "post") {
-    return action === "remove_post" || action === "restore_post";
-  }
-  if (targetType === "comment") {
-    return action === "remove_comment" || action === "restore_comment";
-  }
-  return false;
-}
-
-function isSameStateRetry(
-  action: ModerationActionType,
-  target: ResolvedTarget,
-): boolean {
-  if (action === "remove_post" || action === "remove_comment") {
-    return target.removedAt !== null;
-  }
-  if (action === "restore_post" || action === "restore_comment") {
-    return target.removedAt === null;
-  }
-  return false;
-}
-
-function compareCasesForQueue(
-  left: ModerationCaseSummary,
-  right: ModerationCaseSummary,
-): number {
-  if (left.priority !== right.priority) {
-    return left.priority === "urgent" ? -1 : 1;
-  }
-  return left.createdAt.getTime() - right.createdAt.getTime();
+  })
 }

@@ -1,5 +1,6 @@
 import type {
   AccountStatus,
+  MediaPurpose,
   Result,
   Username,
   ViewerContext,
@@ -13,6 +14,7 @@ import {
 export type OnboardingError =
   | { kind: "invalid_username"; message: string }
   | { kind: "invalid_favorite_games"; message: string }
+  | { kind: "invalid_avatar_media"; message: string }
   | { kind: "already_has_profile" }
   | { kind: "username_taken" }
 
@@ -52,6 +54,7 @@ export type PublicProfile = {
 
 export type ProfileServiceDeps = {
   adapter: ProfileOnboardingAdapter
+  media?: ProfileOnboardingMediaPort
   /** When set, public profile responses include time-limited blob read URLs */
   signMediaReadUrl?: (mediaId: string) => Promise<string | null>
 }
@@ -60,7 +63,16 @@ export type ProfileOnboardingInput = {
   username: string
   displayName?: string | null
   bio?: string | null
+  avatarMediaId?: string | null
   favoriteGameIds?: string[]
+}
+
+export type ProfileOnboardingMediaPort = {
+  attachMedia(
+    mediaId: string,
+    userId: string,
+    expectedPurpose: Extract<MediaPurpose, "profile_avatar">
+  ): Promise<Result<{ mediaId: string }, { kind: string }>>
 }
 
 export type FavoriteGameInsert = {
@@ -80,6 +92,7 @@ export type ProfileOnboardingAdapter = {
     username: Username
     displayName: string | null
     bio: string | null
+    avatarMediaId: string | null
     favoriteGames: { gameId: string; position: number }[]
   }): Promise<ProfileRow>
 }
@@ -108,6 +121,7 @@ export function createProfileService(
   deps: ProfileOnboardingAdapter | ProfileServiceDeps
 ): ProfileService {
   const adapter = "adapter" in deps ? deps.adapter : deps
+  const media = "adapter" in deps ? deps.media : undefined
   const signMediaReadUrl = "adapter" in deps ? deps.signMediaReadUrl : undefined
 
   return {
@@ -154,12 +168,41 @@ export function createProfileService(
       )
       if (usernameHeld) return { ok: false, error: { kind: "username_taken" } }
 
+      const avatarMediaId = input.avatarMediaId ?? null
+      if (avatarMediaId) {
+        if (!media) {
+          return {
+            ok: false,
+            error: {
+              kind: "invalid_avatar_media",
+              message: "Avatar upload is not available.",
+            },
+          }
+        }
+
+        const attached = await media.attachMedia(
+          avatarMediaId,
+          userId,
+          "profile_avatar"
+        )
+        if (!attached.ok) {
+          return {
+            ok: false,
+            error: {
+              kind: "invalid_avatar_media",
+              message: avatarMediaErrorMessage(attached.error.kind),
+            },
+          }
+        }
+      }
+
       try {
         const row = await adapter.createOnboarding({
           userId,
           username: validated.value.username,
           displayName: validated.value.displayName,
           bio: validated.value.bio,
+          avatarMediaId,
           favoriteGames: validatedFavorites.value.map((gameId, index) => ({
             gameId,
             position: index + 1,
@@ -262,10 +305,26 @@ export function createInMemoryProfileOnboardingService(state: {
   favoriteGames: FavoriteGameInsert[]
   usernameHolds?: { username: string; heldUntil: Date }[]
   failFavoriteGameInsert?: boolean
+  failAvatarAttach?: string
+  mediaAttachments?: {
+    mediaId: string
+    userId: string
+    expectedPurpose: Extract<MediaPurpose, "profile_avatar">
+  }[]
+  signedMediaUrls?: Record<string, string | null>
 }): ProfileService & {
-  snapshot(): { profiles: ProfileRow[]; favoriteGames: FavoriteGameInsert[] }
+  snapshot(): {
+    profiles: ProfileRow[]
+    favoriteGames: FavoriteGameInsert[]
+    mediaAttachments: {
+      mediaId: string
+      userId: string
+      expectedPurpose: Extract<MediaPurpose, "profile_avatar">
+    }[]
+  }
 } {
   let nextProfile = state.profiles.length + 1
+  const mediaAttachments = state.mediaAttachments ?? []
   const adapter: ProfileOnboardingAdapter = {
     existsByUserId(userId) {
       return Promise.resolve(
@@ -308,7 +367,7 @@ export function createInMemoryProfileOnboardingService(state: {
         username: values.username,
         displayName: values.displayName,
         bio: values.bio,
-        avatarMediaId: null,
+        avatarMediaId: values.avatarMediaId,
         bannerMediaId: null,
         followerCount: 0,
         followingCount: 0,
@@ -333,14 +392,49 @@ export function createInMemoryProfileOnboardingService(state: {
       return Promise.resolve(row)
     },
   }
+  const media: ProfileOnboardingMediaPort = {
+    async attachMedia(mediaId, userId, expectedPurpose) {
+      await Promise.resolve()
+      if (state.failAvatarAttach) {
+        return { ok: false, error: { kind: state.failAvatarAttach } }
+      }
+      mediaAttachments.push({ mediaId, userId, expectedPurpose })
+      return { ok: true, value: { mediaId } }
+    },
+  }
   return {
-    ...createProfileService({ adapter }),
+    ...createProfileService({
+      adapter,
+      media,
+      signMediaReadUrl: (mediaId) =>
+        Promise.resolve(state.signedMediaUrls?.[mediaId] ?? null),
+    }),
     snapshot() {
       return {
         profiles: [...state.profiles],
         favoriteGames: [...state.favoriteGames],
+        mediaAttachments: [...mediaAttachments],
       }
     },
+  }
+}
+
+function avatarMediaErrorMessage(reason: string): string {
+  switch (reason) {
+    case "media_not_found":
+      return "Avatar upload was not found."
+    case "wrong_owner":
+      return "Avatar upload does not belong to you."
+    case "wrong_purpose":
+      return "Avatar upload must use the profile avatar purpose."
+    case "media_not_ready":
+      return "Avatar upload must finish before creating your profile."
+    case "media_expired":
+      return "Avatar upload expired. Please upload it again."
+    case "already_attached":
+      return "Avatar upload has already been attached."
+    default:
+      return "Avatar upload is not ready."
   }
 }
 

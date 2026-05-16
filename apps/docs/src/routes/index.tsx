@@ -20,12 +20,15 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { DocsBuildMetadataPanel } from "@/components/docs-shell"
+import { useDocsReaderArtifact } from "@/lib/docs-reader-artifact-context"
 
 export const Route = createFileRoute("/")({
   component: DocsHomePage,
 })
 
 function DocsHomePage() {
+  const { homeEntry } = useDocsReaderArtifact()
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row lg:items-stretch">
       <div className="grid min-h-0 min-w-0 flex-1 gap-6 lg:min-h-0 lg:overflow-y-auto">
@@ -46,11 +49,11 @@ function DocsHomePage() {
               <Link
                 to="/docs/$sectionSlug/$pageSlug"
                 params={{
-                  sectionSlug: "orientation",
-                  pageSlug: "orientation/product-context",
+                  sectionSlug: homeEntry.sectionId,
+                  pageSlug: homeEntry.pageSlug,
                 }}
               >
-                Open product context
+                Open {homeEntry.pageTitle}
                 <ArrowRight weight="bold" />
               </Link>
             </Button>
@@ -97,9 +100,9 @@ function DocsHomePage() {
                 <Article weight="bold" className="text-primary" />
               </div>
               <div>
-                <CardTitle>Recommended first read</CardTitle>
+                <CardTitle>Recommended first read: {homeEntry.pageTitle}</CardTitle>
                 <CardDescription>
-                  Product context gives the rest of the docs their vocabulary.
+                  {homeEntry.pageTitle} gives the rest of the docs their vocabulary.
                 </CardDescription>
               </div>
             </div>
@@ -116,11 +119,11 @@ function DocsHomePage() {
               <Link
                 to="/docs/$sectionSlug/$pageSlug"
                 params={{
-                  sectionSlug: "orientation",
-                  pageSlug: "orientation/product-context",
+                  sectionSlug: homeEntry.sectionId,
+                  pageSlug: homeEntry.pageSlug,
                 }}
               >
-                Read product context
+                Read {homeEntry.pageTitle}
                 <ArrowRight weight="bold" />
               </Link>
             </Button>

@@ -29,6 +29,11 @@ import {
 } from "@workspace/ui/components/sheet"
 import { cn } from "@workspace/ui/lib/utils"
 import { type ReactNode } from "react"
+import {
+  DocsReaderArtifactProvider,
+  useDocsReaderArtifact,
+  type DocsReaderArtifactValue,
+} from "@/lib/docs-reader-artifact-context"
 import { DocsSearch } from "@/components/docs-search"
 import { useTheme, type Theme } from "@/components/theme-provider"
 import { getDocsBuildMetadata } from "@/lib/docs-build-metadata"
@@ -39,28 +44,38 @@ const metadata = getDocsBuildMetadata(import.meta.env)
 export function DocsShell({
   children,
   navigation,
+  readerArtifact,
 }: {
   children: ReactNode
   navigation: DocsNavigation
+  readerArtifact: DocsReaderArtifactValue
 }) {
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <DocsHeader navigation={navigation} />
-      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-5 sm:px-6 lg:flex-row lg:gap-8 lg:py-7">
-        <aside className="hidden min-h-0 w-64 shrink-0 flex-col gap-4 overflow-y-auto pr-1 lg:flex">
-          <DocsNavigationPanel navigation={navigation} />
-          <AccessCard />
-        </aside>
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden">
-          {children}
-        </section>
-      </main>
-      <DocsFooter />
-    </div>
+    <DocsReaderArtifactProvider value={readerArtifact}>
+      <div className="flex min-h-svh flex-col bg-background text-foreground">
+        <DocsHeader navigation={navigation} artifactEnvironment={readerArtifact.contentBuild.environment} />
+        <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-5 sm:px-6 lg:flex-row lg:gap-8 lg:py-7">
+          <aside className="hidden min-h-0 w-64 shrink-0 flex-col gap-4 overflow-y-auto pr-1 lg:flex">
+            <DocsNavigationPanel navigation={navigation} />
+            <AccessCard />
+          </aside>
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden">
+            {children}
+          </section>
+        </main>
+        <DocsFooter artifactEnvironment={readerArtifact.contentBuild.environment} />
+      </div>
+    </DocsReaderArtifactProvider>
   )
 }
 
-function DocsHeader({ navigation }: { navigation: DocsNavigation }) {
+function DocsHeader({
+  artifactEnvironment,
+  navigation,
+}: {
+  artifactEnvironment: string
+  navigation: DocsNavigation
+}) {
   const { theme, setTheme } = useTheme()
 
   return (
@@ -104,7 +119,7 @@ function DocsHeader({ navigation }: { navigation: DocsNavigation }) {
           </p>
           <p className="hidden items-center gap-2 sm:flex">
             <span className="size-2 rounded-full bg-primary" />
-            {metadata.environment}
+            {artifactEnvironment}
           </p>
         </div>
       </div>
@@ -269,38 +284,39 @@ function ThemeMenu({
 }
 
 function BuildMetadataCard() {
+  const { contentBuild } = useDocsReaderArtifact()
+
   return (
     <Card className="overflow-hidden shadow-sm">
       <CardHeader className="border-b border-border/70 px-4 py-4">
-        <CardTitle className="text-sm">Build Metadata</CardTitle>
-        <CardDescription>Public shell details for the current docs deployment.</CardDescription>
+        <CardTitle className="text-sm">Build metadata</CardTitle>
+        <CardDescription>
+          Deployment wiring from the shell plus provenance from the protected docs artifact.
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-3 p-4">
-        <MetadataRow label="Environment" value={metadata.environment} />
+        <MetadataRow label="Artifact environment" value={contentBuild.environment} />
+        <MetadataRow
+          label="Artifact commit"
+          value={contentBuild.commitSha ?? "Unavailable"}
+          tone={contentBuild.commitSha ? "default" : "muted"}
+        />
+        <MetadataRow label="Artifact generated at" value={contentBuild.generatedAt} />
+        <MetadataRow label="Shell environment" value={metadata.environment} />
         <MetadataRow label="Site URL" value={metadata.siteUrl} />
         <MetadataRow
           label="API base"
           value={metadata.apiBaseUrl ?? "Pending API wiring"}
           tone={metadata.apiBaseUrl ? "default" : "muted"}
         />
-        <MetadataRow
-          label="Build SHA"
-          value={metadata.commitSha ?? "Pending CI metadata"}
-          tone={metadata.commitSha ? "default" : "muted"}
-        />
-        <MetadataRow
-          label="Build time"
-          value={metadata.buildTime ?? "Pending CI metadata"}
-          tone={metadata.buildTime ? "default" : "muted"}
-        />
         <MetadataRow label="Base path" value={metadata.basePath} />
       </CardContent>
 
       <CardFooter className="flex-col items-start gap-3 border-t border-border/70 bg-muted/35 p-4">
         <p className="text-sm text-muted-foreground">
-          Protected Markdown, search indexes, and diagrams stay behind credentialed API
-          reads.
+          Protected Markdown, search indexes, and diagrams stay behind credentialed API reads.
+          Commit and generation timestamps come from the compiled artifact served by the API.
         </p>
         <Button variant="outline" size="sm" asChild>
           <a href={metadata.siteUrl} target="_blank" rel="noreferrer">
@@ -317,7 +333,7 @@ export function DocsBuildMetadataPanel() {
   return <BuildMetadataCard />
 }
 
-function DocsFooter() {
+function DocsFooter({ artifactEnvironment }: { artifactEnvironment: string }) {
   return (
     <footer className="border-t border-border/70 bg-muted/35">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-5 text-sm text-muted-foreground sm:px-6 lg:flex-row lg:items-center lg:justify-between">
@@ -327,7 +343,7 @@ function DocsFooter() {
         </p>
         <p className="flex items-center gap-2">
           <Clock weight="bold" className="text-primary" />
-          Build surface: {metadata.environment}
+          Artifact build: {artifactEnvironment}
         </p>
       </div>
     </footer>

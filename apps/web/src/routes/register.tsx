@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { trpc } from "@/lib/trpc"
+import {
+  getRegistrationPasswordConfirmationMessage,
+  validateRegistrationPasswordConfirmation,
+} from "./-register-password-confirmation"
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -12,21 +16,34 @@ function RegisterPage() {
     refetchOnWindowFocus: false,
   })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const signupDisabled =
     launchReadiness.isLoading ||
     launchReadiness.data?.publicSignupEnabled === false
+  const passwordConfirmationMessage =
+    getRegistrationPasswordConfirmationMessage(password, confirmPassword)
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (signupDisabled) return
     setErrorMessage(null)
+    const form = new FormData(e.currentTarget)
+    const confirmedPassword = validateRegistrationPasswordConfirmation(
+      form.get("password"),
+      form.get("confirmPassword")
+    )
+    if (!confirmedPassword.ok) {
+      setErrorMessage(confirmedPassword.message)
+      return
+    }
+
     void (async () => {
-      const form = new FormData(e.currentTarget)
       const { signUpEmail } = await import("@/lib/auth-client")
       const email = form.get("email") as string
       const result = await signUpEmail({
         email,
-        password: form.get("password") as string,
+        password: confirmedPassword.password,
         // Better Auth requires a name, but MyTuums profile identity is chosen
         // during onboarding. Do not collect a misleading display name here.
         name: email,
@@ -87,11 +104,45 @@ function RegisterPage() {
               required
               minLength={8}
               maxLength={128}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               className="border-input w-full rounded-md border px-3 py-2 text-sm"
             />
             <p className="text-muted-foreground text-xs">
               At least 8 characters. No special requirements.
             </p>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="text-sm font-medium">
+              Confirm password
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              maxLength={128}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              aria-invalid={passwordConfirmationMessage ? true : undefined}
+              aria-describedby={
+                passwordConfirmationMessage
+                  ? "confirmPassword-message"
+                  : undefined
+              }
+              className="border-input w-full rounded-md border px-3 py-2 text-sm"
+            />
+            {passwordConfirmationMessage ? (
+              <p
+                id="confirmPassword-message"
+                role="alert"
+                className="text-destructive text-xs"
+              >
+                {passwordConfirmationMessage}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-start gap-2">
             <input
@@ -108,7 +159,7 @@ function RegisterPage() {
           <button
             type="submit"
             disabled={signupDisabled}
-            className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium"
+            className="bg-primary text-primary-foreground w-full rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             {signupDisabled ? "Signup disabled" : "Create account"}
           </button>

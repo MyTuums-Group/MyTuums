@@ -1,16 +1,12 @@
-import { useState } from "react";
-import { ImageSquare, PenNib, Trash } from "@phosphor-icons/react";
-import { Alert, AlertDescription } from "@workspace/ui/components/alert";
-import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
-import { Textarea } from "@workspace/ui/components/textarea";
-import {
-  describeMediaUploadFailure,
-  uploadBlobViaPutXhr,
-  validateClientMediaUpload,
-} from "@/lib/media-upload-client";
-import { trpc } from "@/lib/trpc";
-import { getPostTextState } from "./post-text";
+import { useState } from "react"
+import { ImageSquare, PenNib, Trash } from "@phosphor-icons/react"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { Button } from "@workspace/ui/components/button"
+import { Card, CardContent, CardHeader } from "@workspace/ui/components/card"
+import { Textarea } from "@workspace/ui/components/textarea"
+import { useMediaUploadWorkflow } from "@/lib/media-upload-client"
+import { trpc } from "@/lib/trpc"
+import { getPostTextState } from "./post-text"
 import {
   applyCreatedPostReplacingOptimisticOnFeeds,
   applyOptimisticPostCreateToFeeds,
@@ -18,43 +14,43 @@ import {
   captureFeedSnapshotsForOptimisticPostCreate,
   reconcileCachesAfterPostCreateMutationSettled,
   restoreFeedsAfterOptimisticPostCreateFailure,
-} from "./post-cache-reconcile";
-import type { PostView } from "./types";
+} from "./post-cache-reconcile"
+import type { PostView } from "./types"
 
 type PostComposerProps = {
-  onCreated?: (post: PostView) => void;
-};
+  onCreated?: (post: PostView) => void
+}
 
 export function PostComposer({ onCreated }: PostComposerProps) {
-  const [draft, setDraft] = useState("");
-  const [selectedGameId, setSelectedGameId] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [upload, setUpload] = useState<UploadState | null>(null);
+  const [draft, setDraft] = useState("")
+  const [selectedGameId, setSelectedGameId] = useState("")
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const mediaUpload = useMediaUploadWorkflow({ purpose: "post_attachment" })
+  const upload = mediaUpload.upload
 
-  const utils = trpc.useUtils();
+  const utils = trpc.useUtils()
   const currentAppUser = trpc.currentAppUser.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
-  });
-  const state = getPostTextState(draft);
+  })
+  const state = getPostTextState(draft)
   const activeProfile =
     currentAppUser.data?.kind === "active_onboarded_profile"
       ? currentAppUser.data.profile
-      : null;
-  const createUploadMutation = trpc.media.createUpload.useMutation();
-  const confirmUploadMutation = trpc.media.confirmUpload.useMutation();
-  const retryUploadMutation = trpc.media.retryUpload.useMutation();
-  const removeUploadMutation = trpc.media.removeUpload.useMutation();
+      : null
   const gamesQuery = trpc.game.listActive.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
-  });
+  })
   const selectedGame =
-    gamesQuery.data?.find((game) => game.id === selectedGameId) ?? null;
+    gamesQuery.data?.find((game) => game.id === selectedGameId) ?? null
 
   const createMutation = trpc.post.create.useMutation({
     async onMutate(variables) {
-      const optimisticPublicId = `optimistic-${Date.now()}`;
+      const submittedUpload = variables.mediaAttachmentId
+        ? mediaUpload.releaseReadyUpload()
+        : null
+      const optimisticPublicId = `optimistic-${Date.now()}`
       const optimisticPost: PostView = {
         publicId: optimisticPublicId,
         text: variables.text,
@@ -70,15 +66,14 @@ export function PostComposer({ onCreated }: PostComposerProps) {
               name: selectedGame.name,
             }
           : null,
-        media:
-          upload?.status === "ready"
-            ? {
-                id: upload.mediaId,
-                kind: upload.file.type.startsWith("video/") ? "video" : "image",
-                mimeType: upload.file.type,
-                url: upload.previewUrl,
-              }
-            : null,
+        media: submittedUpload
+          ? {
+              id: submittedUpload.mediaId,
+              kind: submittedUpload.kind,
+              mimeType: submittedUpload.mimeType,
+              url: submittedUpload.previewUrl,
+            }
+          : null,
         likeCount: 0,
         likedByViewer: false,
         commentCount: 0,
@@ -86,44 +81,45 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         updatedAt: new Date(),
         canDelete: true,
         moderationRemoval: null,
-      };
+      }
 
       await cancelPostListQueriesForOptimisticCreate(
         utils,
-        activeProfile?.username ?? null,
-      );
+        activeProfile?.username ?? null
+      )
 
       const snapshots = captureFeedSnapshotsForOptimisticPostCreate(
         utils,
-        activeProfile?.username ?? null,
-      );
+        activeProfile?.username ?? null
+      )
 
-      setErrorMessage(null);
-      setDraft("");
-      setSelectedGameId("");
-      clearUpload();
+      setErrorMessage(null)
+      setDraft("")
+      setSelectedGameId("")
 
       applyOptimisticPostCreateToFeeds(utils, {
         optimisticPost,
         profileUsername: activeProfile?.username ?? null,
-      });
+      })
 
       return {
         optimisticPublicId,
         snapshots,
         previousDraft: draft,
-      };
+        submittedUpload,
+      }
     },
 
     onError(error, _variables, context) {
       restoreFeedsAfterOptimisticPostCreateFailure(
         utils,
         activeProfile?.username ?? null,
-        context?.snapshots,
-      );
+        context?.snapshots
+      )
 
-      setDraft(context?.previousDraft ?? "");
-      setErrorMessage(error.message);
+      setDraft(context?.previousDraft ?? "")
+      setErrorMessage(error.message)
+      context?.submittedUpload?.revokePreviewUrl()
     },
 
     onSuccess(createdPost, _variables, context) {
@@ -131,18 +127,19 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         createdPost,
         optimisticPublicId: context?.optimisticPublicId,
         profileUsername: activeProfile?.username ?? null,
-      });
+      })
 
-      onCreated?.(createdPost);
+      onCreated?.(createdPost)
+      context?.submittedUpload?.revokePreviewUrl()
     },
 
     async onSettled() {
       await reconcileCachesAfterPostCreateMutationSettled(
         utils,
-        activeProfile?.username ?? null,
-      );
+        activeProfile?.username ?? null
+      )
     },
-  });
+  })
 
   return (
     <Card className="shadow-sm">
@@ -161,29 +158,27 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         <form
           className="space-y-3"
           onSubmit={(event) => {
-            event.preventDefault();
+            event.preventDefault()
             if (
               state.isEmpty ||
               state.isTooLong ||
               createMutation.isPending ||
-              upload?.status === "uploading" ||
-              upload?.status === "failed"
+              mediaUpload.blocksSubmit
             ) {
-              return;
+              return
             }
 
             createMutation.mutate({
               text: state.normalizedText,
-              mediaAttachmentId:
-                upload?.status === "ready" ? upload.mediaId : null,
+              mediaAttachmentId: mediaUpload.readyUpload?.mediaId ?? null,
               gameTagId: selectedGameId || null,
-            });
+            })
           }}
         >
           <Textarea
             value={draft}
             onChange={(event) => {
-              setDraft(event.target.value);
+              setDraft(event.target.value)
             }}
             disabled={createMutation.isPending}
             placeholder="What are you playing right now?"
@@ -215,12 +210,15 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
           <div
             onDragOver={(event) => {
-              event.preventDefault();
+              event.preventDefault()
             }}
             onDrop={(event) => {
-              event.preventDefault();
-              const file = event.dataTransfer.files.item(0);
-              if (file) void startUpload(file);
+              event.preventDefault()
+              const file = event.dataTransfer.files.item(0)
+              if (file) {
+                setErrorMessage(null)
+                void mediaUpload.start(file)
+              }
             }}
             className="rounded-lg border border-dashed border-border bg-muted/25 p-3 transition-colors hover:bg-muted/40"
           >
@@ -248,9 +246,12 @@ export function PostComposer({ onCreated }: PostComposerProps) {
                 accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
                 className="hidden"
                 onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void startUpload(file);
+                  const file = event.target.files?.[0]
+                  event.target.value = ""
+                  if (file) {
+                    setErrorMessage(null)
+                    void mediaUpload.start(file)
+                  }
                 }}
               />
             </div>
@@ -285,7 +286,10 @@ export function PostComposer({ onCreated }: PostComposerProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => void retryUpload()}
+                        onClick={() => {
+                          setErrorMessage(null)
+                          void mediaUpload.retry()
+                        }}
                       >
                         Retry
                       </Button>
@@ -294,7 +298,10 @@ export function PostComposer({ onCreated }: PostComposerProps) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => void removeUpload()}
+                      onClick={() => {
+                        setErrorMessage(null)
+                        void mediaUpload.remove()
+                      }}
                     >
                       <Trash weight="bold" />
                       Remove
@@ -320,8 +327,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
                 state.isEmpty ||
                 state.isTooLong ||
                 createMutation.isPending ||
-                upload?.status === "uploading" ||
-                upload?.status === "failed"
+                mediaUpload.blocksSubmit
               }
             >
               {createMutation.isPending ? "Posting..." : "Post"}
@@ -329,155 +335,14 @@ export function PostComposer({ onCreated }: PostComposerProps) {
           </div>
         </form>
 
-        {errorMessage && (
+        {(errorMessage ?? mediaUpload.errorMessage) && (
           <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertDescription>
+              {errorMessage ?? mediaUpload.errorMessage}
+            </AlertDescription>
           </Alert>
         )}
       </CardContent>
     </Card>
-  );
-
-  async function startUpload(file: File) {
-    const previewUrl = URL.createObjectURL(file);
-    setErrorMessage(null);
-
-    const validated = validateClientMediaUpload({
-      mimeType: file.type,
-      byteSize: file.size,
-      purpose: "post_attachment",
-    });
-
-    if (!validated.ok) {
-      URL.revokeObjectURL(previewUrl);
-      setErrorMessage(validated.issue.message);
-      return;
-    }
-
-    setUpload({
-      file,
-      previewUrl,
-      status: "uploading",
-      progress: 0,
-      mediaId: "",
-      uploadUrl: "",
-    });
-
-    let intent: Awaited<ReturnType<typeof createUploadMutation.mutateAsync>>;
-    try {
-      intent = await createUploadMutation.mutateAsync({
-        mimeType: validated.mimeType,
-        byteSize: validated.byteSize,
-        purpose: validated.purpose,
-      });
-      setUpload((current) =>
-        current
-          ? { ...current, mediaId: intent.mediaId, uploadUrl: intent.uploadUrl }
-          : current
-      );
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "intent"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-      return;
-    }
-
-    try {
-      await uploadBlobViaPutXhr({
-        uploadUrl: intent.uploadUrl,
-        file,
-        onProgress: (progress) =>
-          setUpload((current) => (current ? { ...current, progress } : current)),
-      });
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "blob"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-      return;
-    }
-
-    try {
-      await confirmUploadMutation.mutateAsync({ mediaId: intent.mediaId });
-      setUpload((current) =>
-        current ? { ...current, status: "ready", progress: 100 } : current
-      );
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "confirm"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-    }
-  }
-
-  async function retryUpload() {
-    if (!upload?.mediaId) return;
-    setErrorMessage(null);
-    setUpload({ ...upload, status: "uploading", progress: 0 });
-
-    let retryUploadUrl: string;
-    try {
-      const retry = await retryUploadMutation.mutateAsync({
-        mediaId: upload.mediaId,
-      });
-      retryUploadUrl = retry.uploadUrl;
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "intent"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-      return;
-    }
-
-    try {
-      await uploadBlobViaPutXhr({
-        uploadUrl: retryUploadUrl,
-        file: upload.file,
-        onProgress: (progress) =>
-          setUpload((current) => (current ? { ...current, progress } : current)),
-      });
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "blob"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-      return;
-    }
-
-    try {
-      await confirmUploadMutation.mutateAsync({ mediaId: upload.mediaId });
-      setUpload((current) =>
-        current ? { ...current, status: "ready", progress: 100 } : current
-      );
-    } catch (error) {
-      setErrorMessage(describeMediaUploadFailure(error, "confirm"));
-      setUpload((current) =>
-        current ? { ...current, status: "failed" } : current
-      );
-    }
-  }
-
-  async function removeUpload() {
-    if (upload?.mediaId) {
-      await removeUploadMutation.mutateAsync({ mediaId: upload.mediaId });
-    }
-    clearUpload();
-  }
-
-  function clearUpload() {
-    setUpload((current) => {
-      if (current) URL.revokeObjectURL(current.previewUrl);
-      return null;
-    });
-  }
+  )
 }
-
-type UploadState = {
-  file: File;
-  previewUrl: string;
-  status: "uploading" | "ready" | "failed";
-  progress: number;
-  mediaId: string;
-  uploadUrl: string;
-};

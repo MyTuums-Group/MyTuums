@@ -1,5 +1,6 @@
 import type {
   DocsArtifact,
+  DocsArtifactHomeEntry,
   DocsBuildMetadata,
   DocsDiagram,
   DocsPage,
@@ -75,8 +76,14 @@ export interface DocsSearchResult {
   excerpt: string;
 }
 
+export interface DocsNavigationPayload {
+  sections: DocsSection[];
+  homeEntry: DocsArtifactHomeEntry;
+  contentBuild: DocsBuildMetadata;
+}
+
 export interface DocsService {
-  getNavigation(viewer: DocsViewer): Promise<DocsSection[]>;
+  getNavigation(viewer: DocsViewer): Promise<DocsNavigationPayload>;
   getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPageResult>;
   getDiagram(viewer: DocsViewer, input: DocsDiagramInput): Promise<DocsDiagramResult>;
   search(viewer: DocsViewer, input: DocsSearchInput): Promise<DocsSearchResult[]>;
@@ -154,7 +161,11 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
     async getNavigation(viewer) {
       assertCanReadDocs(viewer);
       const artifact = await adapter.readArtifact();
-      return artifact.sections;
+      return {
+        sections: artifact.sections,
+        homeEntry: artifact.homeEntry,
+        contentBuild: artifact.build,
+      };
     },
 
     async getPage(viewer, input) {

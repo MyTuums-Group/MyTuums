@@ -14,6 +14,7 @@ export { isValidSemanticPath, slugifyHeading } from "./slug.js";
 
 export type {
   DocsArtifact,
+  DocsArtifactHomeEntry,
   DocsBuildMetadata,
   DocsBuildOptions,
   DocsBuildResult,
@@ -22,6 +23,7 @@ export type {
   DocsLink,
   DocsManifest,
   DocsManifestDiagram,
+  DocsManifestHome,
   DocsManifestPage,
   DocsManifestSection,
   DocsNavigationPage,

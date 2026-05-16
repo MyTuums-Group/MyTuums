@@ -25,6 +25,26 @@ export type UserRole = "user" | "moderator" | "admin" | "owner"
 
 export type AccountStatus = "active" | "suspended" | "account_deleted"
 
+// ── Staff account policy ───────────────────────────────────────────
+export {
+  canChangeStaffRole,
+  canInspectStaffRole,
+  canPerformStaffAccountAction,
+  canSuspendStaffRole,
+  getStaffAccountActionPolicy,
+  getStaffAccountActionVisibility,
+  isStaffRole,
+  isStaffRoleDemotion,
+} from "./staff-account-policy.js"
+export type {
+  StaffAccountAction,
+  StaffAccountActionPolicy,
+  StaffAccountActions,
+  StaffAccountActionVisibility,
+  StaffAccountTarget,
+  StaffAssignableRole,
+} from "./staff-account-policy.js"
+
 // ── Media ───────────────────────────────────────────────────────────
 export type MediaPurpose =
   | "post_attachment"

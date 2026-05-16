@@ -47,7 +47,6 @@ import {
   type ChangeEvent,
   type Dispatch,
   type FormEvent,
-  type KeyboardEvent,
   type ReactNode,
   type SetStateAction,
 } from "react"
@@ -60,12 +59,16 @@ import {
   uploadBlobViaPutXhr,
   validateClientMediaUpload,
 } from "@/lib/media-upload-client"
+import {
+  getSearchTypeaheadStatus,
+  useSearchTypeaheadInteraction,
+  type SearchTypeaheadResultProps,
+  type SearchTypeaheadStatus,
+} from "@/lib/search-typeahead"
 import { trpc } from "@/lib/trpc"
 import {
   getFavoriteGameSearchOptions,
-  getFavoriteGameSearchStatus,
   type FavoriteGame,
-  type FavoriteGameSearchStatus,
 } from "@/routes/-settings-favorite-games"
 
 export const Route = createFileRoute("/settings")({
@@ -974,85 +977,34 @@ function FavoriteGameSearchField({
   onGameSearchChange: (value: string) => void
   selectedCount: number
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const isDisabled = selectedCount >= MAX_FAVORITE_GAMES
-  const status = getFavoriteGameSearchStatus({
+  const status = getSearchTypeaheadStatus({
+    errorMessage,
     isDisabled,
     isLoading,
     query: gameSearch,
     resultCount: gameResults.length,
   })
   const listboxId = "favorite-game-search-results"
-  const activeResultId =
-    status === "results" && highlightedIndex >= 0
-      ? `favorite-game-search-result-${highlightedIndex}`
-      : undefined
-  const showPanel = isOpen && !isDisabled
-
-  useEffect(() => {
-    setHighlightedIndex(gameResults.length > 0 ? 0 : -1)
-  }, [gameResults, gameSearch])
-
-  function selectGame(game: FavoriteGame) {
-    onAddFavoriteGame(game)
-    setIsOpen(false)
-    setHighlightedIndex(-1)
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown") {
-      event.preventDefault()
-      setIsOpen(true)
-      if (gameResults.length === 0) return
-      setHighlightedIndex((current) =>
-        current < gameResults.length - 1 ? current + 1 : 0
-      )
-      return
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault()
-      setIsOpen(true)
-      if (gameResults.length === 0) return
-      setHighlightedIndex((current) =>
-        current > 0 ? current - 1 : gameResults.length - 1
-      )
-      return
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault()
-      const selectedGame =
-        status === "results"
-          ? gameResults[highlightedIndex >= 0 ? highlightedIndex : 0]
-          : undefined
-      if (selectedGame) selectGame(selectedGame)
-      return
-    }
-
-    if (event.key === "Escape" && isOpen) {
-      event.preventDefault()
-      setIsOpen(false)
-      setHighlightedIndex(-1)
-    }
-  }
+  const typeahead = useSearchTypeaheadInteraction<FavoriteGame>({
+    enterSelection: "highlighted_or_first",
+    getItem: (index) => gameResults[index],
+    initialHighlight: "first_result",
+    itemCount: gameResults.length,
+    listboxId,
+    onSelect: onAddFavoriteGame,
+    openOnArrowWithoutResults: true,
+    preventEnterWithoutSelection: true,
+    resetKey: `${gameSearch.trim()}:${gameResults
+      .map((game) => game.id)
+      .join("|")}`,
+    resultIdPrefix: "favorite-game-search-result",
+    status,
+  })
+  const showPanel = typeahead.isOpen && !isDisabled
 
   return (
-    <div
-      className="flex flex-col gap-2"
-      onBlur={(event) => {
-        const nextTarget = event.relatedTarget
-        if (
-          nextTarget instanceof Node &&
-          event.currentTarget.contains(nextTarget)
-        ) {
-          return
-        }
-        setIsOpen(false)
-        setHighlightedIndex(-1)
-      }}
-    >
+    <div className="flex flex-col gap-2" onBlur={typeahead.handleBlurWithin}>
       <Label htmlFor="favorite-game-search">Favorite games</Label>
       <div className="relative">
         <MagnifyingGlass
@@ -1068,16 +1020,14 @@ function FavoriteGameSearchField({
           placeholder="Search games"
           disabled={isDisabled}
           aria-autocomplete="list"
-          aria-expanded={showPanel}
-          aria-controls={listboxId}
-          aria-activedescendant={activeResultId}
+          {...typeahead.getInputA11yProps(showPanel)}
           autoComplete="off"
           onChange={(event) => {
             onGameSearchChange(event.target.value)
-            setIsOpen(true)
+            typeahead.open()
           }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
+          onFocus={typeahead.open}
+          onKeyDown={typeahead.handleInputKeyDown}
         />
 
         {showPanel ? (
@@ -1089,10 +1039,10 @@ function FavoriteGameSearchField({
             <FavoriteGameSearchPanel
               errorMessage={errorMessage}
               gameResults={gameResults}
-              highlightedIndex={highlightedIndex}
+              getResultProps={typeahead.getResultProps}
+              highlightedIndex={typeahead.highlightedIndex}
               status={status}
-              onHighlight={setHighlightedIndex}
-              onSelect={selectGame}
+              onSelect={typeahead.selectItem}
             />
           </div>
         ) : null}
@@ -1107,27 +1057,22 @@ function FavoriteGameSearchField({
 function FavoriteGameSearchPanel({
   errorMessage,
   gameResults,
+  getResultProps,
   highlightedIndex,
-  onHighlight,
   onSelect,
   status,
 }: {
   errorMessage: string | null
   gameResults: FavoriteGame[]
+  getResultProps: (index: number) => SearchTypeaheadResultProps
   highlightedIndex: number
-  onHighlight: (index: number) => void
   onSelect: (game: FavoriteGame) => void
-  status: FavoriteGameSearchStatus
+  status: SearchTypeaheadStatus
 }) {
-  if (
-    errorMessage &&
-    status !== "empty" &&
-    status !== "too_short" &&
-    status !== "disabled"
-  ) {
+  if (status === "error") {
     return (
       <FavoriteGameSearchState tone="error">
-        {errorMessage}
+        {errorMessage ?? "Search failed."}
       </FavoriteGameSearchState>
     )
   }
@@ -1172,16 +1117,13 @@ function FavoriteGameSearchPanel({
         return (
           <button
             key={game.id}
-            id={`favorite-game-search-result-${index}`}
+            {...getResultProps(index)}
             type="button"
-            role="option"
-            aria-selected={isHighlighted}
             className={cn(
               "flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
               isHighlighted ? "bg-muted text-foreground" : "hover:bg-muted"
             )}
             onMouseDown={(event) => event.preventDefault()}
-            onMouseEnter={() => onHighlight(index)}
             onClick={() => onSelect(game)}
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground ring-1 ring-foreground/10">

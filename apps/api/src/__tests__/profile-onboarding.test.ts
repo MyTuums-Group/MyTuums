@@ -18,6 +18,67 @@ function createService() {
 }
 
 describe("Profile onboarding favorite games", () => {
+  it("reports username availability before onboarding submit", async () => {
+    const service = createService()
+
+    await expect(
+      service.checkUsernameAvailability("Alice_Player")
+    ).resolves.toEqual({
+      status: "available",
+      normalizedUsername: "alice_player",
+    })
+  })
+
+  it("reports invalid and taken usernames before onboarding submit", async () => {
+    const service = createInMemoryProfileOnboardingService({
+      profiles: [
+        {
+          id: "profile-1",
+          userId: "user-1",
+          username: "alice",
+          displayName: null,
+          bio: null,
+          avatarMediaId: null,
+          bannerMediaId: null,
+          followerCount: 0,
+          followingCount: 0,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+      ],
+      games: [],
+      favoriteGames: [],
+      usernameHolds: [
+        {
+          username: "recently_deleted",
+          heldUntil: new Date("2099-01-01T00:00:00.000Z"),
+        },
+      ],
+    })
+
+    await expect(service.checkUsernameAvailability("1-alice")).resolves.toEqual(
+      {
+        status: "invalid",
+        normalizedUsername: "1-alice",
+        message:
+          "Username must start with a letter and contain only lowercase letters, numbers, and underscores.",
+      }
+    )
+
+    await expect(service.checkUsernameAvailability("Alice")).resolves.toEqual({
+      status: "taken",
+      normalizedUsername: "alice",
+      message: "This username is already taken.",
+    })
+
+    await expect(
+      service.checkUsernameAvailability("recently_deleted")
+    ).resolves.toEqual({
+      status: "taken",
+      normalizedUsername: "recently_deleted",
+      message: "This username is already taken.",
+    })
+  })
+
   it("creates profile and favorite games atomically with deterministic positions", async () => {
     const service = createService()
 

@@ -7,17 +7,19 @@
 
 export {
   submitOnboarding,
+  checkUsernameAvailability,
   getByUsername,
   getOwnerByUsername,
   checkProfileExists,
   getMyProfile,
-} from "./profile.js";
+} from "./profile.js"
 export {
   createProfileService,
   createInMemoryProfileOnboardingService,
   type OnboardingError,
   type ProfileAccessError,
+  type UsernameAvailability,
   type PublicProfile,
   type ProfileOnboardingInput,
   type ProfileOnboardingAdapter,
-} from "./profile.core.js";
+} from "./profile.core.js"

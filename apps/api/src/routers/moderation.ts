@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import {
   MODERATION_CASE_ACTION_VALUES,
@@ -12,12 +11,12 @@ import {
   RATE_LIMIT_POLICIES,
   createUserIpRateLimitKey,
 } from "../services/rate-limit/index.js"
-import type {
-  ModerationCaseCommandError,
-  SubmitReportError,
-} from "../services/moderation/index.js"
 import { getRequestIp } from "../transport/request-info.js"
 import { enforceRateLimit } from "../transport/rate-limit.js"
+import {
+  mapCaseCommandErrorToTRPC,
+  mapSubmitReportErrorToTRPC,
+} from "../transport/moderation-errors.js"
 import { protectedProcedure, router } from "../trpc.js"
 
 const reportReasonSchema = z.enum(REPORT_REASON_VALUES)
@@ -194,67 +193,3 @@ export const moderationRouter = router({
       return result.value
     }),
 })
-
-function mapSubmitReportErrorToTRPC(error: SubmitReportError): TRPCError {
-  switch (error.kind) {
-    case "reporter_not_found":
-      return new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required.",
-      })
-    case "target_not_found":
-    case "target_not_visible":
-      return new TRPCError({
-        code: "NOT_FOUND",
-        message: "This report target is not available.",
-      })
-    case "duplicate_report":
-      return new TRPCError({
-        code: "CONFLICT",
-        message: "You already have an active report for this target.",
-      })
-  }
-}
-
-function mapCaseCommandErrorToTRPC(
-  error: ModerationCaseCommandError
-): TRPCError {
-  switch (error.kind) {
-    case "forbidden":
-      return new TRPCError({
-        code: "FORBIDDEN",
-        message: "This moderation tool is not available.",
-      })
-    case "case_not_found":
-    case "target_not_found":
-      return new TRPCError({
-        code: "NOT_FOUND",
-        message: "This moderation case is not available.",
-      })
-    case "assignee_not_found":
-      return new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Assignee must be a staff user.",
-      })
-    case "internal_notes_required":
-      return new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Internal notes are required.",
-      })
-    case "public_reason_required":
-      return new TRPCError({
-        code: "BAD_REQUEST",
-        message: "A public reason is required for removal actions.",
-      })
-    case "invalid_action_for_target":
-      return new TRPCError({
-        code: "BAD_REQUEST",
-        message: "That moderation action cannot be used for this target.",
-      })
-    case "target_conflict":
-      return new TRPCError({
-        code: "CONFLICT",
-        message: "The target changed since this case was loaded.",
-      })
-  }
-}

@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import {
   list,
@@ -6,6 +5,7 @@ import {
   markRead,
   unreadCount,
 } from "../services/notification/index.js"
+import { mapNotificationMarkReadErrorToTRPC } from "../transport/notification-errors.js"
 import { protectedProcedure, router } from "../trpc.js"
 
 export const notificationRouter = router({
@@ -26,10 +26,7 @@ export const notificationRouter = router({
       })
 
       if (!result.ok) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Notification not found.",
-        })
+        throw mapNotificationMarkReadErrorToTRPC(result.error)
       }
 
       return result.value

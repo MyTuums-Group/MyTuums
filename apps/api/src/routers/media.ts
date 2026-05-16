@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import type { Context } from "../context.js"
 import { protectedProcedure, router } from "../trpc.js"
@@ -9,6 +8,10 @@ import {
   RATE_LIMIT_POLICIES,
   createUserRateLimitKey,
 } from "../services/rate-limit/index.js"
+import {
+  mapMediaServiceErrorToTRPC,
+  mapMediaUploadGateErrorToTRPC,
+} from "../transport/media-errors.js"
 import { enforceRateLimit } from "../transport/rate-limit.js"
 
 const mediaIdSchema = z.string().uuid()
@@ -33,7 +36,7 @@ export const mediaRouter = router({
         message: "Too many upload URL requests.",
       })
       const result = await mediaService.createUploadIntent(ctx.user.id, input)
-      if (!result.ok) throw mediaError(result.error.kind)
+      if (!result.ok) throw mapMediaServiceErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -44,7 +47,7 @@ export const mediaRouter = router({
         input.mediaId,
         ctx.user.id
       )
-      if (!result.ok) throw mediaError(result.error.kind)
+      if (!result.ok) throw mapMediaServiceErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -55,7 +58,7 @@ export const mediaRouter = router({
         input.mediaId,
         ctx.user.id
       )
-      if (!result.ok) throw mediaError(result.error.kind)
+      if (!result.ok) throw mapMediaServiceErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -63,7 +66,7 @@ export const mediaRouter = router({
     .input(z.object({ mediaId: mediaIdSchema }))
     .mutation(async ({ ctx, input }) => {
       const result = await mediaService.abandonMedia(input.mediaId, ctx.user.id)
-      if (!result.ok) throw mediaError(result.error.kind)
+      if (!result.ok) throw mapMediaServiceErrorToTRPC(result.error)
       return result.value
     }),
 })
@@ -74,10 +77,7 @@ async function assertCanUpload(
 ) {
   const launchReadiness = await launchReadinessService.getReadiness()
   if (!launchReadiness.mediaUploadsEnabled) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Media uploads are disabled until launch readiness gates pass.",
-    })
+    throw mapMediaUploadGateErrorToTRPC({ kind: "launch_not_ready" })
   }
 
   const appUserState = await getCurrentAppUserState(ctx)
@@ -89,31 +89,5 @@ async function assertCanUpload(
     return
   }
 
-  throw new TRPCError({
-    code: "FORBIDDEN",
-    message: "You need a verified onboarded profile to upload media.",
-  })
-}
-
-function mediaError(kind: string): TRPCError {
-  switch (kind) {
-    case "invalid_mime_type":
-    case "file_too_large":
-    case "invalid_purpose":
-    case "blob_size_mismatch":
-    case "blob_type_mismatch":
-      return new TRPCError({ code: "BAD_REQUEST", message: kind })
-    case "media_not_found":
-    case "blob_not_found":
-      return new TRPCError({ code: "NOT_FOUND", message: kind })
-    case "wrong_owner":
-      return new TRPCError({ code: "FORBIDDEN", message: kind })
-    case "media_not_pending":
-    case "media_not_ready":
-    case "media_expired":
-    case "already_attached":
-      return new TRPCError({ code: "CONFLICT", message: kind })
-    default:
-      return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: kind })
-  }
+  throw mapMediaUploadGateErrorToTRPC({ kind: "profile_required" })
 }

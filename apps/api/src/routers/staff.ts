@@ -1,38 +1,7 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
-import type {
-  ChangeRoleError,
-  OwnerBootstrapError,
-  StaffReadError,
-  SuspendUserError,
-} from "../services/staff/index.js"
 import { staffService } from "../services/staff/staff.production.js"
+import { mapStaffErrorToTRPC } from "../transport/staff-errors.js"
 import { protectedProcedure, router } from "../trpc.js"
-
-const staffError = (
-  error:
-    | ChangeRoleError
-    | SuspendUserError
-    | OwnerBootstrapError
-    | StaffReadError
-): TRPCError => {
-  switch (error.kind) {
-    case "actor_not_found":
-    case "invalid_secret":
-      return new TRPCError({ code: "UNAUTHORIZED", message: error.kind })
-    case "target_not_found":
-    case "user_not_found":
-      return new TRPCError({ code: "NOT_FOUND", message: error.kind })
-    case "internal_notes_required":
-      return new TRPCError({ code: "BAD_REQUEST", message: error.kind })
-    case "user_not_verified":
-    case "owner_already_exists":
-    case "role_change_not_allowed":
-    case "staff_access_not_allowed":
-    case "suspension_not_allowed":
-      return new TRPCError({ code: "FORBIDDEN", message: error.kind })
-  }
-}
 
 export const staffRouter = router({
   searchUsers: protectedProcedure
@@ -48,7 +17,7 @@ export const staffRouter = router({
         query: input.query,
         limit: input.limit,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -63,7 +32,7 @@ export const staffRouter = router({
         actorId: ctx.user.id,
         targetUserId: input.targetUserId,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -82,7 +51,7 @@ export const staffRouter = router({
         newRole: input.newRole,
         internalNotes: input.internalNotes,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -103,7 +72,7 @@ export const staffRouter = router({
         internalNotes: input.internalNotes,
         publicReason: input.publicReason,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -120,7 +89,7 @@ export const staffRouter = router({
         targetUserId: input.targetUserId,
         internalNotes: input.internalNotes,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 
@@ -137,7 +106,7 @@ export const staffRouter = router({
         targetUserId: input.targetUserId,
         internalNotes: input.internalNotes,
       })
-      if (!result.ok) throw staffError(result.error)
+      if (!result.ok) throw mapStaffErrorToTRPC(result.error)
       return result.value
     }),
 })

@@ -40,15 +40,17 @@ export type CaseStatus = "open" | "reviewing" | "dismissed" | "actioned"
 
 export type CasePriority = "normal" | "urgent"
 
-export type ReportReason =
-  | "self_harm"
-  | "illegal_or_dangerous"
-  | "privacy"
-  | "underage_or_safety"
-  | "harassment"
-  | "spam"
-  | "impersonation"
-  | "other"
+export type { ReportReason } from "./moderation-catalog.js"
+export {
+  MODERATION_CASE_ACTION_VALUES,
+  MODERATION_INTERNAL_NOTES_MAX_LENGTH,
+  PUBLIC_REMOVAL_REASON_VALUES,
+  REPORT_NOTES_MAX_LENGTH,
+  REPORT_REASON_OPTIONS,
+  REPORT_REASON_VALUES,
+  URGENT_REPORT_REASONS,
+} from "./moderation-catalog.js"
+export type { ModerationCaseAction } from "./moderation-catalog.js"
 
 export type ReportTargetType = "post" | "comment" | "profile"
 

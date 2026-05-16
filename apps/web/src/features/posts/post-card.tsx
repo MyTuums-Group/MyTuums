@@ -23,9 +23,15 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import { trpc } from "@/lib/trpc"
 import { ReportSheet } from "@/features/moderation/report-sheet"
-import { DEFAULT_POST_PAGE_LIMIT } from "./constants"
 import { linkifyText } from "./linkify"
-import { removePostFromFeedPage } from "./post-cache"
+import {
+  applyOptimisticPostDeleteToFeeds,
+  cancelPostListQueriesForOptimisticDelete,
+  captureFeedSnapshotsForOptimisticPostDelete,
+  reconcileCachesAfterPostDeleteMutationSettled,
+  reconcileCachesAfterPostLikeMutationSettled,
+  restoreFeedsAfterOptimisticPostDeleteFailure,
+} from "./post-cache-reconcile"
 import type { PostView } from "./types"
 
 type PostCardProps = {
@@ -76,84 +82,37 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
     },
 
     async onSettled() {
-      await Promise.all([
-        utils.post.forYouFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        utils.post.profileFeed.invalidate({
-          username: post.author.username,
-          limit: DEFAULT_POST_PAGE_LIMIT,
-        }),
-        utils.post.detail.invalidate({ publicId: post.publicId }),
-      ])
+      await reconcileCachesAfterPostLikeMutationSettled(utils, {
+        postPublicId: post.publicId,
+        authorUsername: post.author.username,
+      })
     },
   })
   const deleteMutation = trpc.post.deleteOwn.useMutation({
     async onMutate() {
-      await Promise.all([
-        utils.post.forYouFeed.cancel({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        utils.post.followingFeed.cancel({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        utils.post.profileFeed.cancel({
-          username: post.author.username,
-          limit: DEFAULT_POST_PAGE_LIMIT,
-        }),
-        utils.post.detail.cancel({ publicId: post.publicId }),
-      ])
-
-      const previousForYou = utils.post.forYouFeed.getData({
-        limit: DEFAULT_POST_PAGE_LIMIT,
-      })
-      const previousFollowing = utils.post.followingFeed.getData({
-        limit: DEFAULT_POST_PAGE_LIMIT,
-      })
-      const previousProfile = utils.post.profileFeed.getData({
-        username: post.author.username,
-        limit: DEFAULT_POST_PAGE_LIMIT,
+      await cancelPostListQueriesForOptimisticDelete(utils, {
+        postPublicId: post.publicId,
+        authorUsername: post.author.username,
       })
 
-      utils.post.forYouFeed.setData(
-        { limit: DEFAULT_POST_PAGE_LIMIT },
-        (current) => removePostFromFeedPage(current, post.publicId)
-      )
-      utils.post.followingFeed.setData(
-        { limit: DEFAULT_POST_PAGE_LIMIT },
-        (current) => removePostFromFeedPage(current, post.publicId)
-      )
-      utils.post.profileFeed.setData(
-        {
-          username: post.author.username,
-          limit: DEFAULT_POST_PAGE_LIMIT,
-        },
-        (current) => removePostFromFeedPage(current, post.publicId)
-      )
+      const snapshots = captureFeedSnapshotsForOptimisticPostDelete(utils, {
+        authorUsername: post.author.username,
+      })
 
-      return {
-        previousForYou,
-        previousFollowing,
-        previousProfile,
-      }
+      applyOptimisticPostDeleteToFeeds(utils, {
+        postPublicId: post.publicId,
+        authorUsername: post.author.username,
+      })
+
+      return snapshots
     },
 
     onError(_error, _variables, context) {
-      if (context?.previousForYou) {
-        utils.post.forYouFeed.setData(
-          { limit: DEFAULT_POST_PAGE_LIMIT },
-          context.previousForYou
-        )
-      }
-
-      if (context?.previousFollowing) {
-        utils.post.followingFeed.setData(
-          { limit: DEFAULT_POST_PAGE_LIMIT },
-          context.previousFollowing
-        )
-      }
-
-      if (context?.previousProfile) {
-        utils.post.profileFeed.setData(
-          {
-            username: post.author.username,
-            limit: DEFAULT_POST_PAGE_LIMIT,
-          },
-          context.previousProfile
+      if (context) {
+        restoreFeedsAfterOptimisticPostDeleteFailure(
+          utils,
+          { authorUsername: post.author.username },
+          context
         )
       }
     },
@@ -163,19 +122,11 @@ export function PostCard({ post, variant = "feed", onDeleted }: PostCardProps) {
     },
 
     async onSettled() {
-      await Promise.all([
-        utils.post.forYouFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        utils.post.followingFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        utils.post.profileFeed.invalidate({
-          username: post.author.username,
-          limit: DEFAULT_POST_PAGE_LIMIT,
-        }),
-        utils.post.discoverFeed.invalidate(),
-        utils.post.detail.invalidate({ publicId: post.publicId }),
-        post.gameTag
-          ? utils.game.feed.invalidate({ slug: post.gameTag.slug })
-          : Promise.resolve(),
-      ])
+      await reconcileCachesAfterPostDeleteMutationSettled(utils, {
+        postPublicId: post.publicId,
+        authorUsername: post.author.username,
+        gameSlug: post.gameTag?.slug,
+      })
     },
   })
 

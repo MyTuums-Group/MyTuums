@@ -5,9 +5,15 @@ import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { trpc } from "@/lib/trpc";
-import { DEFAULT_POST_PAGE_LIMIT } from "./constants";
-import { prependPostToFeedPage, replacePostInFeedPage } from "./post-cache";
 import { getPostTextState } from "./post-text";
+import {
+  applyCreatedPostReplacingOptimisticOnFeeds,
+  applyOptimisticPostCreateToFeeds,
+  cancelPostListQueriesForOptimisticCreate,
+  captureFeedSnapshotsForOptimisticPostCreate,
+  reconcileCachesAfterPostCreateMutationSettled,
+  restoreFeedsAfterOptimisticPostCreateFailure,
+} from "./post-cache-reconcile";
 import type { PostView } from "./types";
 
 type PostComposerProps = {
@@ -77,113 +83,59 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         moderationRemoval: null,
       };
 
-      await Promise.all([
-        utils.post.forYouFeed.cancel({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        activeProfile
-          ? utils.post.profileFeed.cancel({
-              username: activeProfile.username,
-              limit: DEFAULT_POST_PAGE_LIMIT,
-            })
-          : Promise.resolve(),
-      ]);
+      await cancelPostListQueriesForOptimisticCreate(
+        utils,
+        activeProfile?.username ?? null,
+      );
 
-      const previousForYou = utils.post.forYouFeed.getData({
-        limit: DEFAULT_POST_PAGE_LIMIT,
-      });
-      const previousProfile = activeProfile
-        ? utils.post.profileFeed.getData({
-            username: activeProfile.username,
-            limit: DEFAULT_POST_PAGE_LIMIT,
-          })
-        : undefined;
+      const snapshots = captureFeedSnapshotsForOptimisticPostCreate(
+        utils,
+        activeProfile?.username ?? null,
+      );
 
       setErrorMessage(null);
       setDraft("");
       setSelectedGameId("");
       clearUpload();
 
-      utils.post.forYouFeed.setData(
-        { limit: DEFAULT_POST_PAGE_LIMIT },
-        (current) => prependPostToFeedPage(current, optimisticPost)
-      );
-
-      if (activeProfile) {
-        utils.post.profileFeed.setData(
-          {
-            username: activeProfile.username,
-            limit: DEFAULT_POST_PAGE_LIMIT,
-          },
-          (current) => prependPostToFeedPage(current, optimisticPost)
-        );
-      }
+      applyOptimisticPostCreateToFeeds(utils, {
+        optimisticPost,
+        profileUsername: activeProfile?.username ?? null,
+      });
 
       return {
         optimisticPublicId,
-        previousForYou,
-        previousProfile,
+        snapshots,
         previousDraft: draft,
       };
     },
 
     onError(error, _variables, context) {
-      utils.post.forYouFeed.setData(
-        { limit: DEFAULT_POST_PAGE_LIMIT },
-        context?.previousForYou
+      restoreFeedsAfterOptimisticPostCreateFailure(
+        utils,
+        activeProfile?.username ?? null,
+        context?.snapshots,
       );
-
-      if (activeProfile) {
-        utils.post.profileFeed.setData(
-          {
-            username: activeProfile.username,
-            limit: DEFAULT_POST_PAGE_LIMIT,
-          },
-          context?.previousProfile
-        );
-      }
 
       setDraft(context?.previousDraft ?? "");
       setErrorMessage(error.message);
     },
 
     onSuccess(createdPost, _variables, context) {
-      utils.post.forYouFeed.setData(
-        { limit: DEFAULT_POST_PAGE_LIMIT },
-        (current) =>
-          replacePostInFeedPage(
-            current,
-            context?.optimisticPublicId ?? createdPost.publicId,
-            createdPost
-          ) ?? prependPostToFeedPage(current, createdPost)
-      );
-
-      if (activeProfile) {
-        utils.post.profileFeed.setData(
-          {
-            username: activeProfile.username,
-            limit: DEFAULT_POST_PAGE_LIMIT,
-          },
-          (current) =>
-            replacePostInFeedPage(
-              current,
-              context?.optimisticPublicId ?? createdPost.publicId,
-              createdPost
-            ) ?? prependPostToFeedPage(current, createdPost)
-        );
-      }
+      applyCreatedPostReplacingOptimisticOnFeeds(utils, {
+        createdPost,
+        optimisticPublicId: context?.optimisticPublicId,
+        profileUsername: activeProfile?.username ?? null,
+      });
 
       onCreated?.(createdPost);
     },
 
     async onSettled() {
-      await Promise.all([
-        utils.post.forYouFeed.invalidate({ limit: DEFAULT_POST_PAGE_LIMIT }),
-        activeProfile
-          ? utils.post.profileFeed.invalidate({
-              username: activeProfile.username,
-              limit: DEFAULT_POST_PAGE_LIMIT,
-            })
-          : Promise.resolve(),
-      ]);
+      await reconcileCachesAfterPostCreateMutationSettled(
+        utils,
+        activeProfile?.username ?? null,
+      );
     },
   });
 

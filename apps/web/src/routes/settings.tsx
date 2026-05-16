@@ -188,6 +188,9 @@ function SettingsPage() {
       })
       setProfileMessage("Profile saved.")
       setProfileError(null)
+      utils.settings.get.setData(undefined, (previous) =>
+        previous ? { ...previous, profile } : previous
+      )
       await Promise.all([
         utils.settings.get.invalidate(),
         utils.currentAppUser.invalidate(),
@@ -263,6 +266,30 @@ function SettingsPage() {
   const profileSlotsBusy =
     profileSlotLocksSave(slotUploadStates.avatar) ||
     profileSlotLocksSave(slotUploadStates.banner)
+
+  /** Server-signed URLs plus in-flight/blob previews — order matches MediaField internals */
+  function resolvedProfileSlotPreviewUrl(slot: MediaSlot): string | undefined {
+    const uploading = slotUploadStates[slot]?.localPreviewUrl
+    if (uploading) return uploading
+
+    const blob = mediaPreviews[slot]
+    if (blob) return blob
+
+    const formMediaId =
+      slot === "avatar" ? profileForm.avatarMediaId : profileForm.bannerMediaId
+    if (!formMediaId) return undefined
+
+    const serverProfile = settings.profile
+    const serverMediaId =
+      slot === "avatar"
+        ? serverProfile.avatarMediaId
+        : serverProfile.bannerMediaId
+    if (formMediaId !== serverMediaId) return undefined
+
+    const signed =
+      slot === "avatar" ? serverProfile.avatarUrl : serverProfile.bannerUrl
+    return signed ?? undefined
+  }
 
   function markSlotUploadFailed(slot: MediaSlot, message: string) {
     setSlotUploadStates((current) => {
@@ -681,7 +708,7 @@ function SettingsPage() {
           isProfileBusy={profileSlotsBusy}
           slotIssues={slotIssues}
           slotUploadStates={slotUploadStates}
-          mediaPreviews={mediaPreviews}
+          previewUrlForSlot={resolvedProfileSlotPreviewUrl}
           message={profileMessage}
           error={profileError ?? updateProfileMutation.error?.message ?? null}
           onAddFavoriteGame={addFavoriteGame}
@@ -773,7 +800,7 @@ function ProfileSettings({
   isGameSearchLoading,
   isSaving,
   isProfileBusy,
-  mediaPreviews,
+  previewUrlForSlot,
   message,
   onAddFavoriteGame,
   onGameSearchChange,
@@ -794,7 +821,7 @@ function ProfileSettings({
   isGameSearchLoading: boolean
   isSaving: boolean
   isProfileBusy: boolean
-  mediaPreviews: Record<MediaSlot, string | null>
+  previewUrlForSlot: (slot: MediaSlot) => string | undefined
   message: string | null
   onAddFavoriteGame: (game: FavoriteGame) => void
   onGameSearchChange: (value: string) => void
@@ -895,7 +922,7 @@ function ProfileSettings({
             <MediaField
               label="Avatar"
               mediaId={form.avatarMediaId}
-              previewUrl={mediaPreviews.avatar}
+              previewUrl={previewUrlForSlot("avatar") ?? null}
               slot="avatar"
               slotIssue={slotIssues.avatar}
               slotUpload={slotUploadStates.avatar}
@@ -906,7 +933,7 @@ function ProfileSettings({
             <MediaField
               label="Banner"
               mediaId={form.bannerMediaId}
-              previewUrl={mediaPreviews.banner}
+              previewUrl={previewUrlForSlot("banner") ?? null}
               slot="banner"
               slotIssue={slotIssues.banner}
               slotUpload={slotUploadStates.banner}

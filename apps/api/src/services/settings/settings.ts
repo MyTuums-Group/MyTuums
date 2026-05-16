@@ -8,6 +8,11 @@ import {
   type SettingsUpdateProfileInput,
 } from "./settings.core.js"
 
+async function signMediaReadUrl(mediaId: string): Promise<string | null> {
+  const result = await mediaService.signReadUrl(mediaId)
+  return result.ok ? result.value.readUrl : null
+}
+
 export const settingsService = createSettingsService({
   adapter: settingsAdapter,
   media: {
@@ -22,6 +27,7 @@ export const settingsService = createSettingsService({
       )
     },
   },
+  signMediaReadUrl,
 })
 
 export function getSettings(

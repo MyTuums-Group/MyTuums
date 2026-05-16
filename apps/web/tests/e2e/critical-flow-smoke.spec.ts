@@ -127,7 +127,7 @@ async function registerVerifiedOnboardedUser(
   const verificationLink = await waitForVerificationLink(request, user.email)
   await page.goto(verificationLink)
 
-  await expect(page.getByText("Choose your username")).toBeVisible()
+  await expect(page.getByLabel("Username")).toBeVisible({ timeout: 15_000 })
   await page.getByLabel("Username").fill(user.username)
   await page.getByLabel("Display name (optional)").fill(user.displayName)
   await page.getByLabel("Bio (optional)").fill("Playwright smoke account")

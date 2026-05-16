@@ -58,6 +58,8 @@ describe("settings service", () => {
         bio: null,
         avatarMediaId: null,
         bannerMediaId: null,
+        avatarUrl: null,
+        bannerUrl: null,
         favoriteGames: [{ id: "game-b", slug: "hades", name: "Hades" }],
       },
       account: {
@@ -101,6 +103,8 @@ describe("settings service", () => {
         bio: "Main support and roguelike enjoyer.",
         avatarMediaId: "avatar-media",
         bannerMediaId: "banner-media",
+        avatarUrl: null,
+        bannerUrl: null,
         favoriteGames: [
           { id: "game-a", slug: "valorant", name: "Valorant" },
           { id: "game-b", slug: "hades", name: "Hades" },
@@ -123,6 +127,55 @@ describe("settings service", () => {
     expect(service.snapshot().favoriteGames).toEqual([
       { profileId: "profile-1", gameId: "game-a", position: 1 },
       { profileId: "profile-1", gameId: "game-b", position: 2 },
+    ])
+  })
+
+  it("does not re-attach unchanged avatar media when updating banner only", async () => {
+    const initial = createInMemorySettingsService({
+      profiles: [
+        {
+          id: "profile-1",
+          userId: "user-1",
+          username: "alice",
+          displayName: "Alice",
+          bio: null,
+          avatarMediaId: "avatar-existing",
+          bannerMediaId: null,
+          followerCount: 0,
+          followingCount: 0,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+      ],
+      games: [
+        { id: "game-a", slug: "valorant", name: "Valorant", isActive: true },
+        { id: "game-b", slug: "hades", name: "Hades", isActive: true },
+      ],
+      favoriteGames: [{ profileId: "profile-1", gameId: "game-b", position: 1 }],
+      preferences: [],
+      blocks: [],
+      blockProfiles: [],
+      mediaAttachments: [],
+    })
+
+    await expect(
+      initial.updateProfile("user-1", {
+        displayName: "Alice",
+        bio: null,
+        avatarMediaId: "avatar-existing",
+        bannerMediaId: "banner-new",
+        favoriteGameIds: ["game-b"],
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: { bannerMediaId: "banner-new" },
+    })
+
+    expect(initial.snapshot().mediaAttachments).toEqual([
+      {
+        mediaId: "banner-new",
+        userId: "user-1",
+        expectedPurpose: "profile_banner",
+      },
     ])
   })
 

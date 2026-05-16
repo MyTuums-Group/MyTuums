@@ -75,6 +75,7 @@ export interface FeedPostRow {
   authorId: string;
   authorUsername: string;
   authorDisplayName: string | null;
+  authorAvatarMediaId: string | null;
   authorAccountStatus: AccountStatus;
   text: string;
   gameTagId: string | null;

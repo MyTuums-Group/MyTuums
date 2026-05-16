@@ -240,6 +240,7 @@ const postSelection = {
   authorId: post.authorId,
   authorUsername: profile.username,
   authorDisplayName: profile.displayName,
+  authorAvatarMediaId: profile.avatarMediaId,
   authorAccountStatus: user.accountStatus,
   text: post.text,
   gameTagId: post.gameTagId,

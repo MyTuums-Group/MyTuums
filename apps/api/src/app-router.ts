@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { SEARCH_MIN_QUERY_LENGTH } from "@workspace/types"
 import { router, publicProcedure, protectedProcedure } from "./trpc.js"
 import { contactRouter } from "./routers/contact.js"
 import { docsRouter } from "./routers/docs.js"
@@ -44,7 +45,7 @@ export const appRouter = router({
   search: protectedProcedure
     .input(
       z.object({
-        query: z.string(),
+        query: z.string().max(100),
         limit: z.number().int().min(1).max(50).default(10),
       })
     )
@@ -53,7 +54,10 @@ export const appRouter = router({
         userId: ctx.user.id,
       })
       const searchInput: AppSearchInput = {
-        query: input.query ?? "",
+        query:
+          input.query.trim().length >= SEARCH_MIN_QUERY_LENGTH
+            ? input.query
+            : "",
         limit: input.limit ?? 10,
       }
       return appSearch.appSearch(viewer, searchInput)

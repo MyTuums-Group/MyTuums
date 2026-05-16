@@ -3,11 +3,11 @@
 // stable value types — no service logic, DB clients, or React components.
 
 // ── Value object types (branded types only — validation logic moved to services) ──
-export { type Username } from "./username.js";
-export { type PostBody } from "./post-body.js";
-export { type CommentBody } from "./comment-body.js";
-export { type GameSlug } from "./game-slug.js";
-export { type Result, ValidationError, success, failure } from "./result.js";
+export { type Username } from "./username.js"
+export { type PostBody } from "./post-body.js"
+export { type CommentBody } from "./comment-body.js"
+export { type GameSlug } from "./game-slug.js"
+export { type Result, ValidationError, success, failure } from "./result.js"
 
 // ── Authorization ───────────────────────────────────────────────────
 export {
@@ -15,22 +15,30 @@ export {
   type TargetType,
   type ViewerContext,
   type AuthorizationAdapter,
-} from "./authorization.js";
+} from "./authorization.js"
 
 // ── Auth ────────────────────────────────────────────────────────────
-export type UserRole = "user" | "moderator" | "admin" | "owner";
+export type UserRole = "user" | "moderator" | "admin" | "owner"
 
-export type AccountStatus = "active" | "suspended" | "account_deleted";
+export type AccountStatus = "active" | "suspended" | "account_deleted"
 
 // ── Media ───────────────────────────────────────────────────────────
-export type MediaPurpose = "post_attachment" | "profile_avatar" | "profile_banner";
+export type MediaPurpose =
+  | "post_attachment"
+  | "profile_avatar"
+  | "profile_banner"
 
-export type MediaStatus = "pending" | "ready" | "attached" | "failed" | "deleted";
+export type MediaStatus =
+  | "pending"
+  | "ready"
+  | "attached"
+  | "failed"
+  | "deleted"
 
 // ── Moderation ──────────────────────────────────────────────────────
-export type CaseStatus = "open" | "reviewing" | "dismissed" | "actioned";
+export type CaseStatus = "open" | "reviewing" | "dismissed" | "actioned"
 
-export type CasePriority = "normal" | "urgent";
+export type CasePriority = "normal" | "urgent"
 
 export type ReportReason =
   | "self_harm"
@@ -40,9 +48,9 @@ export type ReportReason =
   | "harassment"
   | "spam"
   | "impersonation"
-  | "other";
+  | "other"
 
-export type ReportTargetType = "post" | "comment" | "profile";
+export type ReportTargetType = "post" | "comment" | "profile"
 
 export type ModerationActionType =
   | "remove_post"
@@ -51,9 +59,9 @@ export type ModerationActionType =
   | "restore_comment"
   | "suspend_user"
   | "unsuspend_user"
-  | "dismiss_case";
+  | "dismiss_case"
 
-export type SuspensionDuration = "24h" | "7d" | "30d" | "indefinite";
+export type SuspensionDuration = "24h" | "7d" | "30d" | "indefinite"
 
 // ── Notifications ───────────────────────────────────────────────────
 export type NotificationType =
@@ -61,7 +69,7 @@ export type NotificationType =
   | "post_like"
   | "post_comment"
   | "comment_like"
-  | "content_removed";
+  | "content_removed"
 
 // ── Contact ─────────────────────────────────────────────────────────
 export type ContactCategory =
@@ -70,26 +78,27 @@ export type ContactCategory =
   | "privacy_or_data"
   | "bug_report"
   | "general_support"
-  | "other";
+  | "other"
 
-export type ContactEmailStatus = "pending" | "sent" | "failed";
+export type ContactEmailStatus = "pending" | "sent" | "failed"
 
 // ── Constants ───────────────────────────────────────────────────────
-export const USERNAME_MIN_LENGTH = 3;
-export const USERNAME_MAX_LENGTH = 20;
+export const USERNAME_MIN_LENGTH = 3
+export const USERNAME_MAX_LENGTH = 20
 
-export const DISPLAY_NAME_MAX_LENGTH = 40;
-export const POST_TEXT_MAX_LENGTH = 500;
-export const COMMENT_TEXT_MAX_LENGTH = 300;
-export const BIO_MAX_LENGTH = 160;
-export const CONTACT_MESSAGE_MAX_LENGTH = 2000;
-export const CONTACT_EMAIL_MAX_LENGTH = 254;
+export const DISPLAY_NAME_MAX_LENGTH = 40
+export const POST_TEXT_MAX_LENGTH = 500
+export const COMMENT_TEXT_MAX_LENGTH = 300
+export const BIO_MAX_LENGTH = 160
+export const CONTACT_MESSAGE_MAX_LENGTH = 2000
+export const CONTACT_EMAIL_MAX_LENGTH = 254
 
-export const MAX_FAVORITE_GAMES = 5;
-export const MAX_MEDIA_PER_POST = 1;
+export const MAX_FAVORITE_GAMES = 5
+export const MAX_MEDIA_PER_POST = 1
+export const SEARCH_MIN_QUERY_LENGTH = 2
 
-export const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-export const VIDEO_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+export const IMAGE_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+export const VIDEO_MAX_BYTES = 100 * 1024 * 1024 // 100 MB
 
-export const DELETED_EMAIL_HOLD_DAYS = 7;
-export const DELETED_USERNAME_HOLD_DAYS = 7;
+export const DELETED_EMAIL_HOLD_DAYS = 7
+export const DELETED_USERNAME_HOLD_DAYS = 7

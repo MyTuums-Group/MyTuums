@@ -48,6 +48,7 @@ import {
 } from "react"
 import type { Theme } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
+import { AccountDeletionDialog } from "@/components/account-deletion-dialog"
 import { changePassword } from "@/lib/auth-client"
 import { trpc } from "@/lib/trpc"
 
@@ -106,6 +107,9 @@ function SettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [gameSearch, setGameSearch] = useState("")
   const [mediaPreviews, setMediaPreviews] = useState<
     Record<MediaSlot, string | null>
@@ -154,6 +158,18 @@ function SettingsPage() {
   const unblockUserMutation = trpc.settings.unblockUser.useMutation({
     async onSuccess() {
       await utils.settings.get.invalidate()
+    },
+  })
+  const deleteAccountMutation = trpc.settings.deleteAccount.useMutation({
+    async onSuccess() {
+      setDeletePassword("")
+      setDeleteError(null)
+      setIsDeleteDialogOpen(false)
+      await Promise.all([
+        utils.settings.get.invalidate(),
+        utils.currentAppUser.invalidate(),
+      ])
+      window.location.assign("/login")
     },
   })
 
@@ -339,6 +355,17 @@ function SettingsPage() {
     }
   }
 
+  async function handleDeleteAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setDeleteError(null)
+
+    try {
+      await deleteAccountMutation.mutateAsync({ password: deletePassword })
+    } catch (error) {
+      setDeleteError(getErrorMessage(error))
+    }
+  }
+
   function chooseTheme(nextTheme: Theme) {
     setTheme(nextTheme)
     updateThemeMutation.mutate({ theme: nextTheme })
@@ -405,6 +432,28 @@ function SettingsPage() {
           isChanging={isChangingPassword}
           message={passwordMessage}
           error={passwordError}
+          deleteError={
+            deleteError ?? deleteAccountMutation.error?.message ?? null
+          }
+          deletePassword={deletePassword}
+          isDeleteDialogOpen={isDeleteDialogOpen}
+          isDeleting={deleteAccountMutation.isPending}
+          onCancelDelete={() => {
+            setIsDeleteDialogOpen(false)
+            setDeletePassword("")
+            setDeleteError(null)
+          }}
+          onDeletePasswordChange={(value) => {
+            setDeletePassword(value)
+            setDeleteError(null)
+          }}
+          onOpenDelete={() => {
+            setDeleteError(null)
+            setIsDeleteDialogOpen(true)
+          }}
+          onSubmitDelete={(event) => {
+            void handleDeleteAccount(event)
+          }}
           onSubmit={(event) => {
             void handlePasswordSubmit(event)
           }}
@@ -696,19 +745,35 @@ function MediaField({
 }
 
 function AccountSettings({
+  deleteError,
+  deletePassword,
   email,
   error,
   form,
   isChanging,
+  isDeleteDialogOpen,
+  isDeleting,
   message,
+  onCancelDelete,
+  onDeletePasswordChange,
+  onOpenDelete,
+  onSubmitDelete,
   onSubmit,
   setForm,
 }: {
+  deleteError: string | null
+  deletePassword: string
   email: string
   error: string | null
   form: PasswordFormState
   isChanging: boolean
+  isDeleteDialogOpen: boolean
+  isDeleting: boolean
   message: string | null
+  onCancelDelete: () => void
+  onDeletePasswordChange: (value: string) => void
+  onOpenDelete: () => void
+  onSubmitDelete: (event: FormEvent<HTMLFormElement>) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   setForm: Dispatch<SetStateAction<PasswordFormState>>
 }) {
@@ -795,11 +860,34 @@ function AccountSettings({
           </Button>
         </form>
 
-        <Alert variant="destructive">
-          <AlertDescription>
-            Account deletion is tracked in issue #17.
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="font-medium text-destructive">Delete account</h3>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Permanently close this account, remove public activity, sign out
+              all sessions, and reserve the email and username for 7 days.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-fit"
+            onClick={onOpenDelete}
+          >
+            <Trash weight="bold" />
+            Delete account
+          </Button>
+        </div>
+
+        <AccountDeletionDialog
+          error={deleteError}
+          isDeleting={isDeleting}
+          onCancel={onCancelDelete}
+          onPasswordChange={onDeletePasswordChange}
+          onSubmit={onSubmitDelete}
+          open={isDeleteDialogOpen}
+          password={deletePassword}
+        />
       </CardContent>
     </Card>
   )

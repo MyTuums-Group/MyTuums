@@ -8,6 +8,7 @@
 import type { FastifyInstance } from "fastify"
 import { fromNodeHeaders } from "better-auth/node"
 import { auth } from "../auth.js"
+import { isDeletedEmailHeld } from "../services/account-deletion/index.js"
 import { launchReadinessService } from "../services/launch-readiness/launch-readiness.production.js"
 
 /**
@@ -31,6 +32,16 @@ export function registerAuthRoutes(app: FastifyInstance): void {
               status: 403,
             })
           }
+
+          const email = getSignUpEmail(request.body)
+          if (email && (await isDeletedEmailHeld(email))) {
+            return reply.status(409).send({
+              code: "DELETED_EMAIL_HELD",
+              message:
+                "This email is temporarily unavailable after account deletion.",
+              status: 409,
+            })
+          }
         }
 
         const headers = fromNodeHeaders(request.headers)
@@ -50,7 +61,9 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         return
       } catch (error) {
         app.log.error(`Auth error: ${String(error)}`)
-        return reply.status(500).send({ error: "Internal authentication error" })
+        return reply
+          .status(500)
+          .send({ error: "Internal authentication error" })
       }
     },
   })
@@ -58,4 +71,13 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
 function isSignUpRequest(url: URL): boolean {
   return url.pathname === "/api/auth/sign-up/email"
+}
+
+function getSignUpEmail(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || !("email" in body)) {
+    return null
+  }
+
+  const email = (body as { email: unknown }).email
+  return typeof email === "string" ? email : null
 }

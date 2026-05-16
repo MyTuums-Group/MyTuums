@@ -79,6 +79,30 @@ describe("Profile onboarding favorite games", () => {
     })
   })
 
+  it("creates a profile when optional onboarding fields are skipped", async () => {
+    const service = createService()
+
+    const result = await service.submitOnboarding("user-1", {
+      username: "alice",
+    })
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        username: "alice",
+        displayName: null,
+        bio: null,
+        followerCount: 0,
+        followingCount: 0,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        avatarUrl: null,
+        bannerUrl: null,
+      },
+    })
+    expect(service.snapshot().profiles[0]?.avatarMediaId).toBeNull()
+    expect(service.snapshot().favoriteGames).toEqual([])
+  })
+
   it("creates profile and favorite games atomically with deterministic positions", async () => {
     const service = createService()
 
@@ -94,6 +118,62 @@ describe("Profile onboarding favorite games", () => {
       { profileId: "profile-1", gameId: "game-a", position: 2 },
       { profileId: "profile-1", gameId: "game-c", position: 3 },
     ])
+  })
+
+  it("attaches an uploaded profile avatar during onboarding", async () => {
+    const service = createInMemoryProfileOnboardingService({
+      profiles: [],
+      games: [{ id: "game-a", isActive: true }],
+      favoriteGames: [],
+      mediaAttachments: [],
+      signedMediaUrls: {
+        "avatar-media": "https://cdn.example/avatar.png",
+      },
+    })
+
+    const result = await service.submitOnboarding("user-1", {
+      username: "alice",
+      avatarMediaId: "avatar-media",
+      favoriteGameIds: ["game-a"],
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.value.avatarUrl).toBe("https://cdn.example/avatar.png")
+    }
+    expect(service.snapshot().profiles[0]?.avatarMediaId).toBe("avatar-media")
+    expect(service.snapshot().mediaAttachments).toEqual([
+      {
+        mediaId: "avatar-media",
+        userId: "user-1",
+        expectedPurpose: "profile_avatar",
+      },
+    ])
+  })
+
+  it("rejects avatar media that is not ready before creating a profile", async () => {
+    const service = createInMemoryProfileOnboardingService({
+      profiles: [],
+      games: [{ id: "game-a", isActive: true }],
+      favoriteGames: [],
+      failAvatarAttach: "media_not_ready",
+    })
+
+    const result = await service.submitOnboarding("user-1", {
+      username: "alice",
+      avatarMediaId: "avatar-media",
+    })
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: "invalid_avatar_media",
+        message: "Avatar upload must finish before creating your profile.",
+      },
+    })
+    expect(service.snapshot().profiles).toEqual([])
+    expect(service.snapshot().favoriteGames).toEqual([])
+    expect(service.snapshot().mediaAttachments).toEqual([])
   })
 
   it("rejects more than five favorite games before creating a profile", async () => {

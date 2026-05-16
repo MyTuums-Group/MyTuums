@@ -78,6 +78,24 @@ describe("profile onboarding transport mapping", () => {
     });
   });
 
+  it("preserves invalid avatar media details for tRPC and REST", () => {
+    const domainError = {
+      kind: "invalid_avatar_media",
+      message: "Avatar upload must finish before creating your profile.",
+    } as const;
+
+    expect(mapOnboardingErrorToTRPC(domainError).code).toBe("BAD_REQUEST");
+    expect(mapOnboardingErrorToRest(domainError)).toEqual({
+      statusCode: 400,
+      body: {
+        error: {
+          code: "invalid_avatar_media",
+          message: "Avatar upload must finish before creating your profile.",
+        },
+      },
+    });
+  });
+
   it("maps already-onboarded users consistently", () => {
     const domainError = { kind: "already_has_profile" } as const;
 

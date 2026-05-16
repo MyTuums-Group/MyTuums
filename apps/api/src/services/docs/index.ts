@@ -2,6 +2,7 @@ export type {
   DocsArtifactAdapter,
   DocsDiagramInput,
   DocsDiagramResult,
+  DocsNavigationPayload,
   DocsPageContent,
   DocsPageDiagramMetadata,
   DocsPageInput,

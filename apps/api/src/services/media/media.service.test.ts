@@ -18,6 +18,10 @@ function mediaRow(overrides: Partial<MediaRow> = {}): MediaRow {
     blobKey: "blob-key-1",
     storageContainer: "user-uploads",
     confirmedAt: null,
+    attachedTargetType: null,
+    attachedTargetId: null,
+    attachedSlot: null,
+    attachedAt: null,
     expiresAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -63,14 +67,17 @@ describe("Media service — createUploadIntent", () => {
 
   it("creates an upload intent and returns mediaId + uploadUrl", async () => {
     vi.mocked(mediaAdapter.insert).mockResolvedValue(
-      mediaRow({ id: "new-media-id", status: "pending" }),
+      mediaRow({ id: "new-media-id", status: "pending" })
     );
 
-    const result = await mediaService(storage).createUploadIntent(MOCK_USER_ID, {
-      mimeType: "image/png",
-      byteSize: 1024,
-      purpose: "post_attachment",
-    });
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "image/png",
+        byteSize: 1024,
+        purpose: "post_attachment",
+      }
+    );
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -86,11 +93,14 @@ describe("Media service — createUploadIntent", () => {
   });
 
   it("rejects invalid MIME type", async () => {
-    const result = await mediaService(storage).createUploadIntent(MOCK_USER_ID, {
-      mimeType: "application/zip",
-      byteSize: 1024,
-      purpose: "post_attachment",
-    });
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "application/zip",
+        byteSize: 1024,
+        purpose: "post_attachment",
+      }
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -165,11 +175,14 @@ describe("Media service — createUploadIntent", () => {
   });
 
   it("rejects oversized image", async () => {
-    const result = await mediaService(storage).createUploadIntent(MOCK_USER_ID, {
-      mimeType: "image/jpeg",
-      byteSize: 11 * 1024 * 1024,
-      purpose: "profile_avatar",
-    });
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "image/jpeg",
+        byteSize: 11 * 1024 * 1024,
+        purpose: "profile_avatar",
+      }
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -194,7 +207,7 @@ describe("Media service — confirmUpload", () => {
     });
     vi.mocked(mediaAdapter.findById).mockResolvedValue(row);
     vi.mocked(mediaAdapter.markReady).mockResolvedValue(
-      mediaRow({ ...row, status: "ready" }),
+      mediaRow({ ...row, status: "ready" })
     );
     storage.storeBlob("user-uploads", "blob-1", {
       data: Buffer.from("test"),
@@ -202,7 +215,10 @@ describe("Media service — confirmUpload", () => {
       size: 1024,
     });
 
-    const result = await mediaService(storage).confirmUpload("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).confirmUpload(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(true);
     expect(mediaAdapter.markReady).toHaveBeenCalledOnce();
@@ -217,7 +233,10 @@ describe("Media service — confirmUpload", () => {
     });
     vi.mocked(mediaAdapter.findById).mockResolvedValue(row);
 
-    const result = await mediaService(storage).confirmUpload("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).confirmUpload(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -233,7 +252,10 @@ describe("Media service — confirmUpload", () => {
     });
     vi.mocked(mediaAdapter.findById).mockResolvedValue(row);
 
-    const result = await mediaService(storage).confirmUpload("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).confirmUpload(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -250,7 +272,10 @@ describe("Media service — confirmUpload", () => {
     });
     vi.mocked(mediaAdapter.findById).mockResolvedValue(row);
 
-    const result = await mediaService(storage).confirmUpload("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).confirmUpload(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -262,25 +287,38 @@ describe("Media service — confirmUpload", () => {
 describe("Media service — attachMedia", () => {
   const storage = new FakeBlobStorageAdapter();
 
-  it("attaches ready media with matching owner and purpose", async () => {
+  it("attaches ready media with matching owner, purpose, and target", async () => {
     const row = mediaRow({
       id: "media-1",
       status: "ready",
       expiresAt: new Date(Date.now() + 3600_000),
     });
+    const target = {
+      targetType: "post" as const,
+      targetId: "post-1",
+      slot: "post_attachment" as const,
+    };
     vi.mocked(mediaAdapter.findById).mockResolvedValue(row);
     vi.mocked(mediaAdapter.markAttached).mockResolvedValue(
-      mediaRow({ ...row, status: "attached" }),
+      mediaRow({
+        ...row,
+        status: "attached",
+        attachedTargetType: target.targetType,
+        attachedTargetId: target.targetId,
+        attachedSlot: target.slot,
+        attachedAt: new Date("2026-01-01T00:00:00.000Z"),
+      })
     );
 
     const result = await mediaService(storage).attachMedia(
       "media-1",
       MOCK_USER_ID,
       "post_attachment",
+      target
     );
 
     expect(result.ok).toBe(true);
-    expect(mediaAdapter.markAttached).toHaveBeenCalledWith("media-1");
+    expect(mediaAdapter.markAttached).toHaveBeenCalledWith("media-1", target);
   });
 
   it("rejects pending media (not ready)", async () => {
@@ -293,7 +331,7 @@ describe("Media service — attachMedia", () => {
     const result = await mediaService(storage).attachMedia(
       "media-1",
       MOCK_USER_ID,
-      "post_attachment",
+      "post_attachment"
     );
 
     expect(result.ok).toBe(false);
@@ -314,7 +352,7 @@ describe("Media service — attachMedia", () => {
     const result = await mediaService(storage).attachMedia(
       "media-1",
       MOCK_USER_ID,
-      "post_attachment",
+      "post_attachment"
     );
 
     expect(result.ok).toBe(false);
@@ -335,7 +373,7 @@ describe("Media service — attachMedia", () => {
     const result = await mediaService(storage).attachMedia(
       "media-1",
       MOCK_USER_ID,
-      "post_attachment",
+      "post_attachment"
     );
 
     expect(result.ok).toBe(false);
@@ -350,7 +388,7 @@ describe("Media service — signReadUrl", () => {
 
   it("signs a read URL for ready media", async () => {
     vi.mocked(mediaAdapter.findById).mockResolvedValue(
-      mediaRow({ status: "ready" }),
+      mediaRow({ status: "ready" })
     );
 
     const result = await mediaService(storage).signReadUrl("media-1");
@@ -363,7 +401,7 @@ describe("Media service — signReadUrl", () => {
 
   it("signs a read URL for attached media", async () => {
     vi.mocked(mediaAdapter.findById).mockResolvedValue(
-      mediaRow({ status: "attached" }),
+      mediaRow({ status: "attached" })
     );
 
     const result = await mediaService(storage).signReadUrl("media-1");
@@ -373,7 +411,7 @@ describe("Media service — signReadUrl", () => {
 
   it("rejects signing for pending media", async () => {
     vi.mocked(mediaAdapter.findById).mockResolvedValue(
-      mediaRow({ status: "pending" }),
+      mediaRow({ status: "pending" })
     );
 
     const result = await mediaService(storage).signReadUrl("media-1");
@@ -393,10 +431,13 @@ describe("Media service — reissueUploadUrl", () => {
       mediaRow({
         status: "pending",
         expiresAt: new Date(Date.now() + 3600_000),
-      }),
+      })
     );
 
-    const result = await mediaService(storage).reissueUploadUrl("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).reissueUploadUrl(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -409,10 +450,13 @@ describe("Media service — reissueUploadUrl", () => {
       mediaRow({
         status: "pending",
         expiresAt: new Date(Date.now() - 3600_000),
-      }),
+      })
     );
 
-    const result = await mediaService(storage).reissueUploadUrl("media-1", MOCK_USER_ID);
+    const result = await mediaService(storage).reissueUploadUrl(
+      "media-1",
+      MOCK_USER_ID
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -427,10 +471,18 @@ describe("Media service — computeCleanupCandidates", () => {
   it("returns eligible cleanup candidates", async () => {
     const now = new Date();
     vi.mocked(mediaAdapter.findPendingExpired).mockResolvedValue([
-      mediaRow({ id: "pending-1", status: "pending", expiresAt: new Date(now.getTime() - 1000) }),
+      mediaRow({
+        id: "pending-1",
+        status: "pending",
+        expiresAt: new Date(now.getTime() - 1000),
+      }),
     ]);
     vi.mocked(mediaAdapter.findUnattachedReadyExpired).mockResolvedValue([
-      mediaRow({ id: "ready-1", status: "ready", expiresAt: new Date(now.getTime() - 1000) }),
+      mediaRow({
+        id: "ready-1",
+        status: "ready",
+        expiresAt: new Date(now.getTime() - 1000),
+      }),
     ]);
     vi.mocked(mediaAdapter.findDeletedMedia).mockResolvedValue([
       mediaRow({ id: "deleted-1", status: "deleted" }),
@@ -476,7 +528,11 @@ describe("FakeBlobStorageAdapter", () => {
 
   it("verifies stored blobs", async () => {
     const storage = new FakeBlobStorageAdapter();
-    storage.storeBlob("c", "k", { data: Buffer.from("x"), mimeType: "image/png", size: 1 });
+    storage.storeBlob("c", "k", {
+      data: Buffer.from("x"),
+      mimeType: "image/png",
+      size: 1,
+    });
     const result = await storage.verifyBlob("c", "k");
     expect(result.exists).toBe(true);
     expect(result.size).toBe(1);
@@ -491,15 +547,27 @@ describe("FakeBlobStorageAdapter", () => {
 
   it("deletes blobs", async () => {
     const storage = new FakeBlobStorageAdapter();
-    storage.storeBlob("c", "k", { data: Buffer.from("x"), mimeType: "image/png", size: 1 });
+    storage.storeBlob("c", "k", {
+      data: Buffer.from("x"),
+      mimeType: "image/png",
+      size: 1,
+    });
     await storage.deleteBlob("c", "k");
     expect((await storage.verifyBlob("c", "k")).exists).toBe(false);
   });
 
   it("clear removes all blobs", () => {
     const storage = new FakeBlobStorageAdapter();
-    storage.storeBlob("c", "k1", { data: Buffer.from("x"), mimeType: "image/png", size: 1 });
-    storage.storeBlob("c", "k2", { data: Buffer.from("y"), mimeType: "image/png", size: 1 });
+    storage.storeBlob("c", "k1", {
+      data: Buffer.from("x"),
+      mimeType: "image/png",
+      size: 1,
+    });
+    storage.storeBlob("c", "k2", {
+      data: Buffer.from("y"),
+      mimeType: "image/png",
+      size: 1,
+    });
     storage.clear();
     // Can't easily check without exposing internals; verifyBlob covers it
   });

@@ -6,7 +6,12 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { MediaPurpose, MediaStatus } from "@workspace/types";
+import type {
+  MediaAttachmentSlot,
+  MediaAttachmentTargetType,
+  MediaPurpose,
+  MediaStatus,
+} from "@workspace/types";
 import type { Result } from "@workspace/types";
 import type { BlobStorageAdapter } from "./blob-storage.adapter.js";
 import type { MediaRow, NewMediaRow } from "./media.adapter.js";
@@ -29,9 +34,12 @@ export type MediaPersistenceAdapter = {
   markReady: (
     id: string,
     confirmedAt: Date,
-    cleanupDeadline: Date,
+    cleanupDeadline: Date
   ) => Promise<MediaRow | undefined>;
-  markAttached: (id: string) => Promise<MediaRow | undefined>;
+  markAttached: (
+    id: string,
+    attachment?: MediaAttachmentTarget
+  ) => Promise<MediaRow | undefined>;
   markDeleted: (id: string) => Promise<MediaRow | undefined>;
   findPendingExpired: (now: Date) => Promise<MediaRow[]>;
   findUnattachedReadyExpired: (now: Date) => Promise<MediaRow[]>;
@@ -68,6 +76,12 @@ export interface AttachMediaOutput {
   mediaId: string;
 }
 
+export type MediaAttachmentTarget = {
+  targetType: MediaAttachmentTargetType;
+  targetId: string;
+  slot: MediaAttachmentSlot;
+};
+
 export interface SignReadUrlOutput {
   readUrl: string;
 }
@@ -82,27 +96,28 @@ export interface CleanupCandidate {
 export type MediaService = {
   createUploadIntent: (
     userId: string,
-    input: CreateUploadIntentInput,
+    input: CreateUploadIntentInput
   ) => Promise<Result<CreateUploadIntentOutput, policy.UploadIntentError>>;
   reissueUploadUrl: (
     mediaId: string,
-    userId: string,
+    userId: string
   ) => Promise<Result<ReissueUploadUrlOutput, policy.ReissueError>>;
   confirmUpload: (
     mediaId: string,
-    userId: string,
+    userId: string
   ) => Promise<Result<ConfirmUploadOutput, policy.ConfirmError>>;
   attachMedia: (
     mediaId: string,
     userId: string,
     expectedPurpose: MediaPurpose,
+    attachment?: MediaAttachmentTarget
   ) => Promise<Result<AttachMediaOutput, policy.AttachmentError>>;
   abandonMedia: (
     mediaId: string,
-    userId: string,
+    userId: string
   ) => Promise<Result<{ mediaId: string }, policy.AttachmentError>>;
   signReadUrl: (
-    mediaId: string,
+    mediaId: string
   ) => Promise<Result<SignReadUrlOutput, policy.SignReadError>>;
   computeCleanupCandidates: () => Promise<CleanupCandidate[]>;
 };
@@ -120,9 +135,10 @@ export function createMediaService(deps: {
       reissueUploadUrlImpl(adapter, storage, mediaId, userId),
     confirmUpload: (mediaId, userId) =>
       confirmUploadImpl(adapter, storage, mediaId, userId),
-    attachMedia: (mediaId, userId, expectedPurpose) =>
-      attachMediaImpl(adapter, mediaId, userId, expectedPurpose),
-    abandonMedia: (mediaId, userId) => abandonMediaImpl(adapter, mediaId, userId),
+    attachMedia: (mediaId, userId, expectedPurpose, attachment) =>
+      attachMediaImpl(adapter, mediaId, userId, expectedPurpose, attachment),
+    abandonMedia: (mediaId, userId) =>
+      abandonMediaImpl(adapter, mediaId, userId),
     signReadUrl: (mediaId) => signReadUrlImpl(adapter, storage, mediaId),
     computeCleanupCandidates: () => computeCleanupCandidatesImpl(adapter),
   };
@@ -134,7 +150,7 @@ async function createUploadIntentImpl(
   adapter: MediaPersistenceAdapter,
   storage: BlobStorageAdapter,
   userId: string,
-  input: CreateUploadIntentInput,
+  input: CreateUploadIntentInput
 ): Promise<Result<CreateUploadIntentOutput, policy.UploadIntentError>> {
   const validated = policy.validateUploadIntent(input);
   if (!validated.ok) return validated;
@@ -163,7 +179,7 @@ async function createUploadIntentImpl(
   const uploadUrl = await storage.generateSignedUploadUrl(
     MEDIA_CONTAINER,
     blobKey,
-    policy.UPLOAD_URL_LIFETIME_SECONDS,
+    policy.UPLOAD_URL_LIFETIME_SECONDS
   );
 
   return { ok: true, value: { mediaId, uploadUrl, blobKey } };
@@ -175,7 +191,7 @@ async function reissueUploadUrlImpl(
   adapter: MediaPersistenceAdapter,
   storage: BlobStorageAdapter,
   mediaId: string,
-  userId: string,
+  userId: string
 ): Promise<Result<ReissueUploadUrlOutput, policy.ReissueError>> {
   const row = await adapter.findById(mediaId);
   if (!row) return { ok: false, error: { kind: "media_not_found" } };
@@ -187,7 +203,7 @@ async function reissueUploadUrlImpl(
   const uploadUrl = await storage.generateSignedUploadUrl(
     row.storageContainer ?? MEDIA_CONTAINER,
     row.blobKey ?? "",
-    policy.UPLOAD_URL_LIFETIME_SECONDS,
+    policy.UPLOAD_URL_LIFETIME_SECONDS
   );
 
   return { ok: true, value: { uploadUrl } };
@@ -199,18 +215,21 @@ async function confirmUploadImpl(
   adapter: MediaPersistenceAdapter,
   storage: BlobStorageAdapter,
   mediaId: string,
-  userId: string,
+  userId: string
 ): Promise<Result<ConfirmUploadOutput, policy.ConfirmError>> {
   const row = await adapter.findById(mediaId);
   if (!row) return { ok: false, error: { kind: "media_not_found" } };
 
   const attachmentInfo = toAttachmentInfo(row);
-  const validated = policy.validatePendingForConfirmation(attachmentInfo, userId);
+  const validated = policy.validatePendingForConfirmation(
+    attachmentInfo,
+    userId
+  );
   if (!validated.ok) return validated;
 
   const verification = await storage.verifyBlob(
     row.storageContainer ?? MEDIA_CONTAINER,
-    row.blobKey ?? "",
+    row.blobKey ?? ""
   );
 
   if (!verification.exists) {
@@ -256,6 +275,7 @@ async function attachMediaImpl(
   mediaId: string,
   userId: string,
   expectedPurpose: MediaPurpose,
+  attachment?: MediaAttachmentTarget
 ): Promise<Result<AttachMediaOutput, policy.AttachmentError>> {
   const row = await adapter.findById(mediaId);
   if (!row) return { ok: false, error: { kind: "media_not_found" } };
@@ -264,11 +284,11 @@ async function attachMediaImpl(
   const validated = policy.validateAttachment(
     attachmentInfo,
     userId,
-    expectedPurpose,
+    expectedPurpose
   );
   if (!validated.ok) return validated;
 
-  await adapter.markAttached(mediaId);
+  await adapter.markAttached(mediaId, attachment);
 
   return { ok: true, value: { mediaId } };
 }
@@ -276,11 +296,12 @@ async function attachMediaImpl(
 async function abandonMediaImpl(
   adapter: MediaPersistenceAdapter,
   mediaId: string,
-  userId: string,
+  userId: string
 ): Promise<Result<{ mediaId: string }, policy.AttachmentError>> {
   const row = await adapter.findById(mediaId);
   if (!row) return { ok: false, error: { kind: "media_not_found" } };
-  if (row.ownerId !== userId) return { ok: false, error: { kind: "wrong_owner" } };
+  if (row.ownerId !== userId)
+    return { ok: false, error: { kind: "wrong_owner" } };
   if (row.status === "attached") {
     return { ok: false, error: { kind: "already_attached" } };
   }
@@ -293,7 +314,7 @@ async function abandonMediaImpl(
 async function signReadUrlImpl(
   adapter: MediaPersistenceAdapter,
   storage: BlobStorageAdapter,
-  mediaId: string,
+  mediaId: string
 ): Promise<Result<SignReadUrlOutput, policy.SignReadError>> {
   const row = await adapter.findById(mediaId);
   if (!row) return { ok: false, error: { kind: "media_not_found" } };
@@ -304,7 +325,7 @@ async function signReadUrlImpl(
   const readUrl = await storage.generateSignedReadUrl(
     row.storageContainer ?? MEDIA_CONTAINER,
     row.blobKey ?? "",
-    policy.READ_URL_LIFETIME_SECONDS,
+    policy.READ_URL_LIFETIME_SECONDS
   );
 
   return { ok: true, value: { readUrl } };
@@ -313,7 +334,7 @@ async function signReadUrlImpl(
 // ── computeCleanupCandidates ─────────────────────────────────────────
 
 async function computeCleanupCandidatesImpl(
-  adapter: MediaPersistenceAdapter,
+  adapter: MediaPersistenceAdapter
 ): Promise<CleanupCandidate[]> {
   const now = new Date();
 
@@ -326,7 +347,12 @@ async function computeCleanupCandidatesImpl(
 
   const candidates: CleanupCandidate[] = [];
 
-  for (const row of [...pendingExpired, ...readyExpired, ...deleted, ...failed]) {
+  for (const row of [
+    ...pendingExpired,
+    ...readyExpired,
+    ...deleted,
+    ...failed,
+  ]) {
     if (policy.isCleanupEligible(row.status, row.expiresAt, now)) {
       candidates.push({
         mediaId: row.id,

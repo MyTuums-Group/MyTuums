@@ -1,4 +1,4 @@
-import type { MediaPurpose, Result } from "@workspace/types"
+import type { MediaPurpose, ProfileMediaSlot, Result } from "@workspace/types"
 import {
   BIO_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
@@ -53,6 +53,19 @@ export type SettingsMediaAttachment = {
   mediaId: string
   userId: string
   expectedPurpose: Extract<MediaPurpose, "profile_avatar" | "profile_banner">
+  target: {
+    targetType: "profile"
+    targetId: string
+    slot: ProfileMediaSlot
+  }
+}
+
+export type SettingsProfileMediaReplacement = {
+  profileId: string
+  slot: ProfileMediaSlot
+  oldMediaId: string | null
+  newMediaId: string | null
+  replacedAt: Date
 }
 
 export type SettingsProfile = {
@@ -119,7 +132,8 @@ export type SettingsMediaPort = {
   attachMedia(
     mediaId: string,
     userId: string,
-    expectedPurpose: Extract<MediaPurpose, "profile_avatar" | "profile_banner">
+    expectedPurpose: Extract<MediaPurpose, "profile_avatar" | "profile_banner">,
+    target: SettingsMediaAttachment["target"]
   ): Promise<Result<{ mediaId: string }, { kind: string }>>
 }
 
@@ -140,6 +154,7 @@ export type SettingsPersistenceAdapter = {
     avatarMediaId?: string | null
     bannerMediaId?: string | null
     favoriteGameIds?: string[]
+    profileMediaReplacements?: SettingsProfileMediaReplacement[]
   }): Promise<SettingsProfileRow | undefined>
 }
 
@@ -243,6 +258,7 @@ export function createSettingsService(deps: {
         userId,
         slot: "avatar",
         expectedPurpose: "profile_avatar",
+        targetId: current.id,
       })
       if (!avatarResult.ok) return avatarResult
 
@@ -252,17 +268,32 @@ export function createSettingsService(deps: {
         userId,
         slot: "banner",
         expectedPurpose: "profile_banner",
+        targetId: current.id,
       })
       if (!bannerResult.ok) return bannerResult
 
-      const updated = await adapter.updateProfile({
+      const profileMediaReplacements = buildProfileMediaReplacements(
+        current,
+        input,
+        new Date()
+      )
+      const profileUpdateInput: Parameters<
+        SettingsPersistenceAdapter["updateProfile"]
+      >[0] = {
         userId,
         displayName: normalized.value.displayName,
         bio: normalized.value.bio,
-        avatarMediaId: input.avatarMediaId,
-        bannerMediaId: input.bannerMediaId,
         favoriteGameIds,
-      })
+        profileMediaReplacements,
+      }
+      if ("avatarMediaId" in input) {
+        profileUpdateInput.avatarMediaId = input.avatarMediaId
+      }
+      if ("bannerMediaId" in input) {
+        profileUpdateInput.bannerMediaId = input.bannerMediaId
+      }
+
+      const updated = await adapter.updateProfile(profileUpdateInput)
       if (!updated) return { ok: false, error: { kind: "profile_not_found" } }
 
       if (favoriteGameIds !== undefined) {
@@ -289,6 +320,8 @@ export function createInMemorySettingsService(state: {
   blocks: SettingsBlockRow[]
   blockProfiles: SettingsBlockedProfileRow[]
   mediaAttachments: SettingsMediaAttachment[]
+  profileMediaReplacements?: SettingsProfileMediaReplacement[]
+  deletedMediaIds?: string[]
 }): SettingsService & {
   snapshot(): {
     profiles: SettingsProfileRow[]
@@ -298,8 +331,12 @@ export function createInMemorySettingsService(state: {
     blocks: SettingsBlockRow[]
     blockProfiles: SettingsBlockedProfileRow[]
     mediaAttachments: SettingsMediaAttachment[]
+    profileMediaReplacements: SettingsProfileMediaReplacement[]
+    deletedMediaIds: string[]
   }
 } {
+  const profileMediaReplacements = state.profileMediaReplacements ?? []
+  const deletedMediaIds = state.deletedMediaIds ?? []
   const adapter: SettingsPersistenceAdapter = {
     async findProfileByUserId(userId) {
       await Promise.resolve()
@@ -365,6 +402,11 @@ export function createInMemorySettingsService(state: {
       if ("bannerMediaId" in input)
         profile.bannerMediaId = input.bannerMediaId ?? null
 
+      for (const replacement of input.profileMediaReplacements ?? []) {
+        profileMediaReplacements.push({ ...replacement })
+        if (replacement.oldMediaId) deletedMediaIds.push(replacement.oldMediaId)
+      }
+
       if (input.favoriteGameIds !== undefined) {
         state.favoriteGames = state.favoriteGames.filter(
           (favorite) => favorite.profileId !== profile.id
@@ -383,9 +425,9 @@ export function createInMemorySettingsService(state: {
   }
 
   const media: SettingsMediaPort = {
-    async attachMedia(mediaId, userId, expectedPurpose) {
+    async attachMedia(mediaId, userId, expectedPurpose, target) {
       await Promise.resolve()
-      state.mediaAttachments.push({ mediaId, userId, expectedPurpose })
+      state.mediaAttachments.push({ mediaId, userId, expectedPurpose, target })
       return { ok: true, value: { mediaId } }
     },
   }
@@ -402,7 +444,14 @@ export function createInMemorySettingsService(state: {
         blockProfiles: state.blockProfiles.map((profile) => ({ ...profile })),
         mediaAttachments: state.mediaAttachments.map((attachment) => ({
           ...attachment,
+          target: { ...attachment.target },
         })),
+        profileMediaReplacements: profileMediaReplacements.map(
+          (replacement) => ({
+            ...replacement,
+          })
+        ),
+        deletedMediaIds: [...deletedMediaIds],
       }
     },
   }
@@ -485,13 +534,19 @@ async function attachProfileMediaIfPresent(input: {
   userId: string
   slot: "avatar" | "banner"
   expectedPurpose: Extract<MediaPurpose, "profile_avatar" | "profile_banner">
+  targetId: string
 }): Promise<Result<{ mediaId?: string }, SettingsProfileError>> {
   if (!input.mediaId) return { ok: true, value: {} }
 
   const result = await input.media.attachMedia(
     input.mediaId,
     input.userId,
-    input.expectedPurpose
+    input.expectedPurpose,
+    {
+      targetType: "profile",
+      targetId: input.targetId,
+      slot: input.expectedPurpose,
+    }
   )
   if (!result.ok) {
     return {
@@ -505,6 +560,42 @@ async function attachProfileMediaIfPresent(input: {
   }
 
   return { ok: true, value: { mediaId: result.value.mediaId } }
+}
+
+function buildProfileMediaReplacements(
+  current: SettingsProfileRow,
+  input: SettingsUpdateProfileInput,
+  replacedAt: Date
+): SettingsProfileMediaReplacement[] {
+  const replacements: SettingsProfileMediaReplacement[] = []
+
+  if ("avatarMediaId" in input) {
+    const nextAvatarMediaId = input.avatarMediaId ?? null
+    if (nextAvatarMediaId !== current.avatarMediaId) {
+      replacements.push({
+        profileId: current.id,
+        slot: "profile_avatar",
+        oldMediaId: current.avatarMediaId,
+        newMediaId: nextAvatarMediaId,
+        replacedAt,
+      })
+    }
+  }
+
+  if ("bannerMediaId" in input) {
+    const nextBannerMediaId = input.bannerMediaId ?? null
+    if (nextBannerMediaId !== current.bannerMediaId) {
+      replacements.push({
+        profileId: current.id,
+        slot: "profile_banner",
+        oldMediaId: current.bannerMediaId,
+        newMediaId: nextBannerMediaId,
+        replacedAt,
+      })
+    }
+  }
+
+  return replacements
 }
 
 type SettingsProfileBase = Omit<SettingsProfile, "avatarUrl" | "bannerUrl">

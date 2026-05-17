@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { createInMemorySettingsService } from "../services/settings/settings.core.js"
+import {
+  createInMemorySettingsService,
+  type SettingsProfileMediaReplacement,
+} from "../services/settings/settings.core.js"
 
 function createService() {
   return createInMemorySettingsService({
@@ -38,6 +41,20 @@ function createService() {
     ],
     mediaAttachments: [],
   })
+}
+
+function replacementFacts(
+  replacements: SettingsProfileMediaReplacement[]
+): Array<Omit<SettingsProfileMediaReplacement, "replacedAt">> {
+  expect(
+    replacements.every((replacement) => replacement.replacedAt instanceof Date)
+  ).toBe(true)
+  return replacements.map((replacement) => ({
+    profileId: replacement.profileId,
+    slot: replacement.slot,
+    oldMediaId: replacement.oldMediaId,
+    newMediaId: replacement.newMediaId,
+  }))
 }
 
 describe("settings service", () => {
@@ -117,11 +134,37 @@ describe("settings service", () => {
         mediaId: "avatar-media",
         userId: "user-1",
         expectedPurpose: "profile_avatar",
+        target: {
+          targetType: "profile",
+          targetId: "profile-1",
+          slot: "profile_avatar",
+        },
       },
       {
         mediaId: "banner-media",
         userId: "user-1",
         expectedPurpose: "profile_banner",
+        target: {
+          targetType: "profile",
+          targetId: "profile-1",
+          slot: "profile_banner",
+        },
+      },
+    ])
+    expect(
+      replacementFacts(service.snapshot().profileMediaReplacements)
+    ).toEqual([
+      {
+        profileId: "profile-1",
+        slot: "profile_avatar",
+        oldMediaId: null,
+        newMediaId: "avatar-media",
+      },
+      {
+        profileId: "profile-1",
+        slot: "profile_banner",
+        oldMediaId: null,
+        newMediaId: "banner-media",
       },
     ])
     expect(service.snapshot().favoriteGames).toEqual([
@@ -150,7 +193,9 @@ describe("settings service", () => {
         { id: "game-a", slug: "valorant", name: "Valorant", isActive: true },
         { id: "game-b", slug: "hades", name: "Hades", isActive: true },
       ],
-      favoriteGames: [{ profileId: "profile-1", gameId: "game-b", position: 1 }],
+      favoriteGames: [
+        { profileId: "profile-1", gameId: "game-b", position: 1 },
+      ],
       preferences: [],
       blocks: [],
       blockProfiles: [],
@@ -175,7 +220,95 @@ describe("settings service", () => {
         mediaId: "banner-new",
         userId: "user-1",
         expectedPurpose: "profile_banner",
+        target: {
+          targetType: "profile",
+          targetId: "profile-1",
+          slot: "profile_banner",
+        },
       },
+    ])
+    expect(
+      replacementFacts(initial.snapshot().profileMediaReplacements)
+    ).toEqual([
+      {
+        profileId: "profile-1",
+        slot: "profile_banner",
+        oldMediaId: null,
+        newMediaId: "banner-new",
+      },
+    ])
+  })
+
+  it("records profile media replacement history and retires the old media id", async () => {
+    const service = createInMemorySettingsService({
+      profiles: [
+        {
+          id: "profile-1",
+          userId: "user-1",
+          username: "alice",
+          displayName: "Alice",
+          bio: null,
+          avatarMediaId: "avatar-old",
+          bannerMediaId: "banner-old",
+          followerCount: 0,
+          followingCount: 0,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+      ],
+      games: [],
+      favoriteGames: [],
+      preferences: [],
+      blocks: [],
+      blockProfiles: [],
+      mediaAttachments: [],
+    })
+
+    await expect(
+      service.updateProfile("user-1", {
+        displayName: "Alice",
+        bio: null,
+        avatarMediaId: "avatar-new",
+        bannerMediaId: null,
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        avatarMediaId: "avatar-new",
+        bannerMediaId: null,
+      },
+    })
+
+    expect(service.snapshot().mediaAttachments).toEqual([
+      {
+        mediaId: "avatar-new",
+        userId: "user-1",
+        expectedPurpose: "profile_avatar",
+        target: {
+          targetType: "profile",
+          targetId: "profile-1",
+          slot: "profile_avatar",
+        },
+      },
+    ])
+    expect(
+      replacementFacts(service.snapshot().profileMediaReplacements)
+    ).toEqual([
+      {
+        profileId: "profile-1",
+        slot: "profile_avatar",
+        oldMediaId: "avatar-old",
+        newMediaId: "avatar-new",
+      },
+      {
+        profileId: "profile-1",
+        slot: "profile_banner",
+        oldMediaId: "banner-old",
+        newMediaId: null,
+      },
+    ])
+    expect(service.snapshot().deletedMediaIds).toEqual([
+      "avatar-old",
+      "banner-old",
     ])
   })
 

@@ -20,6 +20,7 @@ export {
   follow,
   block,
   favoriteGame,
+  profileMediaReplacement,
   userPreference,
   notification,
   moderationCase,

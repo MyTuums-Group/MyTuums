@@ -16,14 +16,15 @@ async function signMediaReadUrl(mediaId: string): Promise<string | null> {
 export const settingsService = createSettingsService({
   adapter: settingsAdapter,
   media: {
-    attachMedia(mediaId, userId, expectedPurpose) {
+    attachMedia(mediaId, userId, expectedPurpose, target) {
       return mediaService.attachMedia(
         mediaId,
         userId,
         expectedPurpose satisfies Extract<
           MediaPurpose,
           "profile_avatar" | "profile_banner"
-        >
+        >,
+        target
       )
     },
   },

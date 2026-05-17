@@ -17,6 +17,8 @@ import {
   type CaseStatus,
   type ContactCategory,
   type ContactEmailStatus,
+  type MediaAttachmentSlot,
+  type MediaAttachmentTargetType,
   type MediaPurpose,
   type MediaStatus,
   type ModerationActionType,
@@ -54,6 +56,17 @@ const MEDIA_STATUSES = [
   "failed",
   "deleted",
 ] as const satisfies readonly MediaStatus[]
+
+const MEDIA_ATTACHMENT_TARGET_TYPES = [
+  "post",
+  "profile",
+] as const satisfies readonly MediaAttachmentTargetType[]
+
+const MEDIA_ATTACHMENT_SLOTS = [
+  "post_attachment",
+  "profile_avatar",
+  "profile_banner",
+] as const satisfies readonly MediaAttachmentSlot[]
 
 const CASE_STATUSES = [
   "open",
@@ -310,6 +323,18 @@ export const media = pgTable(
     storageContainer: text("storage_container"),
     /** When upload completed (blob confirmed at rest) */
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    /** Attached target type; target id lives in the matching table. */
+    attachedTargetType: text("attached_target_type", {
+      enum: MEDIA_ATTACHMENT_TARGET_TYPES,
+    }),
+    /** UUID of the post/profile this media is or was attached to. */
+    attachedTargetId: uuid("attached_target_id"),
+    /** Slot within the target: post attachment, avatar, or banner. */
+    attachedSlot: text("attached_slot", {
+      enum: MEDIA_ATTACHMENT_SLOTS,
+    }),
+    /** When the media was attached to a target. */
+    attachedAt: timestamp("attached_at", { withTimezone: true }),
     /** Soft-expiry for unconfirmed uploads and deleted media */
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -322,6 +347,13 @@ export const media = pgTable(
   (table) => [
     index("media_owner_id_idx").on(table.ownerId),
     index("media_status_idx").on(table.status),
+    uniqueIndex("media_post_attachment_target_unique")
+      .on(table.attachedTargetType, table.attachedTargetId, table.attachedSlot)
+      .where(
+        sql`${table.status} = 'attached'
+          and ${table.attachedTargetType} = 'post'
+          and ${table.attachedSlot} = 'post_attachment'`
+      ),
   ]
 )
 
@@ -365,6 +397,29 @@ export const profile = pgTable(
       "gin",
       sql`(public.immutable_unaccent(lower(coalesce(${table.displayName}, '')))) gin_trgm_ops`
     ),
+  ]
+)
+
+export const profileMediaReplacement = pgTable(
+  "profile_media_replacement",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profile.id, { onDelete: "cascade" }),
+    slot: text("slot", {
+      enum: ["profile_avatar", "profile_banner"],
+    }).notNull(),
+    oldMediaId: uuid("old_media_id"),
+    newMediaId: uuid("new_media_id"),
+    replacedAt: timestamp("replaced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("profile_media_replacement_profile_id_idx").on(table.profileId),
+    index("profile_media_replacement_old_media_id_idx").on(table.oldMediaId),
+    index("profile_media_replacement_new_media_id_idx").on(table.newMediaId),
   ]
 )
 

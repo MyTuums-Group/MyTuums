@@ -5,128 +5,134 @@
  * Routers use the production singleton from `media-service.production.js`.
  */
 
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto"
 import type {
   MediaAttachmentSlot,
   MediaAttachmentTargetType,
   MediaPurpose,
   MediaStatus,
-} from "@workspace/types";
-import type { Result } from "@workspace/types";
-import type { BlobStorageAdapter } from "./blob-storage.adapter.js";
-import type { MediaRow, NewMediaRow } from "./media.adapter.js";
-import * as policy from "./media.policy.js";
+} from "@workspace/types"
+import type { Result } from "@workspace/types"
+import type { BlobStorageAdapter } from "./blob-storage.adapter.js"
+import type { MediaRow, NewMediaRow } from "./media.adapter.js"
+import * as policy from "./media.policy.js"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 // ── Domain error types ───────────────────────────────────────────────
 
-export type { UploadIntentError } from "./media.policy.js";
-export type { ConfirmError } from "./media.policy.js";
-export type { ReissueError } from "./media.policy.js";
-export type { AttachmentError } from "./media.policy.js";
-export type { SignReadError } from "./media.policy.js";
+export type { UploadIntentError } from "./media.policy.js"
+export type { ConfirmError } from "./media.policy.js"
+export type { ReissueError } from "./media.policy.js"
+export type { AttachmentError } from "./media.policy.js"
+export type { SignReadError } from "./media.policy.js"
 
-export type { MediaRow } from "./media.adapter.js";
+export type { MediaRow } from "./media.adapter.js"
 
 /** Persistence port used by media use cases (production: `media.adapter`). */
 export type MediaPersistenceAdapter = {
-  findById: (id: string) => Promise<MediaRow | undefined>;
-  insert: (values: NewMediaRow) => Promise<MediaRow>;
+  findById: (id: string) => Promise<MediaRow | undefined>
+  insert: (values: NewMediaRow) => Promise<MediaRow>
   markReady: (
     id: string,
     confirmedAt: Date,
     cleanupDeadline: Date
-  ) => Promise<MediaRow | undefined>;
+  ) => Promise<MediaRow | undefined>
   markAttached: (
     id: string,
     attachment?: MediaAttachmentTarget
-  ) => Promise<MediaRow | undefined>;
-  markDeleted: (id: string) => Promise<MediaRow | undefined>;
-  findPendingExpired: (now: Date) => Promise<MediaRow[]>;
-  findUnattachedReadyExpired: (now: Date) => Promise<MediaRow[]>;
-  findDeletedMedia: () => Promise<MediaRow[]>;
-  findFailedMedia: () => Promise<MediaRow[]>;
-};
+  ) => Promise<MediaRow | undefined>
+  markDeleted: (id: string) => Promise<MediaRow | undefined>
+  findPendingExpired: (now: Date) => Promise<MediaRow[]>
+  findUnattachedReadyExpired: (now: Date) => Promise<MediaRow[]>
+  findDeletedMedia: () => Promise<MediaRow[]>
+  findFailedMedia: () => Promise<MediaRow[]>
+}
 
 // ── Config (move to env/config package later) ────────────────────────
-const MEDIA_CONTAINER = process.env.MEDIA_CONTAINER_NAME ?? "user-media";
+const MEDIA_CONTAINER = process.env.MEDIA_CONTAINER_NAME ?? "user-media"
 
 // ── Input / output types ─────────────────────────────────────────────
 
 export interface CreateUploadIntentInput {
-  mimeType: string;
-  byteSize: number;
-  purpose: string;
+  mimeType: string
+  byteSize: number
+  purpose: string
 }
 
 export interface CreateUploadIntentOutput {
-  mediaId: string;
-  uploadUrl: string;
-  blobKey: string;
+  mediaId: string
+  uploadUrl: string
+  blobKey: string
 }
 
 export interface ReissueUploadUrlOutput {
-  uploadUrl: string;
+  uploadUrl: string
 }
 
 export interface ConfirmUploadOutput {
-  mediaId: string;
+  mediaId: string
 }
 
 export interface AttachMediaOutput {
-  mediaId: string;
+  mediaId: string
 }
 
 export type MediaAttachmentTarget = {
-  targetType: MediaAttachmentTargetType;
-  targetId: string;
-  slot: MediaAttachmentSlot;
-};
+  targetType: MediaAttachmentTargetType
+  targetId: string
+  slot: MediaAttachmentSlot
+}
 
 export interface SignReadUrlOutput {
-  readUrl: string;
+  readUrl: string
 }
 
 export interface CleanupCandidate {
-  mediaId: string;
-  blobKey: string | null;
-  storageContainer: string | null;
-  status: MediaStatus;
+  mediaId: string
+  blobKey: string | null
+  storageContainer: string | null
+  status: MediaStatus
 }
 
 export type MediaService = {
   createUploadIntent: (
     userId: string,
     input: CreateUploadIntentInput
-  ) => Promise<Result<CreateUploadIntentOutput, policy.UploadIntentError>>;
+  ) => Promise<Result<CreateUploadIntentOutput, policy.UploadIntentError>>
   reissueUploadUrl: (
     mediaId: string,
     userId: string
-  ) => Promise<Result<ReissueUploadUrlOutput, policy.ReissueError>>;
+  ) => Promise<Result<ReissueUploadUrlOutput, policy.ReissueError>>
   confirmUpload: (
     mediaId: string,
     userId: string
-  ) => Promise<Result<ConfirmUploadOutput, policy.ConfirmError>>;
+  ) => Promise<Result<ConfirmUploadOutput, policy.ConfirmError>>
   attachMedia: (
     mediaId: string,
     userId: string,
     expectedPurpose: MediaPurpose,
     attachment?: MediaAttachmentTarget
-  ) => Promise<Result<AttachMediaOutput, policy.AttachmentError>>;
+  ) => Promise<Result<AttachMediaOutput, policy.AttachmentError>>
   abandonMedia: (
     mediaId: string,
     userId: string
-  ) => Promise<Result<{ mediaId: string }, policy.AttachmentError>>;
+  ) => Promise<Result<{ mediaId: string }, policy.AttachmentError>>
   signReadUrl: (
     mediaId: string
-  ) => Promise<Result<SignReadUrlOutput, policy.SignReadError>>;
-  computeCleanupCandidates: () => Promise<CleanupCandidate[]>;
-};
+  ) => Promise<Result<SignReadUrlOutput, policy.SignReadError>>
+  computeCleanupCandidates: () => Promise<CleanupCandidate[]>
+}
 
 export function createMediaService(deps: {
-  adapter: MediaPersistenceAdapter;
-  storage: BlobStorageAdapter;
+  adapter: MediaPersistenceAdapter
+  storage: BlobStorageAdapter
+  logger?: OperationalEventLogger
 }): MediaService {
-  const { adapter, storage } = deps;
+  const { adapter, storage, logger = noopOperationalEventLogger } = deps
 
   return {
     createUploadIntent: (userId, input) =>
@@ -134,14 +140,14 @@ export function createMediaService(deps: {
     reissueUploadUrl: (mediaId, userId) =>
       reissueUploadUrlImpl(adapter, storage, mediaId, userId),
     confirmUpload: (mediaId, userId) =>
-      confirmUploadImpl(adapter, storage, mediaId, userId),
+      confirmUploadImpl(adapter, storage, logger, mediaId, userId),
     attachMedia: (mediaId, userId, expectedPurpose, attachment) =>
       attachMediaImpl(adapter, mediaId, userId, expectedPurpose, attachment),
     abandonMedia: (mediaId, userId) =>
       abandonMediaImpl(adapter, mediaId, userId),
     signReadUrl: (mediaId) => signReadUrlImpl(adapter, storage, mediaId),
     computeCleanupCandidates: () => computeCleanupCandidatesImpl(adapter),
-  };
+  }
 }
 
 // ── createUploadIntent ───────────────────────────────────────────────
@@ -152,15 +158,15 @@ async function createUploadIntentImpl(
   userId: string,
   input: CreateUploadIntentInput
 ): Promise<Result<CreateUploadIntentOutput, policy.UploadIntentError>> {
-  const validated = policy.validateUploadIntent(input);
-  if (!validated.ok) return validated;
+  const validated = policy.validateUploadIntent(input)
+  if (!validated.ok) return validated
 
-  const { mimeType, byteSize, purpose } = validated.value;
+  const { mimeType, byteSize, purpose } = validated.value
 
-  const mediaId = randomUUID();
-  const blobKey = randomUUID();
-  const now = new Date();
-  const expiresAt = policy.computePendingExpiry(now);
+  const mediaId = randomUUID()
+  const blobKey = randomUUID()
+  const now = new Date()
+  const expiresAt = policy.computePendingExpiry(now)
 
   await adapter.insert({
     id: mediaId,
@@ -174,15 +180,15 @@ async function createUploadIntentImpl(
     expiresAt,
     createdAt: now,
     updatedAt: now,
-  });
+  })
 
   const uploadUrl = await storage.generateSignedUploadUrl(
     MEDIA_CONTAINER,
     blobKey,
     policy.UPLOAD_URL_LIFETIME_SECONDS
-  );
+  )
 
-  return { ok: true, value: { mediaId, uploadUrl, blobKey } };
+  return { ok: true, value: { mediaId, uploadUrl, blobKey } }
 }
 
 // ── reissueUploadUrl ─────────────────────────────────────────────────
@@ -193,20 +199,20 @@ async function reissueUploadUrlImpl(
   mediaId: string,
   userId: string
 ): Promise<Result<ReissueUploadUrlOutput, policy.ReissueError>> {
-  const row = await adapter.findById(mediaId);
-  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  const row = await adapter.findById(mediaId)
+  if (!row) return { ok: false, error: { kind: "media_not_found" } }
 
-  const attachmentInfo = toAttachmentInfo(row);
-  const validated = policy.validatePendingForReissue(attachmentInfo, userId);
-  if (!validated.ok) return validated;
+  const attachmentInfo = toAttachmentInfo(row)
+  const validated = policy.validatePendingForReissue(attachmentInfo, userId)
+  if (!validated.ok) return validated
 
   const uploadUrl = await storage.generateSignedUploadUrl(
     row.storageContainer ?? MEDIA_CONTAINER,
     row.blobKey ?? "",
     policy.UPLOAD_URL_LIFETIME_SECONDS
-  );
+  )
 
-  return { ok: true, value: { uploadUrl } };
+  return { ok: true, value: { uploadUrl } }
 }
 
 // ── confirmUpload ────────────────────────────────────────────────────
@@ -214,29 +220,32 @@ async function reissueUploadUrlImpl(
 async function confirmUploadImpl(
   adapter: MediaPersistenceAdapter,
   storage: BlobStorageAdapter,
+  logger: OperationalEventLogger,
   mediaId: string,
   userId: string
 ): Promise<Result<ConfirmUploadOutput, policy.ConfirmError>> {
-  const row = await adapter.findById(mediaId);
-  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  const row = await adapter.findById(mediaId)
+  if (!row) return { ok: false, error: { kind: "media_not_found" } }
 
-  const attachmentInfo = toAttachmentInfo(row);
+  const attachmentInfo = toAttachmentInfo(row)
   const validated = policy.validatePendingForConfirmation(
     attachmentInfo,
     userId
-  );
-  if (!validated.ok) return validated;
+  )
+  if (!validated.ok) return validated
 
   const verification = await storage.verifyBlob(
     row.storageContainer ?? MEDIA_CONTAINER,
     row.blobKey ?? ""
-  );
+  )
 
   if (!verification.exists) {
-    return { ok: false, error: { kind: "blob_not_found" } };
+    await emitMediaUploadFailed(logger, row, "blob_not_found")
+    return { ok: false, error: { kind: "blob_not_found" } }
   }
 
   if (verification.size !== undefined && verification.size !== row.byteSize) {
+    await emitMediaUploadFailed(logger, row, "blob_size_mismatch")
     return {
       ok: false,
       error: {
@@ -244,13 +253,14 @@ async function confirmUploadImpl(
         expected: row.byteSize,
         actual: verification.size,
       },
-    };
+    }
   }
 
   if (
     verification.mimeType !== undefined &&
     verification.mimeType !== row.mimeType
   ) {
+    await emitMediaUploadFailed(logger, row, "blob_type_mismatch")
     return {
       ok: false,
       error: {
@@ -258,14 +268,24 @@ async function confirmUploadImpl(
         expected: row.mimeType,
         actual: verification.mimeType,
       },
-    };
+    }
   }
 
-  const now = new Date();
-  const cleanupDeadline = policy.computeCleanupDeadline(now);
-  await adapter.markReady(mediaId, now, cleanupDeadline);
+  const now = new Date()
+  const cleanupDeadline = policy.computeCleanupDeadline(now)
+  await adapter.markReady(mediaId, now, cleanupDeadline)
 
-  return { ok: true, value: { mediaId } };
+  await emitOperationalEvent(logger, {
+    event: "media_upload_completed",
+    mediaId: row.id,
+    userId: row.ownerId,
+    purpose: row.purpose,
+    status: "ready",
+    mediaKind: policy.mediaKind(row.mimeType),
+    byteSize: row.byteSize,
+  })
+
+  return { ok: true, value: { mediaId } }
 }
 
 // ── attachMedia ──────────────────────────────────────────────────────
@@ -277,20 +297,20 @@ async function attachMediaImpl(
   expectedPurpose: MediaPurpose,
   attachment?: MediaAttachmentTarget
 ): Promise<Result<AttachMediaOutput, policy.AttachmentError>> {
-  const row = await adapter.findById(mediaId);
-  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  const row = await adapter.findById(mediaId)
+  if (!row) return { ok: false, error: { kind: "media_not_found" } }
 
-  const attachmentInfo = toAttachmentInfo(row);
+  const attachmentInfo = toAttachmentInfo(row)
   const validated = policy.validateAttachment(
     attachmentInfo,
     userId,
     expectedPurpose
-  );
-  if (!validated.ok) return validated;
+  )
+  if (!validated.ok) return validated
 
-  await adapter.markAttached(mediaId, attachment);
+  await adapter.markAttached(mediaId, attachment)
 
-  return { ok: true, value: { mediaId } };
+  return { ok: true, value: { mediaId } }
 }
 
 async function abandonMediaImpl(
@@ -298,15 +318,15 @@ async function abandonMediaImpl(
   mediaId: string,
   userId: string
 ): Promise<Result<{ mediaId: string }, policy.AttachmentError>> {
-  const row = await adapter.findById(mediaId);
-  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  const row = await adapter.findById(mediaId)
+  if (!row) return { ok: false, error: { kind: "media_not_found" } }
   if (row.ownerId !== userId)
-    return { ok: false, error: { kind: "wrong_owner" } };
+    return { ok: false, error: { kind: "wrong_owner" } }
   if (row.status === "attached") {
-    return { ok: false, error: { kind: "already_attached" } };
+    return { ok: false, error: { kind: "already_attached" } }
   }
-  await adapter.markDeleted(mediaId);
-  return { ok: true, value: { mediaId } };
+  await adapter.markDeleted(mediaId)
+  return { ok: true, value: { mediaId } }
 }
 
 // ── signReadUrl ──────────────────────────────────────────────────────
@@ -316,19 +336,19 @@ async function signReadUrlImpl(
   storage: BlobStorageAdapter,
   mediaId: string
 ): Promise<Result<SignReadUrlOutput, policy.SignReadError>> {
-  const row = await adapter.findById(mediaId);
-  if (!row) return { ok: false, error: { kind: "media_not_found" } };
+  const row = await adapter.findById(mediaId)
+  if (!row) return { ok: false, error: { kind: "media_not_found" } }
 
-  const validated = policy.validateCanSignReadUrl(row.status);
-  if (!validated.ok) return validated;
+  const validated = policy.validateCanSignReadUrl(row.status)
+  if (!validated.ok) return validated
 
   const readUrl = await storage.generateSignedReadUrl(
     row.storageContainer ?? MEDIA_CONTAINER,
     row.blobKey ?? "",
     policy.READ_URL_LIFETIME_SECONDS
-  );
+  )
 
-  return { ok: true, value: { readUrl } };
+  return { ok: true, value: { readUrl } }
 }
 
 // ── computeCleanupCandidates ─────────────────────────────────────────
@@ -336,16 +356,16 @@ async function signReadUrlImpl(
 async function computeCleanupCandidatesImpl(
   adapter: MediaPersistenceAdapter
 ): Promise<CleanupCandidate[]> {
-  const now = new Date();
+  const now = new Date()
 
   const [pendingExpired, readyExpired, deleted, failed] = await Promise.all([
     adapter.findPendingExpired(now),
     adapter.findUnattachedReadyExpired(now),
     adapter.findDeletedMedia(),
     adapter.findFailedMedia(),
-  ]);
+  ])
 
-  const candidates: CleanupCandidate[] = [];
+  const candidates: CleanupCandidate[] = []
 
   for (const row of [
     ...pendingExpired,
@@ -359,11 +379,11 @@ async function computeCleanupCandidatesImpl(
         blobKey: row.blobKey,
         storageContainer: row.storageContainer,
         status: row.status,
-      });
+      })
     }
   }
 
-  return candidates;
+  return candidates
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -375,5 +395,22 @@ function toAttachmentInfo(row: MediaRow): policy.MediaAttachmentInfo {
     purpose: row.purpose,
     status: row.status,
     expiresAt: row.expiresAt,
-  };
+  }
+}
+
+async function emitMediaUploadFailed(
+  logger: OperationalEventLogger,
+  row: MediaRow,
+  reason: "blob_not_found" | "blob_size_mismatch" | "blob_type_mismatch"
+): Promise<void> {
+  await emitOperationalEvent(logger, {
+    event: "media_upload_failed",
+    mediaId: row.id,
+    userId: row.ownerId,
+    purpose: row.purpose,
+    status: "failed",
+    reason,
+    mediaKind: policy.mediaKind(row.mimeType),
+    byteSize: row.byteSize,
+  })
 }

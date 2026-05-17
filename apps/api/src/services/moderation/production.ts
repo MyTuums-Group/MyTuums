@@ -53,6 +53,10 @@ import {
   contentRemovalNotificationData,
   shouldCreateContentRemovalNotification,
 } from "./side-effects.js"
+import {
+  emitOperationalEvent,
+  operationalEventLogger,
+} from "../operational-events.js"
 
 type ServiceResult<TValue, TError> =
   | { ok: true; value: TValue }
@@ -104,71 +108,87 @@ async function submitReport(
     return { ok: false, error: { kind: "target_not_visible" } }
   }
 
-  return db.transaction(async (tx) => {
-    const duplicate = await findDuplicateActiveReport(tx, {
-      reporterId: input.reporterId,
-      targetType: target.targetType,
-      targetId: target.targetId,
-    })
-    if (duplicate) {
-      return { ok: false, error: { kind: "duplicate_report" } }
-    }
-
-    const now = new Date()
-    let caseRow = await findOpenCaseForTarget(tx, target)
-    if (!caseRow) {
-      const [createdCase] = await tx
-        .insert(moderationCase)
-        .values({
-          targetType: target.targetType,
-          targetId: target.targetId,
-          status: "open",
-          priority: initialCasePriorityForReport(input.reason),
-          createdAt: now,
-        })
-        .returning()
-      if (!createdCase) {
-        throw new Error("Failed to create moderation case.")
-      }
-      caseRow = createdCase
-    }
-
-    const [createdReport] = await tx
-      .insert(reportTable)
-      .values({
+  const result: ServiceResult<ModerationReportRecord, SubmitReportError> =
+    await db.transaction(async (tx) => {
+      const duplicate = await findDuplicateActiveReport(tx, {
         reporterId: input.reporterId,
         targetType: target.targetType,
         targetId: target.targetId,
-        reason: input.reason,
-        notes: normalizeReportNotes(input.notes),
-        moderationCaseId: caseRow.id,
-        createdAt: now,
       })
-      .returning()
-    if (!createdReport) {
-      throw new Error("Failed to create report.")
-    }
+      if (duplicate) {
+        return { ok: false, error: { kind: "duplicate_report" } }
+      }
 
-    if (
-      shouldEscalateCasePriority({
-        reason: input.reason,
-        uniqueReporterCountWithinWindow: await uniqueReportersInLast24Hours(
-          tx,
-          caseRow.id,
-          now
-        ),
-      })
-    ) {
-      const [updatedCase] = await tx
-        .update(moderationCase)
-        .set({ priority: "urgent" })
-        .where(eq(moderationCase.id, caseRow.id))
+      const now = new Date()
+      let caseRow = await findOpenCaseForTarget(tx, target)
+      if (!caseRow) {
+        const [createdCase] = await tx
+          .insert(moderationCase)
+          .values({
+            targetType: target.targetType,
+            targetId: target.targetId,
+            status: "open",
+            priority: initialCasePriorityForReport(input.reason),
+            createdAt: now,
+          })
+          .returning()
+        if (!createdCase) {
+          throw new Error("Failed to create moderation case.")
+        }
+        caseRow = createdCase
+      }
+
+      const [createdReport] = await tx
+        .insert(reportTable)
+        .values({
+          reporterId: input.reporterId,
+          targetType: target.targetType,
+          targetId: target.targetId,
+          reason: input.reason,
+          notes: normalizeReportNotes(input.notes),
+          moderationCaseId: caseRow.id,
+          createdAt: now,
+        })
         .returning()
-      if (updatedCase) caseRow = updatedCase
-    }
+      if (!createdReport) {
+        throw new Error("Failed to create report.")
+      }
 
-    return { ok: true, value: mapReportRow(createdReport) }
-  })
+      if (
+        shouldEscalateCasePriority({
+          reason: input.reason,
+          uniqueReporterCountWithinWindow: await uniqueReportersInLast24Hours(
+            tx,
+            caseRow.id,
+            now
+          ),
+        })
+      ) {
+        const [updatedCase] = await tx
+          .update(moderationCase)
+          .set({ priority: "urgent" })
+          .where(eq(moderationCase.id, caseRow.id))
+          .returning()
+        if (updatedCase) caseRow = updatedCase
+      }
+
+      return { ok: true, value: mapReportRow(createdReport) }
+    })
+
+  if (result.ok) {
+    await emitOperationalEvent(operationalEventLogger, {
+      event: "report_submitted",
+      reportId: result.value.id,
+      moderationCaseId: result.value.moderationCaseId,
+      reporterId: result.value.reporterId,
+      targetType: result.value.targetType,
+      targetId: result.value.targetId,
+      reason: result.value.reason,
+      status: "submitted",
+    })
+  }
+
+  return result
 }
 
 async function claimCase(input: {
@@ -245,7 +265,14 @@ async function dismissCase(input: {
   const notes = normalizeRequiredInternalNotes(input.internalNotes)
   if (!notes) return { ok: false, error: { kind: "internal_notes_required" } }
 
-  return db.transaction(async (tx) => {
+  const result: ServiceResult<
+    {
+      caseRecord: ModerationCaseRecord
+      targetType: ReportTargetType
+      targetId: string
+    },
+    ModerationCaseCommandError
+  > = await db.transaction(async (tx) => {
     const [caseRow] = await tx
       .select()
       .from(moderationCase)
@@ -272,8 +299,30 @@ async function dismissCase(input: {
       .returning()
     if (!updated) throw new Error("Failed to dismiss moderation case.")
 
-    return { ok: true, value: mapCaseRow(updated) }
+    return {
+      ok: true,
+      value: {
+        caseRecord: mapCaseRow(updated),
+        targetType: caseRow.targetType,
+        targetId: caseRow.targetId,
+      },
+    }
   })
+
+  if (!result.ok) return result
+
+  await emitOperationalEvent(operationalEventLogger, {
+    event: "moderation_action_taken",
+    caseId: result.value.caseRecord.id,
+    actorId: input.actorId,
+    targetType: result.value.targetType,
+    targetId: result.value.targetId,
+    action: "dismiss_case",
+    reason: input.reason,
+    status: "taken",
+  })
+
+  return { ok: true, value: result.value.caseRecord }
 }
 
 async function actionCase(input: {
@@ -295,7 +344,15 @@ async function actionCase(input: {
     return { ok: false, error: { kind: "public_reason_required" } }
   }
 
-  return db.transaction(async (tx) => {
+  const result: ServiceResult<
+    {
+      caseRecord: ModerationCaseRecord
+      targetType: ReportTargetType
+      targetId: string
+      didAct: boolean
+    },
+    ModerationCaseCommandError
+  > = await db.transaction(async (tx) => {
     const [caseRow] = await tx
       .select()
       .from(moderationCase)
@@ -311,7 +368,15 @@ async function actionCase(input: {
     }
 
     if (isSameStateCaseActionRetry(input.action, target)) {
-      return { ok: true, value: mapCaseRow(caseRow) }
+      return {
+        ok: true,
+        value: {
+          caseRecord: mapCaseRow(caseRow),
+          targetType: caseRow.targetType,
+          targetId: caseRow.targetId,
+          didAct: false,
+        },
+      }
     }
 
     if (
@@ -415,8 +480,33 @@ async function actionCase(input: {
       .returning()
     if (!updatedCase) throw new Error("Failed to update moderation case.")
 
-    return { ok: true, value: mapCaseRow(updatedCase) }
+    return {
+      ok: true,
+      value: {
+        caseRecord: mapCaseRow(updatedCase),
+        targetType: caseRow.targetType,
+        targetId: caseRow.targetId,
+        didAct: true,
+      },
+    }
   })
+
+  if (!result.ok) return result
+
+  if (result.value.didAct) {
+    await emitOperationalEvent(operationalEventLogger, {
+      event: "moderation_action_taken",
+      caseId: result.value.caseRecord.id,
+      actorId: input.actorId,
+      targetType: result.value.targetType,
+      targetId: result.value.targetId,
+      action: input.action,
+      reason: input.reason,
+      status: "taken",
+    })
+  }
+
+  return { ok: true, value: result.value.caseRecord }
 }
 
 async function listCases(input: {

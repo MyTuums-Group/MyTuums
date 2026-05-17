@@ -9,6 +9,11 @@ import {
   canSelfDeleteAccount,
   deletionHoldWindows,
 } from "../account-status/policy.js"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 export type AccountDeletionHoldKind = "email" | "username"
 
@@ -78,7 +83,8 @@ export type AccountDeletionService = {
 }
 
 export function createAccountDeletionService(
-  adapter: AccountDeletionAdapter
+  adapter: AccountDeletionAdapter,
+  logger: OperationalEventLogger = noopOperationalEventLogger
 ): AccountDeletionService {
   return {
     async deleteOwnAccount(input) {
@@ -93,6 +99,12 @@ export function createAccountDeletionService(
       if (!selfDeletion.allowed) {
         return { ok: false, error: { kind: selfDeletion.reason } }
       }
+
+      await emitOperationalEvent(logger, {
+        event: "account_deletion_requested",
+        userId: subject.id,
+        status: "requested",
+      })
 
       const passwordMatches =
         input.password.trim().length > 0 &&
@@ -126,6 +138,15 @@ export function createAccountDeletionService(
         profileId: subject.profile?.id ?? null,
         tombstoneEmail: tombstone.email,
         tombstoneUsername: subject.profile ? tombstone.username : null,
+      })
+
+      await emitOperationalEvent(logger, {
+        event: "account_deletion_completed",
+        userId: subject.id,
+        status: "completed",
+        deletedAt: now.toISOString(),
+        emailHeldUntil: emailHeldUntil.toISOString(),
+        usernameHeldUntil: usernameHold?.heldUntil.toISOString() ?? null,
       })
 
       return {
@@ -237,7 +258,8 @@ export type AccountDeletionMemoryState = {
 }
 
 export function createInMemoryAccountDeletionService(
-  state: AccountDeletionMemoryState
+  state: AccountDeletionMemoryState,
+  logger: OperationalEventLogger = noopOperationalEventLogger
 ): AccountDeletionService & { snapshot(): AccountDeletionMemoryState } {
   const adapter: AccountDeletionAdapter = {
     async findDeletionSubject(userId) {
@@ -280,7 +302,7 @@ export function createInMemoryAccountDeletionService(
   }
 
   return {
-    ...createAccountDeletionService(adapter),
+    ...createAccountDeletionService(adapter, logger),
     snapshot() {
       return {
         users: state.users.map((row) => ({ ...row })),

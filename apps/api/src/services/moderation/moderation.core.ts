@@ -31,6 +31,11 @@ import {
   contentRemovalNotificationData,
   shouldCreateContentRemovalNotification,
 } from "./side-effects.js"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 export type ModerationUserRecord = {
   id: string
@@ -252,7 +257,8 @@ type ResolvedTarget = {
 }
 
 export function createInMemoryModerationService(
-  initialState: InMemoryModerationState
+  initialState: InMemoryModerationState,
+  logger: OperationalEventLogger = noopOperationalEventLogger
 ): ModerationService & { snapshot(): InMemoryModerationState } {
   const state = {
     ...initialState,
@@ -363,6 +369,17 @@ export function createInMemoryModerationService(
     ) {
       moderationCase.priority = "urgent"
     }
+
+    void emitOperationalEvent(logger, {
+      event: "report_submitted",
+      reportId: report.id,
+      moderationCaseId: report.moderationCaseId,
+      reporterId: report.reporterId,
+      targetType: report.targetType,
+      targetId: report.targetId,
+      reason: report.reason,
+      status: "submitted",
+    })
 
     return Promise.resolve({ ok: true, value: report } as const)
   }
@@ -564,6 +581,17 @@ export function createInMemoryModerationService(
     })
     nextActionNumber += 1
 
+    void emitOperationalEvent(logger, {
+      event: "moderation_action_taken",
+      caseId: moderationCase.id,
+      actorId: input.actorId,
+      targetType: moderationCase.targetType,
+      targetId: moderationCase.targetId,
+      action: "dismiss_case",
+      reason: input.reason,
+      status: "taken",
+    })
+
     return Promise.resolve({ ok: true, value: moderationCase } as const)
   }
 
@@ -667,6 +695,7 @@ export function createInMemoryModerationService(
         conflictOverride: input.conflictOverride === true,
         createdAt: actedAt,
       })
+      logModerationActionTaken(input, moderationCase)
       if (
         shouldCreateContentRemovalNotification({
           targetType: "post",
@@ -740,6 +769,7 @@ export function createInMemoryModerationService(
         conflictOverride: input.conflictOverride === true,
         createdAt: actedAt,
       })
+      logModerationActionTaken(input, moderationCase)
 
       return Promise.resolve({ ok: true, value: moderationCase } as const)
     }
@@ -802,6 +832,7 @@ export function createInMemoryModerationService(
         conflictOverride: input.conflictOverride === true,
         createdAt: actedAt,
       })
+      logModerationActionTaken(input, moderationCase)
       if (
         shouldCreateContentRemovalNotification({
           targetType: "comment",
@@ -883,6 +914,7 @@ export function createInMemoryModerationService(
         conflictOverride: input.conflictOverride === true,
         createdAt: actedAt,
       })
+      logModerationActionTaken(input, moderationCase)
 
       return Promise.resolve({ ok: true, value: moderationCase } as const)
     }
@@ -899,6 +931,26 @@ export function createInMemoryModerationService(
       ...input,
     })
     nextActionNumber += 1
+  }
+
+  function logModerationActionTaken(
+    input: {
+      actorId: string
+      action: ModerationActionType
+      reason: ReportReason
+    },
+    moderationCase: ModerationCaseRecord
+  ): void {
+    void emitOperationalEvent(logger, {
+      event: "moderation_action_taken",
+      caseId: moderationCase.id,
+      actorId: input.actorId,
+      targetType: moderationCase.targetType,
+      targetId: moderationCase.targetId,
+      action: input.action,
+      reason: input.reason,
+      status: "taken",
+    })
   }
 
   function listCases(input: { actorId: string }) {

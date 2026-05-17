@@ -1,13 +1,32 @@
 // Cross-package domain types and shared constants.
-// Populated as domain entities are defined. This package exports only
-// stable value types — no service logic, DB clients, or React components.
-// Body-text normalization and grapheme counting are pure cross-domain helpers.
+// This package exports pure value objects and domain constants only:
+// no service orchestration, DB clients, or React components.
 
-// ── Value object types (branded types only — validation logic moved to services) ──
-export { type Username } from "./username.js"
-export { type PostBody } from "./post-body.js"
-export { type CommentBody } from "./comment-body.js"
-export { type GameSlug } from "./game-slug.js"
+// ── Value objects ───────────────────────────────────────────────────
+export {
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  createUsername,
+  type Username,
+} from "./username.js"
+export {
+  POST_TEXT_MAX_LENGTH,
+  createPostBody,
+  postBodyLength,
+  type PostBody,
+} from "./post-body.js"
+export {
+  COMMENT_TEXT_MAX_LENGTH,
+  commentBodyLength,
+  createCommentBody,
+  type CommentBody,
+} from "./comment-body.js"
+export {
+  GAME_SLUG_MAX_LENGTH,
+  createGameSlug,
+  type GameSlug,
+} from "./game-slug.js"
+export { RESERVED_USERNAMES, isReservedUsername } from "./reserved-usernames.js"
 export { type Result, ValidationError, success, failure } from "./result.js"
 
 export { graphemeLength, normalizeBodyText } from "./grapheme.js"
@@ -108,12 +127,7 @@ export type ContactCategory =
 export type ContactEmailStatus = "pending" | "sent" | "failed"
 
 // ── Constants ───────────────────────────────────────────────────────
-export const USERNAME_MIN_LENGTH = 3
-export const USERNAME_MAX_LENGTH = 20
-
 export const DISPLAY_NAME_MAX_LENGTH = 40
-export const POST_TEXT_MAX_LENGTH = 500
-export const COMMENT_TEXT_MAX_LENGTH = 300
 export const BIO_MAX_LENGTH = 160
 export const CONTACT_MESSAGE_MAX_LENGTH = 2000
 export const CONTACT_EMAIL_MAX_LENGTH = 254

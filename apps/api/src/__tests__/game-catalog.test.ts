@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
+import { createGameSlug } from "@workspace/types"
 import {
   createInMemoryGameService,
   type GameCatalogEntry,
-} from "../services/game/game.core.js";
-import { applyGameSeed } from "../services/game/game.seed.js";
+} from "../services/game/game.core.js"
+import { applyGameSeed } from "../services/game/game.seed.js"
 
 describe("Game catalog service", () => {
   it("keeps inactive games viewable by slug while excluding them from active selection lists", async () => {
@@ -30,9 +31,11 @@ describe("Game catalog service", () => {
       ],
       profiles: [],
       favorites: [],
-    });
+    })
 
-    await expect(games.getBySlug("retired-game", null)).resolves.toMatchObject({
+    await expect(
+      games.getBySlug(gameSlug("retired-game"), null)
+    ).resolves.toMatchObject({
       ok: true,
       value: {
         game: {
@@ -41,12 +44,12 @@ describe("Game catalog service", () => {
         },
         isFavorite: false,
       },
-    });
+    })
 
     await expect(games.listActive()).resolves.toEqual([
       expect.objectContaining({ slug: "stardew-valley" }),
-    ]);
-  });
+    ])
+  })
 
   it("lets onboarded users add and remove active favorite games up to the v1 limit", async () => {
     const games = createInMemoryGameService({
@@ -61,30 +64,46 @@ describe("Game catalog service", () => {
       ],
       profiles: [{ id: "profile-1", userId: "user-1" }],
       favorites: [],
-    });
+    })
 
     await expect(
-      games.setFavorite({ userId: "user-1", slug: "inactive", favorite: true })
+      games.setFavorite({
+        userId: "user-1",
+        slug: gameSlug("inactive"),
+        favorite: true,
+      })
     ).resolves.toEqual({
       ok: false,
       error: { kind: "inactive_game" },
-    });
+    })
 
-    for (const slug of ["game-a", "game-b", "game-c", "game-d", "game-e"]) {
+    for (const value of ["game-a", "game-b", "game-c", "game-d", "game-e"]) {
       await expect(
-        games.setFavorite({ userId: "user-1", slug, favorite: true })
-      ).resolves.toMatchObject({ ok: true });
+        games.setFavorite({
+          userId: "user-1",
+          slug: gameSlug(value),
+          favorite: true,
+        })
+      ).resolves.toMatchObject({ ok: true })
     }
 
     await expect(
-      games.setFavorite({ userId: "user-1", slug: "game-f", favorite: true })
+      games.setFavorite({
+        userId: "user-1",
+        slug: gameSlug("game-f"),
+        favorite: true,
+      })
     ).resolves.toEqual({
       ok: false,
       error: { kind: "too_many_favorites" },
-    });
+    })
 
     await expect(
-      games.setFavorite({ userId: "user-1", slug: "game-b", favorite: false })
+      games.setFavorite({
+        userId: "user-1",
+        slug: gameSlug("game-b"),
+        favorite: false,
+      })
     ).resolves.toMatchObject({
       ok: true,
       value: [
@@ -93,8 +112,8 @@ describe("Game catalog service", () => {
         { slug: "game-d", position: 3 },
         { slug: "game-e", position: 4 },
       ],
-    });
-  });
+    })
+  })
 
   it("applies seeded games idempotently by immutable slug without deleting existing rows", async () => {
     const rows: GameCatalogEntry[] = [
@@ -108,20 +127,20 @@ describe("Game catalog service", () => {
         isActive: true,
       },
       game("preserved-id", "preserved-game", false),
-    ];
+    ]
 
     const result = await applyGameSeed(
       {
         upsertBySlug(seed) {
-          const existing = rows.find((row) => row.slug === seed.slug);
+          const existing = rows.find((row) => row.slug === seed.slug)
           if (existing) {
-            Object.assign(existing, seed);
-            return Promise.resolve({ game: { ...existing }, created: false });
+            Object.assign(existing, seed)
+            return Promise.resolve({ game: { ...existing }, created: false })
           }
 
-          const inserted = { id: `new-${seed.slug}`, ...seed };
-          rows.push(inserted);
-          return Promise.resolve({ game: inserted, created: true });
+          const inserted = { id: `new-${seed.slug}`, ...seed }
+          rows.push(inserted)
+          return Promise.resolve({ game: inserted, created: true })
         },
       },
       [
@@ -142,13 +161,13 @@ describe("Game catalog service", () => {
           isActive: true,
         },
       ]
-    );
+    )
 
     expect(result).toEqual({
       inserted: 1,
       updated: 1,
       total: 2,
-    });
+    })
     expect(rows).toEqual([
       expect.objectContaining({
         id: "existing-id",
@@ -164,9 +183,9 @@ describe("Game catalog service", () => {
         id: "new-rocket-league",
         slug: "rocket-league",
       }),
-    ]);
-  });
-});
+    ])
+  })
+})
 
 function game(id: string, slug: string, isActive: boolean) {
   return {
@@ -177,5 +196,11 @@ function game(id: string, slug: string, isActive: boolean) {
     aliases: [],
     coverImageUrl: null,
     isActive,
-  };
+  }
+}
+
+function gameSlug(value: string) {
+  const result = createGameSlug(value)
+  if (!result.ok) throw result.error
+  return result.value
 }

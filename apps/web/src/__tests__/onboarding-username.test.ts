@@ -23,5 +23,9 @@ describe("onboarding username input", () => {
     expect(validateUsernameCandidate("alice_player")).toEqual({
       kind: "valid",
     })
+    expect(validateUsernameCandidate("admin")).toEqual({
+      kind: "invalid",
+      message: "This username is reserved and cannot be used.",
+    })
   })
 })

@@ -1,7 +1,5 @@
 import { z } from "zod"
 import {
-  USERNAME_MIN_LENGTH,
-  USERNAME_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
   MAX_FAVORITE_GAMES,
@@ -39,7 +37,7 @@ export const profileRouter = router({
   submitOnboarding: protectedProcedure
     .input(
       z.object({
-        username: z.string().min(USERNAME_MIN_LENGTH).max(USERNAME_MAX_LENGTH),
+        username: z.string(),
         displayName: z.string().max(DISPLAY_NAME_MAX_LENGTH).optional(),
         bio: z.string().max(BIO_MAX_LENGTH).optional(),
         avatarMediaId: z.string().uuid().nullable().optional(),
@@ -70,7 +68,7 @@ export const profileRouter = router({
   checkUsernameAvailability: protectedProcedure
     .input(
       z.object({
-        username: z.string().min(1).max(100),
+        username: z.string(),
       })
     )
     .query(async ({ input }) => {

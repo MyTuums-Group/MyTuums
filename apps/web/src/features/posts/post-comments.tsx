@@ -417,7 +417,7 @@ function CommentRow({
                     key={`${part.href}-${index}`}
                     href={part.href}
                     target="_blank"
-                    rel="nofollow noopener noreferrer"
+                    rel={part.rel}
                     className="rounded-sm text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     {part.text}

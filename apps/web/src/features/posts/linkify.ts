@@ -1,6 +1,13 @@
+export const USER_GENERATED_LINK_REL = "nofollow noopener noreferrer ugc";
+
 export type LinkifiedPart =
   | { type: "text"; text: string }
-  | { type: "link"; text: string; href: string };
+  | {
+      type: "link";
+      text: string;
+      href: string;
+      rel: typeof USER_GENERATED_LINK_REL;
+    };
 
 const URL_PATTERN = /https?:\/\/[^\s]+/gi;
 const TRAILING_PUNCTUATION = new Set([".", ",", "!", "?", ";", ":"]);
@@ -26,6 +33,7 @@ export function linkifyText(text: string): LinkifiedPart[] {
         type: "link",
         text: trimmed.core,
         href: trimmed.core,
+        rel: USER_GENERATED_LINK_REL,
       });
       if (trimmed.trailing.length > 0) {
         parts.push({

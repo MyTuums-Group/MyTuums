@@ -11,6 +11,7 @@ import {
 } from "@workspace/ui/components/card"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { PostCard } from "@/features/posts/post-card"
+import { PostComposer } from "@/features/posts/post-composer"
 import { DEFAULT_POST_PAGE_LIMIT } from "@/features/posts/constants"
 import { removePostFromFeedPage } from "@/features/posts/post-cache"
 import type { PostFeedPage } from "@/features/posts/types"
@@ -58,6 +59,7 @@ function GamePage() {
   const { game, isFavorite } = detailQuery.data
   const canUseFavoriteAction =
     currentAppUser.data?.kind === "active_onboarded_profile"
+  const canComposePosts = canUseFavoriteAction && game.isActive
   const favoriteActionDisabled =
     favoriteMutation.isPending ||
     currentAppUser.isLoading ||
@@ -132,6 +134,20 @@ function GamePage() {
           <CardTitle>Latest posts</CardTitle>
         </CardHeader>
       </Card>
+
+      {canComposePosts && (
+        <PostComposer
+          initialGameId={game.id}
+          onCreated={() => {
+            setExtraPages([])
+            setLoadMoreError(null)
+            void utils.game.feed.invalidate({
+              slug,
+              limit: DEFAULT_POST_PAGE_LIMIT,
+            })
+          }}
+        />
+      )}
 
       {feedQuery.isLoading && !feedQuery.data ? (
         <GameFeedSkeleton />

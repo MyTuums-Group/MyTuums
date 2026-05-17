@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ImageSquare, PenNib, Trash } from "@phosphor-icons/react"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Button } from "@workspace/ui/components/button"
@@ -7,6 +7,7 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { useMediaUploadWorkflow } from "@/lib/media-upload-client"
 import { trpc } from "@/lib/trpc"
 import { getPostTextState } from "./post-text"
+import { getPostComposerGameOptions } from "./post-composer-game-options"
 import {
   applyCreatedPostReplacingOptimisticOnFeeds,
   applyOptimisticPostCreateToFeeds,
@@ -18,15 +19,21 @@ import {
 import type { PostView } from "./types"
 
 type PostComposerProps = {
+  initialGameId?: string | null
   onCreated?: (post: PostView) => void
 }
 
-export function PostComposer({ onCreated }: PostComposerProps) {
+export function PostComposer({ initialGameId, onCreated }: PostComposerProps) {
   const [draft, setDraft] = useState("")
-  const [selectedGameId, setSelectedGameId] = useState("")
+  const defaultSelectedGameId = initialGameId ?? ""
+  const [selectedGameId, setSelectedGameId] = useState(defaultSelectedGameId)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const mediaUpload = useMediaUploadWorkflow({ purpose: "post_attachment" })
   const upload = mediaUpload.upload
+
+  useEffect(() => {
+    setSelectedGameId(defaultSelectedGameId)
+  }, [defaultSelectedGameId])
 
   const utils = trpc.useUtils()
   const currentAppUser = trpc.currentAppUser.useQuery(undefined, {
@@ -42,8 +49,17 @@ export function PostComposer({ onCreated }: PostComposerProps) {
     retry: false,
     refetchOnWindowFocus: false,
   })
+  const favoriteGamesQuery = trpc.game.myFavorites.useQuery(undefined, {
+    enabled: activeProfile !== null,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const gameOptions = getPostComposerGameOptions({
+    activeGames: gamesQuery.data ?? [],
+    favoriteGames: favoriteGamesQuery.data ?? [],
+  })
   const selectedGame =
-    gamesQuery.data?.find((game) => game.id === selectedGameId) ?? null
+    gameOptions.find((game) => game.id === selectedGameId) ?? null
 
   const createMutation = trpc.post.create.useMutation({
     async onMutate(variables) {
@@ -95,7 +111,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
       setErrorMessage(null)
       setDraft("")
-      setSelectedGameId("")
+      setSelectedGameId(defaultSelectedGameId)
 
       applyOptimisticPostCreateToFeeds(utils, {
         optimisticPost,
@@ -104,6 +120,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
       return {
         optimisticPublicId,
+        previousSelectedGameId: selectedGameId,
         snapshots,
         previousDraft: draft,
         submittedUpload,
@@ -118,6 +135,9 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       )
 
       setDraft(context?.previousDraft ?? "")
+      setSelectedGameId(
+        context?.previousSelectedGameId ?? defaultSelectedGameId
+      )
       setErrorMessage(error.message)
       context?.submittedUpload?.revokePreviewUrl()
     },
@@ -196,11 +216,15 @@ export function PostComposer({ onCreated }: PostComposerProps) {
               id="post-game-tag"
               value={selectedGameId}
               onChange={(event) => setSelectedGameId(event.target.value)}
-              disabled={createMutation.isPending || gamesQuery.isLoading}
+              disabled={
+                createMutation.isPending ||
+                gamesQuery.isLoading ||
+                favoriteGamesQuery.isLoading
+              }
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">No game tag</option>
-              {gamesQuery.data?.map((game) => (
+              {gameOptions.map((game) => (
                 <option key={game.id} value={game.id}>
                   {game.name}
                 </option>

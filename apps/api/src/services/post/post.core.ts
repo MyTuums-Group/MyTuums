@@ -1,4 +1,9 @@
 import { createPostBody, type PostBody, type Result } from "@workspace/types"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 export type PostRecord = {
   id: string
@@ -66,7 +71,10 @@ export type PostService = {
   findPostByPublicId(publicId: string): Promise<PostRecord | null>
 }
 
-export function createPostService(repository: PostRepository): PostService {
+export function createPostService(
+  repository: PostRepository,
+  logger: OperationalEventLogger = noopOperationalEventLogger
+): PostService {
   return {
     async createPost(input) {
       const validatedBody = createPostBody(input.text)
@@ -103,6 +111,16 @@ export function createPostService(repository: PostRepository): PostService {
         throw error
       }
 
+      await emitOperationalEvent(logger, {
+        event: "post_created",
+        postId: row.id,
+        publicId: row.publicId,
+        authorId: row.authorId,
+        status: "created",
+        gameTagId: row.gameTagId,
+        mediaAttachmentId: row.mediaAttachmentId,
+      })
+
       return { ok: true, value: row }
     },
 
@@ -130,6 +148,15 @@ export function createPostService(repository: PostRepository): PostService {
         return { ok: false, error: { kind: "already_deleted" } }
       }
 
+      await emitOperationalEvent(logger, {
+        event: "post_deleted",
+        postId: deleted.id,
+        publicId: deleted.publicId,
+        authorId: deleted.authorId,
+        status: "deleted",
+        deletedAt: deleted.deletedAt?.toISOString() ?? new Date().toISOString(),
+      })
+
       return { ok: true, value: { publicId: deleted.publicId } }
     },
 
@@ -150,10 +177,15 @@ function isInvalidMediaAttachment(
   )
 }
 
-export function createInMemoryPostService(state: {
-  posts: PostRecord[]
-  games: Array<ActiveGameRecord & { isActive: boolean }>
-}): PostService & { snapshot(): { posts: PostRecord[] } } {
+export function createInMemoryPostService(
+  state: {
+    posts: PostRecord[]
+    games: Array<ActiveGameRecord & { isActive: boolean }>
+  },
+  logger: OperationalEventLogger = noopOperationalEventLogger
+): PostService & {
+  snapshot(): { posts: PostRecord[] }
+} {
   let nextPostNumber = state.posts.length + 1
 
   const repository: PostRepository = {
@@ -223,7 +255,7 @@ export function createInMemoryPostService(state: {
   }
 
   return {
-    ...createPostService(repository),
+    ...createPostService(repository, logger),
     snapshot() {
       return {
         posts: [...state.posts],

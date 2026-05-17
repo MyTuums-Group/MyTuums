@@ -10,6 +10,10 @@ import { fromNodeHeaders } from "better-auth/node"
 import { auth } from "../auth.js"
 import { isDeletedEmailHeld } from "../services/account-deletion/index.js"
 import { launchReadinessService } from "../services/launch-readiness/launch-readiness.production.js"
+import {
+  emitOperationalEvent,
+  operationalEventLogger,
+} from "../services/operational-events.js"
 import { postgresRateLimiter } from "../services/rate-limit/production.js"
 import type { RateLimiter } from "../services/rate-limit/index.js"
 import { getRequestIp } from "../transport/request-info.js"
@@ -67,7 +71,8 @@ export function registerAuthRoutes(
           return reply.status(429).send(AUTH_RATE_LIMITED_ERROR)
         }
 
-        if (request.method === "POST" && isSignUpRequest(url)) {
+        const isSignUp = request.method === "POST" && isSignUpRequest(url)
+        if (isSignUp) {
           const launchReadiness = await getLaunchReadiness()
           if (!launchReadiness.publicSignupEnabled) {
             return reply.status(403).send({
@@ -102,6 +107,17 @@ export function registerAuthRoutes(
         reply.status(response.status)
         response.headers.forEach((value, key) => reply.header(key, value))
         const body = response.body ? await response.text() : null
+        if (isSignUp && response.ok) {
+          const userId = getSignUpUserId(body)
+          if (userId) {
+            await emitOperationalEvent(operationalEventLogger, {
+              event: "signup_completed",
+              userId,
+              status: "completed",
+              authProvider: "email",
+            })
+          }
+        }
         void reply.send(body)
         return
       } catch (error) {
@@ -125,4 +141,26 @@ function getSignUpEmail(body: unknown): string | null {
 
   const email = (body as { email: unknown }).email
   return typeof email === "string" ? email : null
+}
+
+function getSignUpUserId(body: string | null): string | null {
+  if (!body) return null
+  try {
+    const parsed = JSON.parse(body) as unknown
+    if (typeof parsed !== "object" || parsed === null) return null
+    if ("user" in parsed) {
+      const user = (parsed as { user: unknown }).user
+      if (typeof user === "object" && user !== null && "id" in user) {
+        const id = (user as { id: unknown }).id
+        return typeof id === "string" ? id : null
+      }
+    }
+    if ("id" in parsed) {
+      const id = (parsed as { id: unknown }).id
+      return typeof id === "string" ? id : null
+    }
+  } catch {
+    return null
+  }
+  return null
 }

@@ -56,12 +56,11 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60, // Refresh session every 24 hours (rolling)
   },
 
-  // Production: enough headroom for session checks + bursts (tabs, prefetch, navigations).
-  // Dev/test: disabled so HMR and tooling do not 429.
+  // Auth-sensitive POST routes are guarded by the Postgres-backed limiter in
+  // auth/handler.ts. Keep BetterAuth's provider-local limiter off so production
+  // correctness does not depend on process-local state.
   rateLimit: {
-    enabled: env.NODE_ENV === "production",
-    window: 60,
-    max: 500,
+    enabled: false,
   },
 
   secret: env.BETTER_AUTH_SECRET,

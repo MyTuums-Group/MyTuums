@@ -10,20 +10,65 @@ import { fromNodeHeaders } from "better-auth/node"
 import { auth } from "../auth.js"
 import { isDeletedEmailHeld } from "../services/account-deletion/index.js"
 import { launchReadinessService } from "../services/launch-readiness/launch-readiness.production.js"
+import { postgresRateLimiter } from "../services/rate-limit/production.js"
+import type { RateLimiter } from "../services/rate-limit/index.js"
+import { getRequestIp } from "../transport/request-info.js"
+import { setRetryAfterHeader } from "../transport/rate-limit.js"
+import {
+  AUTH_RATE_LIMITED_ERROR,
+  createAuthRateLimitGuard,
+  type AuthRateLimitPolicyOverrides,
+} from "./rate-limit.js"
+
+type AuthHandler = (request: Request) => Promise<Response>
+
+type AuthRouteOptions = {
+  authHandler?: AuthHandler
+  rateLimiter?: RateLimiter
+  rateLimitPolicies?: AuthRateLimitPolicyOverrides
+  now?: () => Date
+  getLaunchReadiness?: () => Promise<{ publicSignupEnabled: boolean }>
+  isDeletedEmailHeld?: (email: string) => Promise<boolean>
+}
 
 /**
  * Register BetterAuth's catch-all handler under /api/auth/*.
  * Handles GET and POST for all BetterAuth routes (sign-in, sign-up, session, etc.).
  */
-export function registerAuthRoutes(app: FastifyInstance): void {
+export function registerAuthRoutes(
+  app: FastifyInstance,
+  options: AuthRouteOptions = {}
+): void {
+  const authHandler = options.authHandler ?? auth.handler
+  const authRateLimit = createAuthRateLimitGuard({
+    rateLimiter: options.rateLimiter ?? postgresRateLimiter,
+    policies: options.rateLimitPolicies,
+    now: options.now,
+  })
+  const getLaunchReadiness =
+    options.getLaunchReadiness ?? (() => launchReadinessService.getReadiness())
+  const checkDeletedEmailHeld = options.isDeletedEmailHeld ?? isDeletedEmailHeld
+
   app.route({
     method: ["GET", "POST"],
     url: "/api/auth/*",
     async handler(request, reply) {
       try {
         const url = new URL(request.url, `http://${request.headers.host}`)
+        const rateLimit = await authRateLimit.consume({
+          method: request.method,
+          pathname: url.pathname,
+          body: request.body,
+          ipAddress: getRequestIp(request),
+        })
+
+        if (!rateLimit.allowed) {
+          setRetryAfterHeader(reply, rateLimit.retryAfterSeconds)
+          return reply.status(429).send(AUTH_RATE_LIMITED_ERROR)
+        }
+
         if (request.method === "POST" && isSignUpRequest(url)) {
-          const launchReadiness = await launchReadinessService.getReadiness()
+          const launchReadiness = await getLaunchReadiness()
           if (!launchReadiness.publicSignupEnabled) {
             return reply.status(403).send({
               code: "PUBLIC_SIGNUP_DISABLED",
@@ -34,7 +79,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
           }
 
           const email = getSignUpEmail(request.body)
-          if (email && (await isDeletedEmailHeld(email))) {
+          if (email && (await checkDeletedEmailHeld(email))) {
             return reply.status(409).send({
               code: "DELETED_EMAIL_HELD",
               message:
@@ -52,7 +97,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
           ...(request.body ? { body: JSON.stringify(request.body) } : {}),
         })
 
-        const response = await auth.handler(req)
+        const response = await authHandler(req)
 
         reply.status(response.status)
         response.headers.forEach((value, key) => reply.header(key, value))

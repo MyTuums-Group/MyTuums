@@ -12,7 +12,9 @@ import {
   accountDeletionHold,
   favoriteGame,
   game,
+  media,
   profile,
+  profileMediaReplacement,
   user,
 } from "@workspace/db/schema"
 import type { AccountStatus, Username } from "@workspace/types"
@@ -119,6 +121,28 @@ export async function createOnboarding(values: {
           position: favorite.position,
         }))
       )
+    }
+
+    if (values.avatarMediaId) {
+      const now = new Date()
+      await tx
+        .update(media)
+        .set({
+          attachedTargetType: "profile",
+          attachedTargetId: row.id,
+          attachedSlot: "profile_avatar",
+          attachedAt: now,
+          updatedAt: now,
+        } as Partial<typeof media.$inferInsert>)
+        .where(eq(media.id, values.avatarMediaId))
+
+      await tx.insert(profileMediaReplacement).values({
+        profileId: row.id,
+        slot: "profile_avatar",
+        oldMediaId: null,
+        newMediaId: values.avatarMediaId,
+        replacedAt: now,
+      })
     }
 
     return row

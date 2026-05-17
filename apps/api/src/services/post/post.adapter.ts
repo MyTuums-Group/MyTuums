@@ -7,7 +7,7 @@ import type { ActiveGameRecord, PostRecord } from "./post.core.js";
 const PUBLIC_ID_RETRY_LIMIT = 3;
 
 export async function findActiveGameById(
-  gameId: string,
+  gameId: string
 ): Promise<ActiveGameRecord | null> {
   const [row] = await db
     .select({
@@ -41,8 +41,8 @@ export async function createPost(values: {
                 eq(media.ownerId, values.authorId),
                 eq(media.purpose, "post_attachment"),
                 eq(media.status, "ready"),
-                gt(media.expiresAt, new Date()),
-              ),
+                gt(media.expiresAt, new Date())
+              )
             )
             .limit(1);
 
@@ -67,12 +67,17 @@ export async function createPost(values: {
         }
 
         if (values.mediaAttachmentId) {
+          const now = new Date();
           await tx
             .update(media)
             .set({
               status: "attached",
               expiresAt: null,
-              updatedAt: new Date(),
+              attachedTargetType: "post",
+              attachedTargetId: created.id,
+              attachedSlot: "post_attachment",
+              attachedAt: now,
+              updatedAt: now,
             })
             .where(eq(media.id, values.mediaAttachmentId));
         }
@@ -103,7 +108,7 @@ function invalidMediaAttachmentError(): Error & {
 }
 
 export async function findPostByPublicId(
-  publicId: string,
+  publicId: string
 ): Promise<PostRecord | null> {
   const [row] = await db
     .select()
@@ -129,8 +134,8 @@ export async function markPostDeleted(values: {
       and(
         eq(post.publicId, values.publicId),
         eq(post.authorId, values.authorId),
-        isNull(post.deletedAt),
-      ),
+        isNull(post.deletedAt)
+      )
     )
     .returning();
 

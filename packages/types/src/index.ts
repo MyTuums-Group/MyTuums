@@ -51,6 +51,15 @@ export type MediaPurpose =
   | "profile_avatar"
   | "profile_banner"
 
+export type MediaAttachmentTargetType = "post" | "profile"
+
+export type MediaAttachmentSlot = MediaPurpose
+
+export type ProfileMediaSlot = Extract<
+  MediaPurpose,
+  "profile_avatar" | "profile_banner"
+>
+
 export type MediaStatus =
   | "pending"
   | "ready"

@@ -4,7 +4,9 @@ import {
   db,
   favoriteGame,
   game,
+  media,
   profile,
+  profileMediaReplacement,
   userPreference,
 } from "@workspace/db"
 import type {
@@ -123,6 +125,33 @@ export const settingsAdapter: SettingsPersistenceAdapter = {
         .returning()
 
       if (!updated) return undefined
+
+      const replacements = input.profileMediaReplacements ?? []
+      if (replacements.length > 0) {
+        await tx.insert(profileMediaReplacement).values(
+          replacements.map((replacement) => ({
+            profileId: replacement.profileId,
+            slot: replacement.slot,
+            oldMediaId: replacement.oldMediaId,
+            newMediaId: replacement.newMediaId,
+            replacedAt: replacement.replacedAt,
+          }))
+        )
+
+        const oldMediaIds = replacements
+          .map((replacement) => replacement.oldMediaId)
+          .filter((mediaId): mediaId is string => Boolean(mediaId))
+
+        if (oldMediaIds.length > 0) {
+          await tx
+            .update(media)
+            .set({
+              status: "deleted",
+              updatedAt: new Date(),
+            } as Partial<typeof media.$inferInsert>)
+            .where(inArray(media.id, oldMediaIds))
+        }
+      }
 
       if (input.favoriteGameIds !== undefined) {
         await tx

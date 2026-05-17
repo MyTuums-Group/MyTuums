@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { GameSlug } from "@workspace/types"
 import { authorization } from "../authorization/index.js"
 import type { FeedPageInput } from "../services/feed/index.js"
 import { feedVisibilityQueries } from "../services/feed/production.js"
@@ -48,6 +49,7 @@ import {
   mapToggleCommentLikeErrorToTRPC,
 } from "../transport/comment-errors.js"
 import { enforceRateLimit } from "../transport/rate-limit.js"
+import { optionalGameSlugFilterSchema } from "../transport/value-object-schemas.js"
 import { protectedProcedure, publicProcedure, router } from "../trpc.js"
 
 const DEFAULT_PAGE_LIMIT = 20
@@ -65,19 +67,7 @@ const feedPageSchema = z.object({
 })
 
 const discoverFeedSchema = feedPageSchema.extend({
-  game: z.preprocess(
-    (value: unknown) => {
-      if (value === undefined || value === null) return ""
-      if (typeof value === "string") return value
-      return ""
-    },
-    z
-      .string()
-      .trim()
-      .max(100)
-      .regex(/^(|[a-z0-9]+(?:-[a-z0-9]+)*)$/, "Invalid game filter.")
-      .transform((value) => (value === "" ? undefined : value))
-  ),
+  game: optionalGameSlugFilterSchema,
 })
 
 export const postRouter = router({
@@ -121,9 +111,10 @@ export const postRouter = router({
       })
       const pageInput = await toFeedPageInputOrThrow(viewer, input)
 
-      let gameSlug: string | null = input.game ?? null
-      if (gameSlug) {
-        const catalogGame = await findBySlug(gameSlug)
+      const requestedGameSlug: GameSlug | null = input.game ?? null
+      let gameSlug: string | null = requestedGameSlug
+      if (requestedGameSlug) {
+        const catalogGame = await findBySlug(requestedGameSlug)
         if (!catalogGame?.isActive) {
           throw mapDiscoverFeedFilterErrorToTRPC({
             kind: "inactive_game_filter",

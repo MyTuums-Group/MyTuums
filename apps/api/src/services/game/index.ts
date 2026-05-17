@@ -1,10 +1,10 @@
-export { createGameSlug } from "./game.policy.js";
+export { createGameSlug } from "@workspace/types"
 export {
   getBySlug,
   listActive,
   listFavoritesByUserId,
   setFavorite,
-} from "./game.js";
+} from "./game.js"
 export {
   createGameService,
   createInMemoryGameService,
@@ -16,10 +16,10 @@ export {
   type GamePageView,
   type GameService,
   type SetFavoriteGameInput,
-} from "./game.core.js";
+} from "./game.core.js"
 export {
   applyGameSeed,
   type GameSeedAdapter,
   type GameSeedResult,
   type SeedGame,
-} from "./game.seed.js";
+} from "./game.seed.js"

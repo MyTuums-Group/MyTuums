@@ -6,7 +6,7 @@ import {
   game,
   profile,
 } from "@workspace/db"
-import { MAX_FAVORITE_GAMES } from "@workspace/types"
+import { MAX_FAVORITE_GAMES, type GameSlug } from "@workspace/types"
 import type {
   FavoriteGameError,
   FavoriteGameView,
@@ -16,7 +16,7 @@ import type {
 import type { SeedGame } from "./game.seed.js"
 
 export async function findBySlug(
-  slug: string
+  slug: GameSlug
 ): Promise<GameCatalogEntry | undefined> {
   const [row] = await db.select().from(game).where(eq(game.slug, slug)).limit(1)
   return row ? toGameCatalogEntry(row) : undefined

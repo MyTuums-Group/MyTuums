@@ -1,5 +1,8 @@
-import type { CommentBody, Result } from "@workspace/types"
-import { createCommentBody } from "./comment.policy.js"
+import {
+  createCommentBody,
+  type CommentBody,
+  type Result,
+} from "@workspace/types"
 import type { PostRecord } from "../post/post.core.js"
 
 export type CommentRecord = {

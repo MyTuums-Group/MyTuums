@@ -1,6 +1,5 @@
-import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@workspace/types"
+import { USERNAME_MAX_LENGTH, createUsername } from "@workspace/types"
 
-const USERNAME_PATTERN = /^[a-z][a-z0-9_]*$/
 const UNSUPPORTED_USERNAME_CHARACTER_PATTERN = /[^a-z0-9_]/g
 const LEADING_NON_LETTER_PATTERN = /^[^a-z]+/
 
@@ -19,31 +18,8 @@ export function normalizeUsernameInput(value: string) {
 export function validateUsernameCandidate(
   username: string
 ): UsernameValidation {
-  if (username.length === 0) {
-    return { kind: "invalid", message: "Username is required." }
-  }
-
-  if (username.length < USERNAME_MIN_LENGTH) {
-    return {
-      kind: "invalid",
-      message: `Username must be at least ${USERNAME_MIN_LENGTH} characters.`,
-    }
-  }
-
-  if (username.length > USERNAME_MAX_LENGTH) {
-    return {
-      kind: "invalid",
-      message: `Username must be at most ${USERNAME_MAX_LENGTH} characters.`,
-    }
-  }
-
-  if (!USERNAME_PATTERN.test(username)) {
-    return {
-      kind: "invalid",
-      message:
-        "Username must start with a letter and contain only lowercase letters, numbers, and underscores.",
-    }
-  }
-
-  return { kind: "valid" }
+  const result = createUsername(username)
+  return result.ok
+    ? { kind: "valid" }
+    : { kind: "invalid", message: result.error.message }
 }

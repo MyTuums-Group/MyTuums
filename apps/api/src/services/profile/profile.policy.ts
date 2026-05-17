@@ -9,74 +9,21 @@ import {
   type Result,
   type Username,
   ValidationError,
+  createUsername,
   success,
   failure,
-  USERNAME_MIN_LENGTH,
-  USERNAME_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
-} from "@workspace/types";
-import { isReservedUsername } from "./reserved-usernames.js";
-
-const USERNAME_REGEX = /^[a-z][a-z0-9_]*$/;
-
-// ── Username creation (moved from @workspace/types) ──────────────────
-// Behavioral logic does not belong in a types package (CONTEXT.md).
-// DB unique constraint is the authoritative race guard for taken names.
-
-/** Validates and creates a Username. Case-insensitive input is lowercased. */
-export function createUsername(input: string): Result<Username> {
-  const trimmed = input.trim().toLowerCase();
-
-  if (trimmed.length === 0) {
-    return failure(
-      new ValidationError("Username is required.", "username"),
-    );
-  }
-
-  if (trimmed.length < USERNAME_MIN_LENGTH) {
-    return failure(
-      new ValidationError(
-        `Username must be at least ${USERNAME_MIN_LENGTH} characters.`,
-        "username",
-      ),
-    );
-  }
-
-  if (trimmed.length > USERNAME_MAX_LENGTH) {
-    return failure(
-      new ValidationError(
-        `Username must be at most ${USERNAME_MAX_LENGTH} characters.`,
-        "username",
-      ),
-    );
-  }
-
-  if (!USERNAME_REGEX.test(trimmed)) {
-    return failure(
-      new ValidationError(
-        "Username must start with a letter and contain only lowercase letters, numbers, and underscores.",
-        "username",
-      ),
-    );
-  }
-
-  if (isReservedUsername(trimmed)) {
-    return failure(
-      new ValidationError("This username is reserved and cannot be used.", "username"),
-    );
-  }
-
-  return success(trimmed as Username);
-}
+  MAX_FAVORITE_GAMES,
+} from "@workspace/types"
 
 // ── Onboarding input validation ──────────────────────────────────────
 
 export type ValidatedOnboardingInput = {
-  username: Username;
-  displayName: string | null;
-  bio: string | null;
-};
+  username: Username
+  displayName: string | null
+  bio: string | null
+}
 
 /**
  * Validates and normalizes onboarding input.
@@ -87,53 +34,56 @@ export type ValidatedOnboardingInput = {
  * and validates their lengths post-normalization.
  */
 export function validateOnboardingInput(input: {
-  username: string;
-  displayName?: string | null;
-  bio?: string | null;
+  username: string
+  displayName?: string | null
+  bio?: string | null
 }): Result<ValidatedOnboardingInput, ValidationError> {
-  const usernameResult = createUsername(input.username);
+  const usernameResult = createUsername(input.username)
   if (!usernameResult.ok) {
-    return failure(usernameResult.error);
+    return failure(usernameResult.error)
   }
 
-  const displayName = input.displayName?.trim() || null;
-  const bio = input.bio?.trim() || null;
+  const displayName = input.displayName?.trim() || null
+  const bio = input.bio?.trim() || null
 
   if (displayName !== null && displayName.length > DISPLAY_NAME_MAX_LENGTH) {
     return failure(
       new ValidationError(
         `Display name must be at most ${DISPLAY_NAME_MAX_LENGTH} characters.`,
-        "displayName",
-      ),
-    );
+        "displayName"
+      )
+    )
   }
 
   if (bio !== null && bio.length > BIO_MAX_LENGTH) {
     return failure(
       new ValidationError(
         `Bio must be at most ${BIO_MAX_LENGTH} characters.`,
-        "bio",
-      ),
-    );
+        "bio"
+      )
+    )
   }
 
-  return success({ username: usernameResult.value, displayName, bio });
+  return success({ username: usernameResult.value, displayName, bio })
 }
 
 export function validateFavoriteGameIds(
-  gameIds: string[],
+  gameIds: string[]
 ): Result<string[], ValidationError> {
-  if (gameIds.length > 5) {
+  if (gameIds.length > MAX_FAVORITE_GAMES) {
     return failure(
-      new ValidationError("Choose at most 5 favorite games.", "favoriteGameIds"),
-    );
+      new ValidationError(
+        `Choose at most ${MAX_FAVORITE_GAMES} favorite games.`,
+        "favoriteGameIds"
+      )
+    )
   }
 
   if (new Set(gameIds).size !== gameIds.length) {
     return failure(
-      new ValidationError("Favorite games must be unique.", "favoriteGameIds"),
-    );
+      new ValidationError("Favorite games must be unique.", "favoriteGameIds")
+    )
   }
 
-  return success(gameIds);
+  return success(gameIds)
 }

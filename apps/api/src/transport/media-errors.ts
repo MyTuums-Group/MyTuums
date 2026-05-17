@@ -29,6 +29,12 @@ export function mapMediaServiceErrorToTransport(
     case "invalid_mime_type":
     case "file_too_large":
     case "invalid_purpose":
+      return {
+        trpcCode: "BAD_REQUEST",
+        httpStatus: 400,
+        publicCode: error.kind,
+        message: error.message,
+      }
     case "blob_size_mismatch":
     case "blob_type_mismatch":
       return {

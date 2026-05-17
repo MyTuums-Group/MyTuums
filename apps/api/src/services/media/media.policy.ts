@@ -108,6 +108,14 @@ function isAllowedPurpose(purpose: string): boolean {
   return (MEDIA_PURPOSES as readonly string[]).indexOf(purpose) >= 0;
 }
 
+function isProfileMediaPurpose(purpose: MediaPurpose): boolean {
+  return purpose === "profile_avatar" || purpose === "profile_banner";
+}
+
+function profileMediaLabel(purpose: MediaPurpose): string {
+  return purpose === "profile_avatar" ? "Profile avatar" : "Profile banner";
+}
+
 export function mediaKind(mimeType: string): MediaKind | null {
   if ((ALLOWED_IMAGE_MIME_TYPES as readonly string[]).indexOf(mimeType) >= 0) {
     return "image";
@@ -145,6 +153,28 @@ export function validateUploadIntent(input: {
   const mimeType = input.mimeType as AllowedMimeType;
 
   const kind = mediaKind(input.mimeType)!;
+
+  if (!isAllowedPurpose(input.purpose)) {
+    return {
+      ok: false,
+      error: {
+        kind: "invalid_purpose",
+        message: `Purpose "${input.purpose}" is not valid. Allowed: ${MEDIA_PURPOSES.join(", ")}`,
+      },
+    };
+  }
+  const purpose = input.purpose as MediaPurpose;
+
+  if (isProfileMediaPurpose(purpose) && kind !== "image") {
+    return {
+      ok: false,
+      error: {
+        kind: "invalid_mime_type",
+        message: `${profileMediaLabel(purpose)} uploads must be images. Allowed: ${ALLOWED_IMAGE_MIME_TYPES.join(", ")}`,
+      },
+    };
+  }
+
   const max = maxBytesForKind(kind);
   if (input.byteSize <= 0) {
     return {
@@ -165,17 +195,6 @@ export function validateUploadIntent(input: {
     };
   }
   const byteSize = input.byteSize;
-
-  if (!isAllowedPurpose(input.purpose)) {
-    return {
-      ok: false,
-      error: {
-        kind: "invalid_purpose",
-        message: `Purpose "${input.purpose}" is not valid. Allowed: ${MEDIA_PURPOSES.join(", ")}`,
-      },
-    };
-  }
-  const purpose = input.purpose as MediaPurpose;
 
   return success({ mimeType, byteSize, purpose });
 }

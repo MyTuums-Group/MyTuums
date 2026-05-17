@@ -226,14 +226,14 @@ describe("module transport mappings", () => {
     })
   })
 
-  it("keeps media service messages as stable machine-readable kinds", () => {
+  it("preserves media upload intent messages for clients", () => {
     const trpcError = mapMediaServiceErrorToTRPC({
       kind: "invalid_mime_type",
-      message: "MIME type is not allowed.",
+      message: "Profile avatar uploads must be images.",
     })
 
     expect(trpcError.code).toBe("BAD_REQUEST")
-    expect(trpcError.message).toBe("invalid_mime_type")
+    expect(trpcError.message).toBe("Profile avatar uploads must be images.")
     expect(mapMediaServiceErrorToRest({ kind: "media_expired" })).toEqual({
       statusCode: 409,
       body: {

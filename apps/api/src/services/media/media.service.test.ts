@@ -99,6 +99,71 @@ describe("Media service — createUploadIntent", () => {
     expect(mediaAdapter.insert).not.toHaveBeenCalled();
   });
 
+  it("rejects profile avatar video before creating a pending media row", async () => {
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "video/mp4",
+        byteSize: 1024,
+        purpose: "profile_avatar",
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("invalid_mime_type");
+      expect(result.error.message).toContain(
+        "Profile avatar uploads must be images",
+      );
+    }
+    expect(mediaAdapter.insert).not.toHaveBeenCalled();
+  });
+
+  it("rejects profile banner video before creating a pending media row", async () => {
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "video/webm",
+        byteSize: 1024,
+        purpose: "profile_banner",
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("invalid_mime_type");
+      expect(result.error.message).toContain(
+        "Profile banner uploads must be images",
+      );
+    }
+    expect(mediaAdapter.insert).not.toHaveBeenCalled();
+  });
+
+  it("still creates post attachment video upload intents", async () => {
+    vi.mocked(mediaAdapter.insert).mockResolvedValue(
+      mediaRow({
+        id: "video-media-id",
+        status: "pending",
+        mimeType: "video/mp4",
+      }),
+    );
+
+    const result = await mediaService(storage).createUploadIntent(
+      MOCK_USER_ID,
+      {
+        mimeType: "video/mp4",
+        byteSize: 1024,
+        purpose: "post_attachment",
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(mediaAdapter.insert).toHaveBeenCalledOnce();
+    const insertArg = vi.mocked(mediaAdapter.insert).mock.calls[0]?.[0];
+    expect(insertArg?.mimeType).toBe("video/mp4");
+    expect(insertArg?.purpose).toBe("post_attachment");
+  });
+
   it("rejects oversized image", async () => {
     const result = await mediaService(storage).createUploadIntent(MOCK_USER_ID, {
       mimeType: "image/jpeg",

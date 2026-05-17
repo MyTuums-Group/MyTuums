@@ -50,6 +50,38 @@ describe("Media policy — upload intent validation", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("rejects video upload intents for profile avatars", () => {
+    const result = validateUploadIntent({
+      mimeType: "video/mp4",
+      byteSize: 1024,
+      purpose: "profile_avatar",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("invalid_mime_type");
+      expect(result.error.message).toContain(
+        "Profile avatar uploads must be images",
+      );
+    }
+  });
+
+  it("rejects video upload intents for profile banners", () => {
+    const result = validateUploadIntent({
+      mimeType: "video/webm",
+      byteSize: 1024,
+      purpose: "profile_banner",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("invalid_mime_type");
+      expect(result.error.message).toContain(
+        "Profile banner uploads must be images",
+      );
+    }
+  });
+
   it("rejects an invalid MIME type", () => {
     const result = validateUploadIntent({
       mimeType: "application/pdf",

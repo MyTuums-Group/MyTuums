@@ -4,6 +4,11 @@ import {
   type Result,
 } from "@workspace/types"
 import type { PostRecord } from "../post/post.core.js"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 export type CommentRecord = {
   id: string
@@ -108,7 +113,8 @@ export type CommentService = {
 }
 
 export function createCommentService(
-  repository: CommentRepository
+  repository: CommentRepository,
+  logger: OperationalEventLogger = noopOperationalEventLogger
 ): CommentService {
   return {
     async createComment(input) {
@@ -137,6 +143,14 @@ export function createCommentService(
         text: validatedBody.value,
       })
 
+      await emitOperationalEvent(logger, {
+        event: "comment_created",
+        commentId: created.id,
+        postId: created.postId,
+        authorId: created.authorId,
+        status: "created",
+      })
+
       return { ok: true, value: created }
     },
 
@@ -163,6 +177,15 @@ export function createCommentService(
       if (!deleted) {
         return { ok: false, error: { kind: "already_deleted" } }
       }
+
+      await emitOperationalEvent(logger, {
+        event: "comment_deleted",
+        commentId: deleted.id,
+        postId: deleted.postId,
+        authorId: deleted.authorId,
+        status: "deleted",
+        deletedAt: deleted.deletedAt?.toISOString() ?? new Date().toISOString(),
+      })
 
       return {
         ok: true,
@@ -194,13 +217,16 @@ export function createCommentService(
   }
 }
 
-export function createInMemoryCommentService(state: {
-  posts: PostRecord[]
-  comments: CommentRecord[]
-  commentLikes: CommentLikeRecord[]
-  blocks?: CommentBlockRow[]
-  notifications?: CommentNotificationRow[]
-}): CommentService & {
+export function createInMemoryCommentService(
+  state: {
+    posts: PostRecord[]
+    comments: CommentRecord[]
+    commentLikes: CommentLikeRecord[]
+    blocks?: CommentBlockRow[]
+    notifications?: CommentNotificationRow[]
+  },
+  logger: OperationalEventLogger = noopOperationalEventLogger
+): CommentService & {
   snapshot(): {
     posts: PostRecord[]
     comments: CommentRecord[]
@@ -374,7 +400,7 @@ export function createInMemoryCommentService(state: {
   }
 
   return {
-    ...createCommentService(repository),
+    ...createCommentService(repository, logger),
     snapshot() {
       return {
         posts: [...state.posts],

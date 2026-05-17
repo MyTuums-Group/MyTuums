@@ -1,7 +1,11 @@
-import { createCommentService, type CommentCreateInput } from "./comment.core.js";
-import * as adapter from "./comment.adapter.js";
+import {
+  createCommentService,
+  type CommentCreateInput,
+} from "./comment.core.js"
+import * as adapter from "./comment.adapter.js"
+import { operationalEventLogger } from "../operational-events.js"
 
-const service = createCommentService(adapter);
+const service = createCommentService(adapter, operationalEventLogger)
 
 export type {
   CommentRecord,
@@ -9,16 +13,22 @@ export type {
   CreateCommentError,
   DeleteOwnCommentError,
   ToggleCommentLikeError,
-} from "./comment.core.js";
+} from "./comment.core.js"
 
 export function createComment(input: CommentCreateInput) {
-  return service.createComment(input);
+  return service.createComment(input)
 }
 
-export function deleteOwnComment(input: { commentId: string; authorId: string }) {
-  return service.deleteOwnComment(input);
+export function deleteOwnComment(input: {
+  commentId: string
+  authorId: string
+}) {
+  return service.deleteOwnComment(input)
 }
 
-export function toggleCommentLike(input: { commentId: string; userId: string }) {
-  return service.toggleCommentLike(input);
+export function toggleCommentLike(input: {
+  commentId: string
+  userId: string
+}) {
+  return service.toggleCommentLike(input)
 }

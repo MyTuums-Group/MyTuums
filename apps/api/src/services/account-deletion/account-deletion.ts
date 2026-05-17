@@ -3,9 +3,11 @@ import {
   type AccountDeletionService,
 } from "./account-deletion.core.js"
 import { accountDeletionAdapter } from "./account-deletion.adapter.js"
+import { operationalEventLogger } from "../operational-events.js"
 
 const service: AccountDeletionService = createAccountDeletionService(
-  accountDeletionAdapter
+  accountDeletionAdapter,
+  operationalEventLogger
 )
 
 export type {

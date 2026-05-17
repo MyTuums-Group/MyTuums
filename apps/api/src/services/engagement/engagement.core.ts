@@ -1,4 +1,9 @@
 import type { NotificationType, Result } from "@workspace/types"
+import {
+  emitOperationalEvent,
+  noopOperationalEventLogger,
+  type OperationalEventLogger,
+} from "../operational-events.js"
 
 export type EngagementPostRow = {
   id: string
@@ -146,7 +151,8 @@ export type InMemoryEngagementState = {
 }
 
 export function createInMemoryEngagementService(
-  state: InMemoryEngagementState
+  state: InMemoryEngagementState,
+  logger: OperationalEventLogger = noopOperationalEventLogger
 ): EngagementService & { snapshot(): InMemoryEngagementState } {
   return {
     async togglePostLike(input) {
@@ -302,6 +308,13 @@ export function createInMemoryEngagementService(
         actorId: input.followerId,
         data: { followerId: input.followerId },
         isRead: false,
+      })
+
+      await emitOperationalEvent(logger, {
+        event: "follow_created",
+        followerId: input.followerId,
+        followedId: input.followedId,
+        status: "following",
       })
 
       return {

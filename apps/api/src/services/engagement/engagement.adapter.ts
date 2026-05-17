@@ -11,6 +11,10 @@ import {
   profile,
 } from "@workspace/db"
 import { findBlockedPairIds, hasBlockedPair } from "../block/block.adapter.js"
+import {
+  emitOperationalEvent,
+  operationalEventLogger,
+} from "../operational-events.js"
 import type {
   BlockUserError,
   BlockUserOutput,
@@ -331,6 +335,13 @@ export async function toggleFollow(input: {
         data: { followerId: input.followerId },
       })
       .onConflictDoNothing()
+
+    await emitOperationalEvent(operationalEventLogger, {
+      event: "follow_created",
+      followerId: input.followerId,
+      followedId: input.followedId,
+      status: "following",
+    })
 
     return {
       ok: true,

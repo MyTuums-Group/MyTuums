@@ -59,7 +59,7 @@ cp .env.example .env   # edit with your local values
 pnpm dev               # runs web (5173) + api (4000) via Turborepo
 ```
 
-For local infrastructure, start PostgreSQL, Mailpit, and Azurite:
+For local infrastructure, start PostgreSQL, Mailpit, and Azurite: 
 
 ```bash
 pnpm infra

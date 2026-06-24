@@ -2,6 +2,10 @@
 
 Read this document when changing signup, onboarding, locale behavior, legal pages, support/contact flows, moderation/legal handling, account deletion, public previews, retention, or vendor/compliance disclosures.
 
+## Status
+
+Legal/i18n is target v1 behavior, not fully implemented behavior yet. Remaining implementation, review, and launch-readiness tasks are tracked through GitHub Issues.
+
 ## Launch Posture
 
 - MyTuums v1 is France/EU-first for legal policy and launch-readiness decisions.
@@ -40,4 +44,5 @@ Read this document when changing signup, onboarding, locale behavior, legal page
 ## Companion References
 
 - `docs/prd/legal-i18n-prd.md`
+- `docs/prd/v1-scope.md`
 - `docs/adr/0001-release-deleted-usernames-after-30-days.md`

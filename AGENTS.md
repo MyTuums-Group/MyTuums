@@ -22,7 +22,7 @@ Use **kind** (`bug`, `enhancement`, `feature`) and **`priority:P0` / `priority:P
 
 ### Domain docs
 
-This repo uses a multi-context domain-doc layout: root `CONTEXT-MAP.md`, root `CONTEXT.md`, focused `docs/context/**/CONTEXT.md` docs, root `DESIGN.md`, and root `docs/adr/`. See `docs/agents/domain.md`.
+This repo uses a multi-context domain-doc layout. Start with root `CONTEXT-MAP.md`; the split v1 scope starts at `docs/prd/v1-scope.md`, and root `CONTEXT.md` is only a legacy redirect. See `docs/agents/domain.md`.
 
 ### Frontend theme
 

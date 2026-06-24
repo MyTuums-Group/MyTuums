@@ -38,7 +38,8 @@ Read this document before changing monorepo boundaries, package responsibilities
 
 ## Companion References
 
+- `CONTEXT-MAP.md`
+- `docs/prd/v1-scope.md`
 - `docs/team-conventions.md`
 - `docs/agents/db-import-seam.md`
-- `docs/prd/v1-prd.md`
 - `DESIGN.md`

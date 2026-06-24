@@ -37,7 +37,7 @@ MyTuums/
     └── agents/       Agent conventions
 ```
 
-See `CONTEXT.md` for the full domain vocabulary, invariants, and architecture rules. See `docs/prd/v1-prd.md` for the product roadmap and build order.
+Start with `CONTEXT-MAP.md` for the documentation reading order. `docs/prd/v1-scope.md` is the entry point for the split authoritative v1 scope; `docs/prd/v1-prd.md` keeps the product intent and release posture.
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ See `CONTEXT.md` for the full domain vocabulary, invariants, and architecture ru
 corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # Clone and install
-git clone https://github.com/ElCabrii/MyTuums.git
+git clone https://github.com/MyTuums-Group/MyTuums.git
 cd MyTuums
 pnpm install
 
@@ -89,9 +89,10 @@ pnpm smoke
 
 ## Documentation
 
-- **Domain & Architecture**: [`CONTEXT.md`](CONTEXT.md)
-- **Product Requirements**: [`docs/prd/v1-prd.md`](docs/prd/v1-prd.md)
-- **Scope Definition**: [`docs/prd/v1-scope.md`](docs/prd/v1-scope.md)
+- **Documentation Map**: [`CONTEXT-MAP.md`](CONTEXT-MAP.md)
+- **V1 Scope Entry Point**: [`docs/prd/v1-scope.md`](docs/prd/v1-scope.md)
+- **Product Requirements Summary**: [`docs/prd/v1-prd.md`](docs/prd/v1-prd.md)
+- **Legacy Context Redirect**: [`CONTEXT.md`](CONTEXT.md)
 - **Architecture Decisions**: [`docs/adr/`](docs/adr/)
 - **Team Conventions**: [`docs/team-conventions.md`](docs/team-conventions.md)
 

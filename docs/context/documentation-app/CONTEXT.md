@@ -21,7 +21,7 @@ MyTuums has a separate read-only developer documentation app at `docs.mytuums.co
 - Interactive diagrams use separate repo-versioned tldraw snapshots.
 - Navigation is explicit manifest-driven navigation, not filesystem-driven navigation.
 - URLs use stable semantic slugs owned by the docs manifest.
-- `docs/plans/**` is excluded from the docs app.
+- Transient implementation plans are excluded from the docs app.
 - Presentation belongs to the docs app; individual docs should not hand-author HTML/CSS.
 - Rendering supports GitHub-flavored Markdown, callouts, fenced code blocks, heading anchors, and generated tables of contents.
 - Raw HTML and Mermaid are not supported.

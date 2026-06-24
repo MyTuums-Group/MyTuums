@@ -1,5 +1,9 @@
 # MyTuums Legal Readiness And Internationalization PRD
 
+## Status
+
+Legal/i18n work remains open. Implementation, review, and launch-readiness follow-up is tracked through GitHub Issues; this PRD defines the target behavior and launch gates.
+
 ## Problem Statement
 
 MyTuums needs launch-ready legal, privacy, safety, retention, and internationalization foundations before public signup can be enabled. The product is moving from an English-only MVP assumption to a France-based, EU/EEA/UK/Switzerland signup launch with worldwide logged-out read access, public user-generated content, moderation, and localized legal pages.
@@ -207,5 +211,5 @@ Build a legal readiness and i18n layer for MyTuums v1:
 - French legal pages are authoritative if the operating company is France-based; translations should clearly describe their status.
 - This PRD updates the earlier English-only assumption: v1 now includes i18n for the selected launch locales.
 - ADR 0001 now governs 7-day deleted username and email release.
-- Media upload legal readiness is outside this PRD because media upload support is not in v1 scope.
+- Media upload legal readiness remains part of the v1 launch gate because public media upload is in v1 scope.
 - This PRD is an implementation/product readiness document, not legal advice.

@@ -1,29 +1,38 @@
 # MyTuums Context Map
 
-This repo now uses a multi-context documentation layout. Start here, then read only the focused docs that match the area you are changing.
+This repo uses a multi-context documentation layout. Start here, then read only the focused docs that match the area you are changing.
+
+## Source Of Truth
+
+- `docs/prd/v1-scope.md` is the entry point for the split authoritative v1 product and platform scope. The files under `docs/prd/v1-scope/` own the complete feature boundary, domain vocabulary, invariants, route expectations, testing priorities, and launch gates.
+- `docs/prd/v1-prd.md` is the compact PRD summary. It explains product intent, release posture, and how to consume the scope without repeating it.
+- `CONTEXT.md` is a legacy redirect to this map and the v1 scope.
+
+When documents disagree, prefer the v1 scope set unless a later ADR explicitly overrides it.
 
 ## Read Order
 
-1. Read `CONTEXT.md` for the cross-cutting product model, shared vocabulary, and platform overview.
-2. Read the focused context docs that match your work:
+1. Read this `CONTEXT-MAP.md`.
+2. Read `docs/prd/v1-scope.md`, then the linked focused scope files relevant to the change.
+3. Read the focused context docs that match your work:
+   - `docs/context/coding-practices/CONTEXT.md` for package boundaries, seam rules, CI expectations, and implementation guardrails.
    - `docs/context/documentation-app/CONTEXT.md` for the developer documentation web app and docs-content pipeline.
    - `docs/context/legal/CONTEXT.md` for legal, launch-readiness, internationalization, privacy, and retention rules.
-   - `docs/context/coding-practices/CONTEXT.md` for important coding practices, monorepo boundaries, and implementation guardrails.
    - `DESIGN.md` for the canonical visual system and UI theme rules.
-3. Read relevant ADRs under `docs/adr/` before changing behavior that may conflict with prior decisions.
+4. Read relevant ADRs under `docs/adr/` before changing behavior that may conflict with prior decisions.
+5. Read deployment docs under `docs/deployment/` when changing Azure, CI/CD, docs deployment, infrastructure, runtime secrets, or release flow.
 
 ## Current Contexts
 
-- `CONTEXT.md`: Cross-cutting product and platform overview for MyTuums v1.
-- `docs/context/documentation-app/CONTEXT.md`: The separate read-only docs app, manifest/content pipeline, auth model, and delivery constraints.
-- `docs/context/legal/CONTEXT.md`: France/EU-first launch posture, legal pages, i18n, privacy, retention, and launch-gating rules.
+- `docs/prd/v1-scope.md` and `docs/prd/v1-scope/`: Complete v1 scope and the primary source for product/domain rules.
+- `docs/prd/v1-prd.md`: Product intent, release posture, and PRD summary that points back to the scope.
 - `docs/context/coding-practices/CONTEXT.md`: Package boundaries, seam discipline, service/module rules, CI expectations, and design-system guardrails.
+- `docs/context/documentation-app/CONTEXT.md`: The separate read-only docs app, manifest/content pipeline, auth model, and delivery constraints.
+- `docs/context/legal/CONTEXT.md`: France/EU-first launch posture, legal pages, i18n, privacy, retention, and launch-gating rules. Legal implementation remains tracked through GitHub Issues.
 - `DESIGN.md`: The shipped ShadCN-based visual system that the product and docs app both follow.
+- `docs/deployment/azure.md`: Azure resources, environments, release flow, and monitoring notes.
+- `docs/deployment/developer-docs.md`: Deployment boundary for the protected developer docs app.
 
-## Planned Next Splits
+## Historical Notes
 
-These contexts are expected next, but are not separated yet:
-
-- CI/CD
-- Infrastructure
-- Cybersecurity
+Implementation plans are not canonical documentation. Completed or obsolete plans should live in issue/PR history rather than `docs/`.

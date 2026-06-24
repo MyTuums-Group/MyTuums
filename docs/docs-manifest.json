@@ -2,7 +2,7 @@
   "version": 1,
   "home": {
     "sectionId": "orientation",
-    "pageSlug": "orientation/product-context"
+    "pageSlug": "orientation/context-map"
   },
   "sections": [
     {
@@ -19,10 +19,10 @@
         },
         {
           "slug": "orientation/product-context",
-          "title": "MyTuums Context",
+          "title": "Legacy Context Redirect",
           "sourcePath": "CONTEXT.md",
           "kind": "context",
-          "summary": "Canonical product, architecture, and testing context."
+          "summary": "Compatibility redirect to the context map and v1 scope."
         },
         {
           "slug": "orientation/coding-practices",
@@ -57,7 +57,91 @@
           "title": "MyTuums v1 Scope",
           "sourcePath": "docs/prd/v1-scope.md",
           "kind": "prd",
-          "summary": "Detailed scope, rules, routes, and deployment boundaries for v1."
+          "summary": "Stable entry point for the split authoritative v1 scope."
+        },
+        {
+          "slug": "requirements/v1-scope-product-context",
+          "title": "V1 Product Context",
+          "sourcePath": "docs/prd/v1-scope/product.md",
+          "kind": "prd",
+          "summary": "Product goal, target user, and v1 positioning."
+        },
+        {
+          "slug": "requirements/v1-scope-auth-and-identity",
+          "title": "V1 Auth And Identity Scope",
+          "sourcePath": "docs/prd/v1-scope/auth-and-identity.md",
+          "kind": "prd",
+          "summary": "Authentication, onboarding, usernames, and profiles."
+        },
+        {
+          "slug": "requirements/v1-scope-posting-and-media",
+          "title": "V1 Posting And Media Scope",
+          "sourcePath": "docs/prd/v1-scope/posting-and-media.md",
+          "kind": "prd",
+          "summary": "Post composition, media upload, storage, visibility, display, and retention."
+        },
+        {
+          "slug": "requirements/v1-scope-feeds-games-search-public-previews",
+          "title": "V1 Feeds, Games, Search, And Public Previews",
+          "sourcePath": "docs/prd/v1-scope/feeds-games-and-search.md",
+          "kind": "prd",
+          "summary": "Feed surfaces, seeded games, search, discover, and logged-out access."
+        },
+        {
+          "slug": "requirements/v1-scope-social-and-notifications",
+          "title": "V1 Social Interactions And Notifications",
+          "sourcePath": "docs/prd/v1-scope/social-and-notifications.md",
+          "kind": "prd",
+          "summary": "Comments, likes, follows, blocks, and notifications."
+        },
+        {
+          "slug": "requirements/v1-scope-account-settings-and-deletion",
+          "title": "V1 Account Settings And Deletion Scope",
+          "sourcePath": "docs/prd/v1-scope/account-settings-and-deletion.md",
+          "kind": "prd",
+          "summary": "Settings surfaces and irreversible account deletion behavior."
+        },
+        {
+          "slug": "requirements/v1-scope-moderation-support-accessibility-operations",
+          "title": "V1 Moderation, Support, Accessibility, And Operations Scope",
+          "sourcePath": "docs/prd/v1-scope/moderation-support-and-operations.md",
+          "kind": "prd",
+          "summary": "Reporting, moderation, static/support pages, accessibility, analytics, and monitoring posture."
+        },
+        {
+          "slug": "requirements/v1-scope-architecture",
+          "title": "V1 Architecture Scope",
+          "sourcePath": "docs/prd/v1-scope/architecture.md",
+          "kind": "prd",
+          "summary": "Monorepo, frontend, backend, rate limiting, and deployment rules."
+        },
+        {
+          "slug": "requirements/v1-scope-core-data-entities",
+          "title": "V1 Core Data Entities",
+          "sourcePath": "docs/prd/v1-scope/data-entities.md",
+          "kind": "prd",
+          "summary": "Expected v1 entities and modeling boundaries."
+        },
+        {
+          "slug": "requirements/v1-scope-routes",
+          "title": "V1 Routes",
+          "sourcePath": "docs/prd/v1-scope/routes.md",
+          "kind": "prd",
+          "summary": "Public, app, admin, static, and deferred routes."
+        },
+        {
+          "slug": "requirements/v1-scope-testing",
+          "title": "V1 Testing Scope",
+          "sourcePath": "docs/prd/v1-scope/testing.md",
+          "kind": "prd",
+          "summary": "Backend, frontend, CI, smoke, and release-gate testing expectations."
+        },
+        {
+          "slug": "requirements/v1-scope-deferred-major-features",
+          "title": "V1 Deferred Major Features",
+          "sourcePath": "docs/prd/v1-scope/deferred.md",
+          "kind": "prd",
+          "summary": "Feature areas explicitly out of scope for v1."
         },
         {
           "slug": "requirements/legal-readiness-and-internationalization",
@@ -177,6 +261,13 @@
           "sourcePath": "docs/deployment/developer-docs.md",
           "kind": "deployment-doc",
           "summary": "Azure Static Web Apps and API boundary notes for the protected docs shell."
+        },
+        {
+          "slug": "operations/azure-deployment",
+          "title": "Azure Deployment",
+          "sourcePath": "docs/deployment/azure.md",
+          "kind": "deployment-doc",
+          "summary": "Azure resources, environments, release flow, and monitoring notes."
         }
       ]
     }

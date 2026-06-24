@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:full": "tsx scripts/dev-full.ts",
     "lint": "pnpm arch:check && turbo lint",
     "arch:check": "node scripts/check-db-import-seam.mjs",
     "format": "turbo format",
@@ -19,6 +20,8 @@
     "infra:reset": "docker compose down -v",
     "db:migrate": "pnpm --filter @workspace/db db:migrate",
     "db:push": "pnpm --filter @workspace/db db:push",
+    "db:studio": "pnpm --filter @workspace/db db:studio",
+    "studio": "pnpm --filter @workspace/db db:studio",
     "seed:games": "pnpm --filter @workspace/api seed:games",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,12 +29,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/node": "^25.1.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "react-doctor": "^0.1.2",
     "turbo": "^2.8.17",
+    "tsx": "^4.19.4",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.54.0",
     "vitest": "^3.2.4"

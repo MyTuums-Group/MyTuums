@@ -62,7 +62,9 @@ pnpm dev               # runs web (5173) + api (4000) via Turborepo
 For local infrastructure, start PostgreSQL, Mailpit, and Azurite: 
 
 ```bash
-pnpm infra
+pnpm infra # or pnpm infra:reset to reset the infra
+pnpm db:migrate # optionally run migrations if not applied already
+pnpm db:seed # to seed the game catalog for discovery and posts
 ```
 
 To run the critical-flow Playwright smoke locally against that infrastructure:

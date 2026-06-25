@@ -188,6 +188,97 @@
       ]
     },
     {
+      "id": "rncp",
+      "title": "RNCP Proof Portfolio",
+      "description": "Certification evidence mapped to RNCP 36463 competency blocks.",
+      "pages": [
+        {
+          "slug": "rncp/proof-portfolio",
+          "title": "RNCP Proof Portfolio",
+          "sourcePath": "docs/rncp/README.md",
+          "kind": "codebase-doc",
+          "summary": "Entry point for the RNCP evidence portfolio."
+        },
+        {
+          "slug": "rncp/evidence-matrix",
+          "title": "RNCP Evidence Matrix",
+          "sourcePath": "docs/rncp/matrice-preuves.md",
+          "kind": "codebase-doc",
+          "summary": "Competency-by-competency mapping between RNCP expectations and MyTuums proofs."
+        },
+        {
+          "slug": "rncp/specifications",
+          "title": "RNCP Functional Specifications",
+          "sourcePath": "docs/rncp/specifications-fonctionnelles.md",
+          "kind": "codebase-doc",
+          "summary": "Functional expectations and validation criteria for MyTuums v1."
+        },
+        {
+          "slug": "rncp/requirements-brief",
+          "title": "RNCP Requirements Brief",
+          "sourcePath": "docs/rncp/cahier-des-charges.md",
+          "kind": "codebase-doc",
+          "summary": "Need, product goals, constraints, scope limits, and acceptance criteria."
+        },
+        {
+          "slug": "rncp/quality-assurance-plan",
+          "title": "RNCP Quality Assurance Plan",
+          "sourcePath": "docs/rncp/plan-assurance-qualite.md",
+          "kind": "codebase-doc",
+          "summary": "Quality strategy, automated checks, tests, review, and regression controls."
+        },
+        {
+          "slug": "rncp/devops-steering",
+          "title": "RNCP DevOps Steering",
+          "sourcePath": "docs/rncp/bc02-pilotage-devops.md",
+          "kind": "codebase-doc",
+          "summary": "Project workflow, backlog, CI, deployment, maintenance, and release evidence."
+        },
+        {
+          "slug": "rncp/data-exchanges",
+          "title": "RNCP Data Exchanges",
+          "sourcePath": "docs/rncp/bc04-echanges-donnees.md",
+          "kind": "codebase-doc",
+          "summary": "Data flows, API and storage interfaces, mappings, and multi-tier test environment."
+        },
+        {
+          "slug": "rncp/security-accessibility-load",
+          "title": "RNCP Security, Accessibility, And Load",
+          "sourcePath": "docs/rncp/securite-accessibilite-charge.md",
+          "kind": "codebase-doc",
+          "summary": "Risk analysis, accessibility controls, and load testing plan."
+        },
+        {
+          "slug": "rncp/acceptance-report",
+          "title": "RNCP Acceptance Report",
+          "sourcePath": "docs/rncp/pv-recette-bon-integrer.md",
+          "kind": "codebase-doc",
+          "summary": "Acceptance checklist, go/no-go decision, and integration readiness."
+        },
+        {
+          "slug": "rncp/work-log",
+          "title": "RNCP Work Log",
+          "sourcePath": "docs/rncp/journal-de-bord.md",
+          "kind": "codebase-doc",
+          "summary": "Decisions, difficulties, trade-offs, timeline, and evidence tracking."
+        },
+        {
+          "slug": "rncp/appendices",
+          "title": "RNCP Appendices",
+          "sourcePath": "docs/rncp/annexes.md",
+          "kind": "codebase-doc",
+          "summary": "Index of evidence to collect for the final certification dossier."
+        },
+        {
+          "slug": "rncp/oral-preparation",
+          "title": "RNCP Oral Preparation",
+          "sourcePath": "docs/rncp/preparation-oral.md",
+          "kind": "codebase-doc",
+          "summary": "Suggested 20-minute presentation structure and likely jury questions."
+        }
+      ]
+    },
+    {
       "id": "agent-workflows",
       "title": "Agent Workflows",
       "description": "Repository-specific guidance for human and agent contributors.",

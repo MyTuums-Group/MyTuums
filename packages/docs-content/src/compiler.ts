@@ -40,7 +40,7 @@ const SOURCE_RULES: Record<DocsSourceKind, readonly RegExp[]> = {
   adr: [/^docs\/adr\/.+\.md$/u],
   "agent-doc": [/^AGENTS\.md$/u, /^docs\/agents\/.+\.md$/u],
   "team-convention": [/^docs\/team-conventions\.md$/u],
-  "codebase-doc": [/^docs\/codebase\/.+\.md$/u],
+  "codebase-doc": [/^docs\/codebase\/.+\.md$/u, /^docs\/rncp\/.+\.md$/u],
   "ci-cd-doc": [/^docs\/ci-cd\/.+\.md$/u],
   "deployment-doc": [/^docs\/deployment\/.+\.md$/u],
   "infrastructure-doc": [/^docs\/infrastructure\/.+\.md$/u],

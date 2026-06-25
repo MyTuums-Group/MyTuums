@@ -2,7 +2,7 @@
 
 ## Status
 
-This PRD is intentionally compact. The split scope set that starts at `docs/prd/v1-scope.md` is the authoritative source for the complete v1 feature set, domain vocabulary, routes, invariants, exclusions, testing priorities, and launch gates.
+This PRD is intentionally compact. The split scope set that starts at [docs/prd/v1-scope.md](v1-scope.md) is the authoritative source for the complete v1 feature set, domain vocabulary, routes, invariants, exclusions, testing priorities, and launch gates.
 
 Use this document to understand the product intent and release posture. Use the scope document to implement or review behavior.
 
@@ -28,7 +28,7 @@ V1 remains deliberately narrow:
 
 ## Scope Authority
 
-Read `docs/prd/v1-scope.md` and its linked focused scope files for:
+Read [docs/prd/v1-scope.md](v1-scope.md) and its linked focused scope files for:
 
 - Feature scope and exclusions.
 - Domain vocabulary and entity boundaries.
@@ -42,12 +42,12 @@ If this PRD and the v1 scope set disagree, the scope wins unless a later ADR exp
 
 ## Companion Documents
 
-- `CONTEXT-MAP.md` for the documentation reading order.
-- `docs/prd/v1-scope.md` for the complete split v1 scope.
-- `DESIGN.md` for the canonical visual system and UI guardrails.
-- `docs/context/coding-practices/CONTEXT.md` for implementation guardrails and monorepo/package rules.
-- `docs/context/legal/CONTEXT.md` and `docs/prd/legal-i18n-prd.md` for legal, localization, and launch-readiness work that remains tracked through GitHub Issues.
-- `docs/prd/developer-documentation-app-prd.md` for the separate docs web app.
+- [CONTEXT-MAP.md](../../CONTEXT-MAP.md) for the documentation reading order.
+- [docs/prd/v1-scope.md](v1-scope.md) for the complete split v1 scope.
+- [DESIGN.md](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md) for the canonical visual system and UI guardrails.
+- [docs/context/coding-practices/CONTEXT.md](../context/coding-practices/CONTEXT.md) for implementation guardrails and monorepo/package rules.
+- [docs/context/legal/CONTEXT.md](../context/legal/CONTEXT.md) and [docs/prd/legal-i18n-prd.md](legal-i18n-prd.md) for legal, localization, and launch-readiness work that remains tracked through GitHub Issues.
+- [docs/prd/developer-documentation-app-prd.md](developer-documentation-app-prd.md) for the separate docs web app.
 - `docs/adr/` for durable architecture decisions.
 
 ## Release Posture

@@ -37,7 +37,7 @@ MyTuums/
     └── agents/       Agent conventions
 ```
 
-Start with `CONTEXT-MAP.md` for the documentation reading order. `docs/prd/v1-scope.md` is the entry point for the split authoritative v1 scope; `docs/prd/v1-prd.md` keeps the product intent and release posture.
+Start with [CONTEXT-MAP.md](CONTEXT-MAP.md) for the documentation reading order. [docs/prd/v1-scope.md](docs/prd/v1-scope.md) is the entry point for the split authoritative v1 scope; [docs/prd/v1-prd.md](docs/prd/v1-prd.md) keeps the product intent and release posture.
 
 ## Getting Started
 

@@ -30,7 +30,7 @@ The production docs app is read-only. It supports rich Markdown presentation, ge
 12. As a developer, I want all authorized docs users to see the same documentation set, so that docs access is simple and all-or-nothing.
 13. As a developer, I want docs URLs to use stable semantic slugs, so that links remain useful when source files move.
 14. As a developer, I want docs navigation to be manifest-driven, so that section order, titles, and inclusion are deliberate.
-15. As a developer, I want `CONTEXT-MAP.md`, `docs/prd/v1-scope.md`, and the focused v1 scope files included in the docs app, so that the documentation map and product model are easy to browse.
+15. As a developer, I want [CONTEXT-MAP.md](../../CONTEXT-MAP.md), [docs/prd/v1-scope.md](v1-scope.md), and the focused v1 scope files included in the docs app, so that the documentation map and product model are easy to browse.
 16. As a developer, I want PRDs included in the docs app, so that product requirements are easy to find.
 17. As a developer, I want ADRs included in the docs app, so that architectural decisions are visible alongside product docs.
 18. As a developer, I want agent docs included in the docs app, so that agent workflows and repository conventions are discoverable.
@@ -99,7 +99,7 @@ The production docs app is read-only. It supports rich Markdown presentation, ge
 - Have the API serve only the generated docs-content artifact rather than reading Markdown and diagram files ad hoc from the production filesystem.
 - Use an explicit manifest for documentation navigation and inclusion. Do not derive navigation from filesystem order.
 - Use manifest-owned stable semantic slugs rather than source file paths.
-- Include `CONTEXT-MAP.md`, the split v1 scope set, PRDs, ADRs, agent docs, team conventions, and future codebase, CI/CD, deployment, and infrastructure docs.
+- Include [CONTEXT-MAP.md](../../CONTEXT-MAP.md), the split v1 scope set, PRDs, ADRs, agent docs, team conventions, and future codebase, CI/CD, deployment, and infrastructure docs.
 - Exclude transient implementation plans entirely from the docs app.
 - Keep Markdown as the canonical documentation source.
 - Keep page presentation centralized in the docs app rather than hand-authored HTML/CSS inside documentation files.

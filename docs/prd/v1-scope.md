@@ -10,11 +10,11 @@ When documents disagree, prefer this scope set unless a later ADR explicitly ove
 
 ## Companion Documents
 
-- `CONTEXT-MAP.md` for the documentation split and reading order.
-- `DESIGN.md` for the canonical visual system and UI guardrails.
-- `docs/context/coding-practices/CONTEXT.md` for implementation guardrails and monorepo/package rules.
-- `docs/prd/developer-documentation-app-prd.md` for the separate docs web app.
-- `docs/prd/legal-i18n-prd.md` for legal, localization, and launch-readiness detail.
+- [CONTEXT-MAP.md](../../CONTEXT-MAP.md) for the documentation split and reading order.
+- [DESIGN.md](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md) for the canonical visual system and UI guardrails.
+- [docs/context/coding-practices/CONTEXT.md](../context/coding-practices/CONTEXT.md) for implementation guardrails and monorepo/package rules.
+- [docs/prd/developer-documentation-app-prd.md](developer-documentation-app-prd.md) for the separate docs web app.
+- [docs/prd/legal-i18n-prd.md](legal-i18n-prd.md) for legal, localization, and launch-readiness detail.
 
 ## Scope Files
 
@@ -35,5 +35,5 @@ When documents disagree, prefer this scope set unless a later ADR explicitly ove
 
 - Keep detailed behavior in the focused files rather than expanding this index again.
 - Add new focused files only when a section becomes too large or has a distinct ownership boundary.
-- Update `docs/docs-manifest.json` whenever scope files are added, moved, or removed.
-- Keep `docs/prd/v1-prd.md` as a compact product summary that points back to this scope set.
+- Update [docs/docs-manifest.json](https://github.com/MyTuums-Group/MyTuums/blob/main/docs/docs-manifest.json) whenever scope files are added, moved, or removed.
+- Keep [docs/prd/v1-prd.md](v1-prd.md) as a compact product summary that points back to this scope set.

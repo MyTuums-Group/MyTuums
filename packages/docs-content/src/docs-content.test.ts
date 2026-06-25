@@ -89,6 +89,7 @@ describe("docs-content", () => {
       "orientation",
       "requirements",
       "decisions",
+      "rncp",
       "agent-workflows",
       "focused-contexts",
       "operations",

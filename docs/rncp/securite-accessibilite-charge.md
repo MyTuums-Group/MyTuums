@@ -73,3 +73,4 @@ Table résultats à compléter :
 - Commande et résultats de charge.
 - Capture Sentry/logs si disponible.
 - Schéma de tiers applicatifs.
+- Suivi fil rouge : [audit accessibilite et performance](audit-accessibilite-performance.md).

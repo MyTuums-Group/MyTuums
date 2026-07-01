@@ -77,3 +77,5 @@ Légende :
 5. Rapport de charge avec protocole et résultats.
 6. PV de recette signé ou validé par le porteur du projet.
 7. Journal de bord et planning prévisionnel/réel.
+8. Matrice fil rouge dediee : [UF DEV B3](uf-dev-b3-conformite.md).
+9. Pack preuves fil rouge : [demo locale](preuves-demo-locale.md), [responsive](preuves-responsive.md), [accessibilite/performance](audit-accessibilite-performance.md), [mobile Flutter](mobile-flutter-statut.md).

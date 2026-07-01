@@ -28,6 +28,12 @@ Rendre les preuves de compétence explicites, classées et défendables :
 - [Journal de bord](journal-de-bord.md) : décisions, difficultés, arbitrages et suivi.
 - [Annexes RNCP](annexes.md) : index des preuves à joindre au dossier final.
 - [Préparation orale](preparation-oral.md) : trame de soutenance de 20 minutes.
+- [Matrice de conformite UF DEV B3](uf-dev-b3-conformite.md) : exigences du PDF fil rouge separees des criteres RNCP.
+- [Architecture technique fil rouge](architecture-technique-fil-rouge.md) : schema web/API/DB/blob/email/mobile et modele DB simplifie.
+- [Preuves de demo locale](preuves-demo-locale.md) : protocole `pnpm infra` / `smoke:setup` / `smoke` et resultats locaux.
+- [Preuves responsive web](preuves-responsive.md) : checklist desktop/tablette/mobile et moments de capture.
+- [Audit accessibilite et performance](audit-accessibilite-performance.md) : resultat axe, grille manuelle et protocole Lighthouse.
+- [Statut mobile Flutter](mobile-flutter-statut.md) : decision humaine requise pour les issues mobile #157/#158.
 
 ## Sources techniques principales
 

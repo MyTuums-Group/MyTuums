@@ -275,6 +275,48 @@
           "sourcePath": "docs/rncp/preparation-oral.md",
           "kind": "codebase-doc",
           "summary": "Suggested 20-minute presentation structure and likely jury questions."
+        },
+        {
+          "slug": "rncp/uf-dev-b3-compliance",
+          "title": "UF DEV B3 Compliance Matrix",
+          "sourcePath": "docs/rncp/uf-dev-b3-conformite.md",
+          "kind": "codebase-doc",
+          "summary": "Fil rouge UF DEV B3 requirements mapped separately from RNCP evidence."
+        },
+        {
+          "slug": "rncp/fil-rouge-technical-architecture",
+          "title": "Fil Rouge Technical Architecture",
+          "sourcePath": "docs/rncp/architecture-technique-fil-rouge.md",
+          "kind": "codebase-doc",
+          "summary": "Jury-oriented architecture, simplified data model, and security controls."
+        },
+        {
+          "slug": "rncp/local-demo-evidence",
+          "title": "Local Demo Evidence",
+          "sourcePath": "docs/rncp/preuves-demo-locale.md",
+          "kind": "codebase-doc",
+          "summary": "Local full-stack smoke protocol, results, and setup caveats."
+        },
+        {
+          "slug": "rncp/responsive-web-evidence",
+          "title": "Responsive Web Evidence",
+          "sourcePath": "docs/rncp/preuves-responsive.md",
+          "kind": "codebase-doc",
+          "summary": "Desktop, tablet, and mobile capture checklist for the main demo flows."
+        },
+        {
+          "slug": "rncp/accessibility-performance-audit",
+          "title": "Accessibility And Performance Audit",
+          "sourcePath": "docs/rncp/audit-accessibilite-performance.md",
+          "kind": "codebase-doc",
+          "summary": "Axe result, manual accessibility checklist, and Lighthouse protocol."
+        },
+        {
+          "slug": "rncp/flutter-mobile-status",
+          "title": "Flutter Mobile Status",
+          "sourcePath": "docs/rncp/mobile-flutter-statut.md",
+          "kind": "codebase-doc",
+          "summary": "Decision record for Flutter mobile issues and required human intervention."
         }
       ]
     },

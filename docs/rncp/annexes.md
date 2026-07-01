@@ -10,12 +10,14 @@ Ce document liste les annexes à collecter pour le dossier final. Les fichiers l
 - [Spécifications fonctionnelles](specifications-fonctionnelles.md).
 - [Scope v1](../prd/v1-scope.md).
 - [PRD v1](../prd/v1-prd.md).
+- [Matrice de conformite UF DEV B3](uf-dev-b3-conformite.md).
 - Captures du projet GitHub Tasks.
 - Liste des issues représentatives.
 
 ## A2 - Preuves architecture et conception
 
 - Schéma architecture web/API/DB/blob/email.
+- [Architecture technique fil rouge](architecture-technique-fil-rouge.md).
 - Schéma des packages du monorepo.
 - Extrait du schéma de base de données.
 - ADR principaux : [identités supprimées](../adr/0001-release-deleted-usernames-after-30-days.md), [médias publics sans scan automatique](../adr/0002-launch-public-media-without-automated-scanning.md), [application de documentation](../adr/0003-custom-developer-documentation-app.md).
@@ -35,6 +37,9 @@ Ce document liste les annexes à collecter pour le dossier final. Les fichiers l
 
 - Sortie `pnpm smoke`.
 - Sortie `pnpm axe:smoke`.
+- [Preuves de demo locale](preuves-demo-locale.md).
+- [Preuves responsive web](preuves-responsive.md).
+- [Audit accessibilite et performance](audit-accessibilite-performance.md).
 - Capture Playwright report si utile.
 - Grille d'audit clavier/focus/contraste.
 - Capture pages critiques.
@@ -58,6 +63,7 @@ Ce document liste les annexes à collecter pour le dossier final. Les fichiers l
 - Seed catalogue jeux.
 - Logs `smoke:setup`.
 - Description environnement multi-tiers.
+- [Statut mobile Flutter](mobile-flutter-statut.md), tant que #157/#158 restent bloques.
 
 ## A7 - Preuves développement
 

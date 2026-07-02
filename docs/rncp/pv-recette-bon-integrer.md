@@ -31,7 +31,7 @@ Environnement : local / staging.
 | Contact | Formulaire public et email/log | Tests contact | À valider |
 | Pages statiques | Terms/privacy/support/accessibility accessibles | Tests static pages | À valider |
 | Accessibilité auto | Axe smoke sans violation bloquante | `pnpm axe:smoke` | À valider |
-| Demo locale fil rouge | Infra, migrations, seed et smoke reproductibles | [Preuves de demo locale](preuves-demo-locale.md) | Bloque Docker local |
+| Demo locale fil rouge | Infra, migrations, seed et smoke reproductibles | [Preuves de demo locale](preuves-demo-locale.md) | Valide localement le 2026-07-02 |
 
 ## Décision de recette
 

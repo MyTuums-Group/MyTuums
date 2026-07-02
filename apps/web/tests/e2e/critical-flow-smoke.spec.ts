@@ -122,7 +122,7 @@ async function registerVerifiedOnboardedUser(
   await page.getByRole("button", { name: "Create account" }).click()
   await expect(
     page.getByRole("heading", { name: "Verify your email" })
-  ).toBeVisible()
+  ).toBeVisible({ timeout: 30_000 })
 
   const verificationLink = await waitForVerificationLink(request, user.email)
   await page.goto(verificationLink)

@@ -1,11 +1,11 @@
 # Preuves de demo locale
 
-Statut : execution partielle du 2026-07-01.
+Statut : execution locale completee le 2026-07-02.
 
 Ce guide couvre l'issue #152 : rendre la validation locale reproductible avec
 Docker, migrations, seeds, web/API startup et smoke Playwright.
 
-## Resultats observes le 2026-07-01
+## Resultats observes
 
 | Commande | Resultat | Note |
 | --- | --- | --- |
@@ -13,28 +13,29 @@ Docker, migrations, seeds, web/API startup et smoke Playwright.
 | `corepack pnpm install --frozen-lockfile` | OK | 1095 packages installes depuis le lockfile |
 | `corepack enable` | Echec local | `EPERM` sur `C:\Program Files\nodejs\pnpx`, droits admin requis |
 | shim temporaire `pnpm.cmd` dans `%TEMP%` | OK | Permet aux scripts internes qui appellent `pnpm` de tourner |
-| `pnpm infra` | Echec local | `docker` absent du PATH |
-| `pnpm smoke:setup` | Echec attendu | migrations Drizzle impossibles sans Postgres local |
+| `pnpm infra` | OK | PostgreSQL, Mailpit et Azurite demarres via Docker |
+| `pnpm smoke:setup` | OK | migrations appliquees et 10 jeux seedes |
+| `pnpm smoke` | OK | 12 tests Playwright passent apres nettoyage du rate limit local |
 | `pnpm axe:smoke` | OK | 1 test Playwright/axe passe |
 
-## Blocage actuel
+## Caveat rate limit local
 
-Docker Desktop n'est pas disponible dans le shell local. Les commandes suivantes
-ne peuvent donc pas satisfaire les criteres de #152 tant que Docker n'est pas
-installe, lance, et expose via `docker` :
-
-```bash
-pnpm infra
-pnpm smoke:setup
-pnpm smoke
-```
-
-Intervention humaine utile : installer ou ouvrir Docker Desktop, puis verifier :
+Les essais repetes de `pnpm smoke` creent plusieurs inscriptions et peuvent
+declencher la protection anti-abus locale `auth_registration` :
 
 ```bash
-docker --version
-docker compose version
+Too many authentication attempts. Please wait before trying again.
 ```
+
+Pour repartir immediatement dans l'environnement local de preuve, vider la table
+de rate limit generee par les essais :
+
+```bash
+docker exec mytuums-db psql -U mytuums -d mytuums -c "truncate table rate_limit;"
+```
+
+Alternative plus large : `pnpm infra:reset`, puis `pnpm infra` et
+`pnpm smoke:setup`.
 
 ## Procedure cible
 
@@ -65,6 +66,6 @@ detail de poste local, pas une contrainte du repo.
 
 ## Decision #152
 
-L'issue #152 n'est pas completement cloturable au 2026-07-01 sur ce poste :
-`pnpm infra` est bloque par l'absence de Docker. Le reste du protocole est pret
-et `pnpm axe:smoke` passe.
+L'issue #152 est techniquement prouvable sur ce poste : `pnpm infra`,
+`pnpm smoke:setup`, `pnpm smoke` et `pnpm axe:smoke` ont ete executes avec
+succes le 2026-07-02. Conserver les captures terminal dans le dossier final.

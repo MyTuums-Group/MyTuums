@@ -44,7 +44,7 @@ memes competences techniques et transverses.
 | Ecart | Risque jury | Position defendable |
 | --- | --- | --- |
 | Le PDF demande Android/iOS, mais le scope v1 MyTuums est web-only | Manque sur la competence mobile | Assumer un sujet libre web responsive seulement si l'equipe pedagogique valide ; sinon fournir un MVP Flutter separe |
-| Docker absent sur le poste local au 2026-07-01 | Smoke local non demontrable immediatement | Installer/ouvrir Docker Desktop puis rejouer `pnpm infra`, `pnpm smoke:setup`, `pnpm smoke` |
+| Rate limit local apres essais repetes | Smoke local peut echouer avec `Too many authentication attempts` | Vider `rate_limit` ou reset l'infra avant de recapturer le smoke |
 | Accessibilite automatique verte mais audit manuel incomplet | Preuve RGAA/WCAG partielle | Completer la grille manuelle et capturer les pages critiques |
 | Performance frontend non mesuree | Optimisation non prouvee | Capturer Lighthouse ou Playwright performance apres build local |
 

@@ -10,8 +10,8 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 
 | Preuve | Exigence | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
-| PDF UF DEV B3 reference | Source evaluation | Couvert | ElCabrii | #151 | Conserver chemin `G:/RNCP/Autres/UF_DEV_B3.pdf`. |
-| [Matrice UF DEV B3](matrice-conformite-uf-dev-b3.md) | Toutes exigences | Couvert | ElCabrii | #151 | Relire apres reception preuves AcryTeryx. |
+| PDF source des attendus | Source evaluation | Couvert | ElCabrii | #151 | Conserver chemin `G:/RNCP/Autres/UF_DEV_B3.pdf`. |
+| [Matrice projet fil rouge](matrice-conformite-projet-fil-rouge.md) | Tous attendus | Couvert | ElCabrii | #151 | Relire apres reception preuves AcryTeryx. |
 | [Document fonctionnel jury](document-fonctionnel-jury.md) | Documentation fonctionnelle | Couvert | ElCabrii | #153 | Ajuster avec captures finales. |
 | Schema architecture jury | Documentation technique | Bloque | AcryTeryx | #154 | Joindre schema et lien. |
 | Schema DB simplifie | Base de donnees | Bloque | AcryTeryx | #154 | Joindre schema et lien. |
@@ -23,7 +23,7 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 | [Pilotage collaboration](pilotage-collaboration.md) | Git, collaboration, gestion projet | Couvert | ElCabrii | #159 | Joindre captures board/CI. |
 | [Runbook demo](runbook-demo.md) | Demo et fallback | Partiel | ElCabrii | #160 | Mettre a jour comptes et fichiers fallback. |
 | [Scripts oraux](scripts-oraux.md) | Oral 10/20 min | Partiel | ElCabrii | #161 | Chronometrer. |
-| [Diaporama fil rouge](diaporama-fil-rouge.md) | Support oral | Partiel | ElCabrii | #161 | Remplacer placeholders par captures finales. |
+| [Diaporama fil rouge](diaporama-fil-rouge.md) | Support oral | Partiel | ElCabrii | #161 | Exporter le diaporama final, chronométrer la présentation et enrichir avec captures finales si disponibles. |
 | [Questions reponses jury](questions-reponses-jury.md) | Preparation Q/R | Couvert | ElCabrii | #161 | Relire a voix haute. |
 
 ## Checklist repository

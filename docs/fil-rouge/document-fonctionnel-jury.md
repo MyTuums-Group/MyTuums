@@ -4,7 +4,7 @@ Statut : version autonome prete pour revue pour issue #153.
 
 ## Sujet libre
 
-MyTuums est le sujet libre choisi pour le projet UF DEV B3. Le projet remplace le contexte Smart Cafe par un produit numerique complet dans un domaine different : une plateforme sociale pour joueurs. Le choix reste conforme au PDF car il mobilise les memes familles de competences : application web, backend structure et securise, base de donnees, mobile Android/iOS, documentation, Git, collaboration, gestion projet et oral.
+MyTuums est le sujet libre choisi pour le projet fil rouge. Le projet remplace le contexte Smart Cafe par un produit numerique complet dans un domaine different : une plateforme sociale pour joueurs. Le choix reste conforme au PDF source des attendus car il mobilise les memes familles de competences : application web, backend structure et securise, base de donnees, mobile Android/iOS, documentation, Git, collaboration, gestion projet et oral.
 
 ## Besoin
 
@@ -88,7 +88,7 @@ Ces limites rendent la demo plus defendable : le projet prouve une architecture 
 
 | Preuve | Ce qu'elle demontre | Statut |
 | --- | --- | --- |
-| [Matrice de conformite UF DEV B3](matrice-conformite-uf-dev-b3.md) | Correspondance directe avec le PDF | Couvert |
+| [Matrice de conformite du projet fil rouge](matrice-conformite-projet-fil-rouge.md) | Correspondance directe avec le PDF source | Couvert |
 | [MyTuums v1 Scope](../prd/v1-scope.md) | Perimetre produit complet | Couvert |
 | [Architecture scope](../prd/v1-scope/architecture.md) | Structure web/API/DB/mobile | Couvert |
 | [Runbook de demo](runbook-demo.md) | Parcours presentable et reprises | Partiel |

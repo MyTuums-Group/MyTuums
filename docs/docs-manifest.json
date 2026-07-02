@@ -196,7 +196,7 @@
     },
     {
       "id": "fil-rouge",
-      "title": "Fil Rouge UF DEV B3",
+      "title": "Projet Fil Rouge",
       "description": "Bachelor 3 DEV free-topic project evidence, separate from the RNCP proof portfolio.",
       "pages": [
         {
@@ -204,14 +204,14 @@
           "title": "Fil Rouge Overview",
           "sourcePath": "docs/fil-rouge/README.md",
           "kind": "codebase-doc",
-          "summary": "Entry point for the UF DEV B3 fil rouge dossier."
+          "summary": "Entry point for the projet fil rouge dossier."
         },
         {
           "slug": "fil-rouge/compliance-matrix",
-          "title": "UF DEV B3 Compliance Matrix",
-          "sourcePath": "docs/fil-rouge/matrice-conformite-uf-dev-b3.md",
+          "title": "Projet Fil Rouge Compliance Matrix",
+          "sourcePath": "docs/fil-rouge/matrice-conformite-projet-fil-rouge.md",
           "kind": "codebase-doc",
-          "summary": "Line-by-line mapping between UF DEV B3 expectations and MyTuums evidence."
+          "summary": "Line-by-line mapping between project expectations and MyTuums evidence."
         },
         {
           "slug": "fil-rouge/functional-jury-brief",
@@ -246,7 +246,7 @@
           "title": "Fil Rouge Slide Deck",
           "sourcePath": "docs/fil-rouge/diaporama-fil-rouge.md",
           "kind": "codebase-doc",
-          "summary": "Pre-final Markdown slide deck for the UF DEV B3 oral presentation."
+          "summary": "Pre-final Markdown slide deck for the projet fil rouge oral presentation."
         },
         {
           "slug": "fil-rouge/jury-qa",

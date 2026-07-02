@@ -24,7 +24,7 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 
 | Domaine | Responsable principal | Preuves attendues |
 | --- | --- | --- |
-| Matrice UF DEV B3 | ElCabrii | #151, matrice, index preuves. |
+| Matrice projet fil rouge | ElCabrii | #151, matrice, index preuves. |
 | Document fonctionnel jury | ElCabrii | #153, recit produit, perimetre, limites. |
 | Pilotage et collaboration | ElCabrii | #159, planning, board, PR/CI. |
 | Demo runbook et fallback | ElCabrii | #160, sequence, commandes, supports de repli. |
@@ -46,7 +46,7 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 | Features coeur | Auth, profils, posts, feeds, search, social | Sprint principal | 2026-05 a 2026-06 | Plusieurs PR produit mergees avant dossier final | Issues/PR produit |
 | Securite/moderation | Roles, reports, cases, audit, visibility | Sprint principal | 2026-05 a 2026-06 | Preuves a consolider cote architecture/security | Tests moderation/staff |
 | Mobile | Facade REST et MVP Flutter | Fin de projet | 2026-07-02 | MVP merge via PR #164, captures a produire | [ADR 0004](../adr/0004-mobile-rest-facade-before-orpc.md), #157, #158 |
-| Validation | CI, tests, smoke, axe, mobile | Avant oral final | 2026-07-02 en cours | CI verte sur PR #163/#164, preuves manuelles restantes | #152, #156 |
+| Validation | CI, tests, smoke, axe, mobile | Avant oral final | 2026-07-02 en cours | CI verte sur PR #164/#165/#166, preuves manuelles restantes | #152, #156 |
 | Dossier fil rouge | Matrice, docs, demo, oral, preuves | Avant rendu | 2026-07-02 en cours | Socle ElCabrii pret, attente preuves AcryTeryx | #151, #153, #159, #160, #161, #162 |
 
 ## Traces GitHub a capturer
@@ -57,9 +57,9 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 | Liste des issues #151 a #162 | Prouve decoupage du travail | Couvert par GitHub |
 | PR representative backend/service | Prouve implementation et revue technique | A selectionner dans les PR service/API mergees |
 | PR representative frontend/UI | Prouve interface et tests web | A selectionner dans les PR web mergees |
-| PR docs fil rouge | Prouve dossier UF DEV B3 separe de RNCP | Cette branche/PR |
+| PR docs fil rouge | Prouve dossier projet fil rouge separe de RNCP | Cette branche/PR |
 | PR mobile #164 | Prouve MVP Flutter et facade REST mobile | Couvert par PR #164, captures a joindre via #158 |
-| CI verte | Prouve qualite continue | Checks PR #163/#164 verts, capture finale a joindre |
+| CI verte | Prouve qualite continue | Checks PR #164/#165/#166 verts, capture finale a joindre |
 | Historique Git local | Prouve versioning | Couvert |
 
 ## Decisions et arbitrages
@@ -69,7 +69,7 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 | Sujet libre MyTuums | Le PDF autorise un sujet libre si les memes competences sont mobilisees | Conserver une plateforme sociale gaming plutot que Smart Cafe | [Document fonctionnel jury](document-fonctionnel-jury.md) |
 | Web-first puis Flutter MVP | Le web est le produit principal, le mobile doit prouver Android/iOS sans parite totale | MVP mobile cible sur parcours critiques | [ADR 0004](../adr/0004-mobile-rest-facade-before-orpc.md) |
 | Backend par services/adapters | Besoin de testabilite et d'evolutivite | Routers minces, services profonds, adapters DB | [Coding practices](../context/coding-practices/CONTEXT.md) |
-| Documentation fil rouge separee RNCP | Les criteres UF DEV B3 et RNCP ne sont pas les memes | `docs/fil-rouge/` dedie, `docs/rncp/` reutilisable comme preuve secondaire | [README fil rouge](README.md) |
+| Documentation fil rouge separee RNCP | Les criteres du projet fil rouge et du RNCP ne sont pas les memes | `docs/fil-rouge/` dedie, `docs/rncp/` reutilisable comme preuve secondaire | [README fil rouge](README.md) |
 | Demo courte avec fallback | Risque de service local, navigateur ou emulateur instable le jour J | Runbook + captures/video + procedures de reprise | [Runbook de demo](runbook-demo.md) |
 
 ## Acceptation de #159

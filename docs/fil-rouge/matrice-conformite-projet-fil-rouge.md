@@ -1,8 +1,8 @@
-# Matrice de conformite UF DEV B3
+# Matrice de conformite - projet fil rouge
 
 Statut : matrice complete cote ElCabrii, a enrichir avec les captures et logs finaux.
 
-Source : `G:/RNCP/Autres/UF_DEV_B3.pdf`.
+Source des attendus : `G:/RNCP/Autres/UF_DEV_B3.pdf`.
 
 Legende :
 
@@ -13,17 +13,17 @@ Legende :
 
 ## Exigences produit et fonctionnelles
 
-| Exigence UF DEV B3 | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
+| Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Concevoir une solution adaptee a un besoin metier reel | [Document fonctionnel jury](document-fonctionnel-jury.md), [PRD v1](../prd/v1-prd.md) | Couvert | ElCabrii | #153 | Relire avec le discours final. |
 | Choisir un sujet libre mobilisant les memes competences que Smart Cafe | [Document fonctionnel jury](document-fonctionnel-jury.md), [Scripts oraux](scripts-oraux.md) | Couvert | ElCabrii | #153 | Dire explicitement le choix du sujet libre en introduction. |
 | Produire une documentation fonctionnelle | [Document fonctionnel jury](document-fonctionnel-jury.md), [Scope v1](../prd/v1-scope.md) | Couvert | ElCabrii | #153 | Ajouter captures finales si utiles. |
 | Produire une documentation technique | [Architecture scope](../prd/v1-scope/architecture.md), [Azure deployment](../deployment/azure.md), [RNCP data exchanges](../rncp/bc04-echanges-donnees.md) | Partiel | AcryTeryx | #154 | Ajouter schema architecture jury et schema DB simplifie. |
-| Presenter et valoriser le projet a l'oral | [Scripts oraux](scripts-oraux.md), [Diaporama fil rouge](diaporama-fil-rouge.md), [Questions reponses jury](questions-reponses-jury.md) | Partiel | ElCabrii | #161 | Chronometrer les scripts et remplacer les placeholders de captures. |
+| Presenter et valoriser le projet a l'oral | [Scripts oraux](scripts-oraux.md), [Diaporama fil rouge](diaporama-fil-rouge.md), [Questions reponses jury](questions-reponses-jury.md) | Partiel | ElCabrii | #161 | Exporter le diaporama final, chronométrer les scripts et enrichir avec captures finales si disponibles. |
 
 ## Web, UI et experience utilisateur
 
-| Exigence UF DEV B3 | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
+| Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Concevoir une application web avec un framework moderne | React 19, Vite, TanStack Router dans [README](https://github.com/MyTuums-Group/MyTuums/blob/main/README.md), application `apps/web` | Couvert | Equipe | #153 | Selectionner 2 captures web pour l'oral. |
 | Developper des interfaces compatibles desktop, tablette et smartphone | Web responsive, [DESIGN](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md), captures a collecter | Bloque | AcryTeryx | #155 | Joindre captures desktop/tablette/mobile. |
@@ -35,7 +35,7 @@ Legende :
 
 ## Backend, securite et base de donnees
 
-| Exigence UF DEV B3 | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
+| Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Implementer une architecture backend orientee services | `apps/api/src/services/**`, [Architecture scope](../prd/v1-scope/architecture.md) | Couvert | Equipe | #154 | Selectionner 2 modules a montrer : media et moderation. |
 | Structurer le code selon les bonnes pratiques d'architecture logicielle | Services/adapters, `pnpm arch:check`, [Coding practices](../context/coding-practices/CONTEXT.md) | Couvert | Equipe | #154 | Joindre sortie `pnpm lint` ou `pnpm arch:check`. |
@@ -49,7 +49,7 @@ Legende :
 
 ## Mobile
 
-| Exigence UF DEV B3 | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
+| Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Developper une application Android et/ou iOS | Flutter MVP dans `apps/mobile`, ADR mobile REST facade, PR #164 mergee le 2026-07-02 | Partiel | AcryTeryx | #157 | Rejouer `flutter analyze`, `flutter test`, build/debug sur le poste de demo. |
 | Fournir une version mobile du projet initial | MVP mobile auth, onboarding, feed, discover, composer, post detail, like, report, logout | A produire | AcryTeryx | #157, #158 | Capturer demo emulateur ou video courte. |
@@ -57,7 +57,7 @@ Legende :
 
 ## Collaboration, Git et gestion projet
 
-| Exigence UF DEV B3 | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
+| Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Versionner son code avec Git | Historique Git, branches, PR, commits | Couvert | Equipe | #159 | Selectionner 3 commits/PR representatifs. |
 | Collaborer et communiquer avec GitHub/Trello/Notion/Teams ou equivalent | GitHub Issues, Project Tasks, PR, CI, repartition ElCabrii/AcryTeryx | Couvert | ElCabrii | #159 | Capturer board Tasks et issues fil rouge. |
@@ -69,7 +69,7 @@ Legende :
 
 | Issue | Objet | Dependances | Impact fil rouge |
 | --- | --- | --- | --- |
-| #151 | Matrice UF DEV B3 | Aucune | Debloque le cadrage et la priorisation. |
+| #151 | Matrice projet fil rouge | Aucune | Debloque le cadrage et la priorisation. |
 | #153 | Document fonctionnel jury | #151 | Debloque le recit produit et l'oral. |
 | #159 | Pilotage/collaboration | #151 | Debloque les preuves transverses. |
 | #160 | Runbook demo | #152, #155, #157, #158 | Peut etre prepare, validation finale apres preuves web/mobile. |

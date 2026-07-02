@@ -11,7 +11,7 @@ Permettre une demo locale fluide de MyTuums et prevoir un support de repli si un
 | Temps | Action | Message jury | Fallback |
 | --- | --- | --- | --- |
 | 0:00 - 1:00 | Rappeler le sujet libre | MyTuums remplace Smart Cafe mais couvre les memes competences | [Scripts oraux](scripts-oraux.md) |
-| 1:00 - 3:00 | Montrer la matrice UF DEV B3 | Chaque exigence PDF est reliee a une preuve | [Matrice](matrice-conformite-uf-dev-b3.md) |
+| 1:00 - 3:00 | Montrer la matrice du projet fil rouge | Chaque attendu PDF est relie a une preuve | [Matrice](matrice-conformite-projet-fil-rouge.md) |
 | 3:00 - 5:00 | Lancer ou montrer la stack locale | Web + API + DB + mail + storage | Logs #152 |
 | 5:00 - 8:00 | Parcours web utilisateur | Auth, onboarding, feed, post, search | Captures #155 |
 | 8:00 - 10:00 | Parcours interaction | Commentaire, like, follow, report | Captures/video #155 |
@@ -83,7 +83,7 @@ L'iOS doit etre valide sur macOS.
 | Captures accessibilite/performance | Axe, audit manuel, Lighthouse ou equivalent | AcryTeryx | #156 |
 | Captures mobile | Android ou iOS, auth, feed, discover, composer, report | AcryTeryx | #158 |
 | Video courte mobile optionnelle | Parcours core mobile | AcryTeryx | #158 |
-| Diaporama pre-final | Slides du recit oral avec placeholders captures | ElCabrii | #161 |
+| Diaporama pre-final | Source Markdown du récit oral, à exporter manuellement | ElCabrii | #161 |
 
 ## Reprises rapides
 

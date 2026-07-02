@@ -38,7 +38,7 @@ Avoid a generic catch-all `shared` package.
 
 ## Frontend
 
-V1 is web-only with responsive mobile layouts.
+V1 is web-first with responsive mobile web layouts plus a targeted Flutter MVP for Android and iOS.
 
 V1 includes internationalization for the supported signup region. Product and legal copy must be localized for the launch locales selected for the EU, EEA, UK, and Switzerland, rather than hardcoded as English-only UI.
 
@@ -57,6 +57,14 @@ Frontend stack:
 - Zustand where local client state is actually needed
 - React Hook Form for forms, with Zod schemas/constants mirrored for UX where useful
 
+Mobile MVP stack:
+
+- Flutter for Android and iOS only
+- `shadcn_flutter` for mobile UI primitives
+- BetterAuth email/password endpoints for signup, login, email verification, password reset, session cookies, and logout
+- versioned REST facade under `/api/mobile/v1` for mobile app features
+- deep links using `mytuums://auth/verify-email` and `mytuums://auth/reset-password`
+
 Initialize ShadCN with the chosen preset:
 
 ```bash
@@ -70,8 +78,9 @@ The v1 visual theme is defined by the chosen ShadCN preset/theme. Coders and age
 Deferred:
 
 - React Native
+- Flutter desktop
+- full native mobile parity
 - formal PWA support
-- native mobile apps
 - push notifications
 - offline mode
 
@@ -82,7 +91,8 @@ V1 uses one TypeScript API app.
 Canonical API route prefixes:
 
 - `/trpc` for app procedures
-- `/auth/*` for auth routes
+- `/api/mobile/v1` for the targeted Flutter Android/iOS REST facade
+- `/api/auth/*` for auth routes
 - `/healthz` for platform health checks
 - narrow REST endpoints only where browser/blob/provider flows require them
 
@@ -90,6 +100,7 @@ Backend stack:
 
 - Fastify as the API HTTP host
 - tRPC
+- targeted REST adapters for non-TypeScript mobile clients
 - BetterAuth
 - Drizzle ORM
 - PostgreSQL

@@ -13,8 +13,8 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 | PDF source des attendus | Source evaluation | Couvert | ElCabrii | #151 | Conserver chemin `G:/RNCP/Autres/UF_DEV_B3.pdf`. |
 | [Matrice projet fil rouge](matrice-conformite-projet-fil-rouge.md) | Tous attendus | Couvert | ElCabrii | #151 | Relire apres reception preuves AcryTeryx. |
 | [Document fonctionnel jury](document-fonctionnel-jury.md) | Documentation fonctionnelle | Couvert | ElCabrii | #153 | Ajuster avec captures finales. |
-| Schema architecture jury | Documentation technique | Bloque | AcryTeryx | #154 | Joindre schema et lien. |
-| Schema DB simplifie | Base de donnees | Bloque | AcryTeryx | #154 | Joindre schema et lien. |
+| [Schema architecture jury](architecture-technique-jury.md) | Documentation technique | Couvert | AcryTeryx | #154 | Relire avec le discours oral. |
+| [Schema DB simplifie](modele-donnees-jury.md) | Base de donnees | Couvert | AcryTeryx | #154 | Relire avec le discours oral. |
 | Captures responsive web | UI multi-support | Bloque | AcryTeryx | #155 | Joindre desktop/tablette/mobile. |
 | Axe + audit manuel | Accessibilite | Bloque | AcryTeryx | #156 | Joindre resultats et limites. |
 | Performance frontend | Temps de chargement | Bloque | AcryTeryx | #156 | Joindre mesure Lighthouse/equivalent. |
@@ -54,8 +54,8 @@ Les artefacts generes ne doivent pas polluer le rendu :
 
 | Critere | Statut | Derniere action |
 | --- | --- | --- |
-| Matrice 100% complete | Partiel | Attendre #154, #155, #156, #157, #158. |
-| Proof links, screenshots, logs, docs indexes | Partiel | #152 indexe ; ajouter liens finaux #154/#155/#156/#157/#158. |
+| Matrice 100% complete | Partiel | Attendre #155, #156, #157, #158. |
+| Proof links, screenshots, logs, docs indexes | Partiel | #152 et #154 indexes ; ajouter liens finaux #155/#156/#157/#158. |
 | Generated local artifacts ignored or removed | Couvert | `.gitignore` mis a jour. |
 | Git status clean except intentional deliverables | Partiel | A verifier juste avant commit/PR. |
 | Final checklist ready for human validation | Couvert | Checklist ci-dessus. |

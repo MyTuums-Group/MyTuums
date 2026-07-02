@@ -17,7 +17,7 @@ Permettre une demo locale fluide de MyTuums et prevoir un support de repli si un
 | 8:00 - 10:00 | Parcours interaction | Commentaire, like, follow, report | Captures/video #155 |
 | 10:00 - 12:00 | Parcours moderation/admin | Signalement, action staff, audit | Captures web ou tests moderation |
 | 12:00 - 14:00 | Mobile Flutter | MVP Android/iOS avec API locale | Captures/video #158 |
-| 14:00 - 16:00 | Architecture et donnees | Web/API/DB/blob/email/mobile | Schema #154 |
+| 14:00 - 16:00 | Architecture et donnees | Web/API/DB/blob/email/mobile | [Architecture technique jury](architecture-technique-jury.md), [Modele de donnees jury](modele-donnees-jury.md) |
 | 16:00 - 18:00 | Qualite, securite, accessibilite | CI, tests, smoke, axe, roles, rate limits | Logs #152/#156 |
 | 18:00 - 20:00 | Pilotage, limites, conclusion | Issues, PR, repartition, limites v1 | [Pilotage](pilotage-collaboration.md) |
 

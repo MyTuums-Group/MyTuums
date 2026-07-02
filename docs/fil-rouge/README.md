@@ -14,6 +14,8 @@ Ce dossier rassemble les livrables du projet fil rouge pour MyTuums. Il est volo
 
 - [Matrice de conformite du projet fil rouge](matrice-conformite-projet-fil-rouge.md) : correspondance attendu PDF -> preuve MyTuums -> statut.
 - [Document fonctionnel jury](document-fonctionnel-jury.md) : presentation autonome du besoin, des utilisateurs, du perimetre, des parcours et des limites.
+- [Architecture technique jury](architecture-technique-jury.md) : schema web/API/mobile/DB/blob/email, environnements et controles securite.
+- [Modele de donnees jury](modele-donnees-jury.md) : schema DB simplifie, entites, relations, contraintes et flux metier.
 - [Pilotage et collaboration](pilotage-collaboration.md) : planning, traces GitHub, repartition ElCabrii/AcryTeryx, decisions et arbitrages.
 - [Runbook de demo](runbook-demo.md) : sequence locale minutee, services, commandes, donnees, supports de repli et procedures de reprise.
 - [Scripts oraux](scripts-oraux.md) : scripts 10 minutes et 20 minutes, avec repartition speaker.

@@ -32,7 +32,7 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 | Readiness finale | ElCabrii | #162, coherence, liens, git status. |
 | Smoke local full stack | AcryTeryx | #152, logs infra/smoke. |
 | Architecture et data model | AcryTeryx | #154, [architecture technique](architecture-technique-jury.md), [modele de donnees](modele-donnees-jury.md). |
-| Captures responsive web | AcryTeryx | #155, desktop/tablette/mobile. |
+| Captures responsive web | AcryTeryx | #155, [preuve responsive web](preuve-responsive-web-155.md). |
 | Accessibilite et performance | AcryTeryx | #156, axe, audit manuel, Lighthouse. |
 | Mobile MVP live demo | AcryTeryx | #157, analyze/test/build/demo. |
 | Mobile evidence fallback | AcryTeryx | #158, screenshots/video/setup. |

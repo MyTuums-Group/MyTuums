@@ -30,11 +30,11 @@ Prouver que le chemin de validation local est reproductible avec Docker, migrati
 
 Les captures manuelles suivantes constituent la preuve visuelle principale pour le dossier oral.
 
-![Terminal pnpm smoke - 12 passed](captures/issue-152/Screenshot_20260702_090551.png)
+![Terminal pnpm smoke - 12 passed](captures/issue-152/pnpm-smoke-output.png)
 
 Cette capture montre le terminal apres `pnpm smoke` avec `12 passed`.
 
-![Docker Desktop - services locaux actifs](captures/issue-152/Screenshot_20260702_090645.png)
+![Docker Desktop - services locaux actifs](captures/issue-152/docker-services.png)
 
 Cette capture montre Docker Desktop avec les services `db`, `mailpit` et `azurite` actifs.
 

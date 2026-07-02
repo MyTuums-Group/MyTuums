@@ -256,6 +256,13 @@
           "summary": "Issue #152 local full-stack smoke validation evidence."
         },
         {
+          "slug": "fil-rouge/responsive-web-evidence",
+          "title": "Responsive Web Evidence",
+          "sourcePath": "docs/fil-rouge/preuve-responsive-web-155.md",
+          "kind": "codebase-doc",
+          "summary": "Issue #155 desktop, tablet, and mobile web screenshot evidence."
+        },
+        {
           "slug": "fil-rouge/oral-scripts",
           "title": "Oral Scripts",
           "sourcePath": "docs/fil-rouge/scripts-oraux.md",

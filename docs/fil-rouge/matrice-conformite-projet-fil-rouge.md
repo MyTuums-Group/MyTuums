@@ -18,7 +18,7 @@ Legende :
 | Concevoir une solution adaptee a un besoin metier reel | [Document fonctionnel jury](document-fonctionnel-jury.md), [PRD v1](../prd/v1-prd.md) | Couvert | ElCabrii | #153 | Relire avec le discours final. |
 | Choisir un sujet libre mobilisant les memes competences que Smart Cafe | [Document fonctionnel jury](document-fonctionnel-jury.md), [Scripts oraux](scripts-oraux.md) | Couvert | ElCabrii | #153 | Dire explicitement le choix du sujet libre en introduction. |
 | Produire une documentation fonctionnelle | [Document fonctionnel jury](document-fonctionnel-jury.md), [Scope v1](../prd/v1-scope.md) | Couvert | ElCabrii | #153 | Ajouter captures finales si utiles. |
-| Produire une documentation technique | [Architecture scope](../prd/v1-scope/architecture.md), [Azure deployment](../deployment/azure.md), [RNCP data exchanges](../rncp/bc04-echanges-donnees.md) | Partiel | AcryTeryx | #154 | Ajouter schema architecture jury et schema DB simplifie. |
+| Produire une documentation technique | [Architecture technique jury](architecture-technique-jury.md), [Modele de donnees jury](modele-donnees-jury.md), [Architecture scope](../prd/v1-scope/architecture.md), [Azure deployment](../deployment/azure.md), [RNCP data exchanges](../rncp/bc04-echanges-donnees.md) | Couvert | AcryTeryx | #154 | Relire avec le discours oral. |
 | Presenter et valoriser le projet a l'oral | [Scripts oraux](scripts-oraux.md), [Diaporama fil rouge](diaporama-fil-rouge.md), [Questions reponses jury](questions-reponses-jury.md) | Partiel | ElCabrii | #161 | Exporter le diaporama final, chronométrer les scripts et enrichir avec captures finales si disponibles. |
 
 ## Web, UI et experience utilisateur
@@ -37,15 +37,15 @@ Legende :
 
 | Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
-| Implementer une architecture backend orientee services | `apps/api/src/services/**`, [Architecture scope](../prd/v1-scope/architecture.md) | Couvert | Equipe | #154 | Selectionner 2 modules a montrer : media et moderation. |
-| Structurer le code selon les bonnes pratiques d'architecture logicielle | Services/adapters, `pnpm arch:check`, [Coding practices](../context/coding-practices/CONTEXT.md) | Couvert | Equipe | #154 | Joindre sortie `pnpm lint` ou `pnpm arch:check`. |
+| Implementer une architecture backend orientee services | `apps/api/src/services/**`, [Architecture technique jury](architecture-technique-jury.md), [Architecture scope](../prd/v1-scope/architecture.md) | Couvert | Equipe | #154 | Montrer media et moderation si le jury demande un exemple. |
+| Structurer le code selon les bonnes pratiques d'architecture logicielle | Services/adapters, [Architecture technique jury](architecture-technique-jury.md), [Coding practices](../context/coding-practices/CONTEXT.md) | Couvert | Equipe | #154 | Citer CI et docs validation comme controle de non-regression. |
 | Suivre SOLID, DRY, KISS et bonnes pratiques de code | Modules profonds, tests services, refactors traces par PR | Partiel | Equipe | #159 | Citer une PR/refactor representative dans le dossier pilotage. |
-| Gerer les appels vers une base relationnelle ou NoSQL | PostgreSQL + Drizzle, migrations, adapters DB | Couvert | Equipe | #154 | Ajouter schema DB simplifie. |
-| Concevoir un modele de donnees pour les entites | `packages/db/src/schema.ts`, [Core data entities](../prd/v1-scope/data-entities.md) | Couvert | Equipe | #154 | Joindre schema lisible jury. |
-| Ecrire des requetes SQL ou operations NoSQL entre API et DB | Drizzle adapters, migrations, search Postgres, feed queries | Couvert | Equipe | #154 | Selectionner un flux donnees a expliquer. |
-| Optimiser l'utilisation de la base de donnees | Index, contraintes, `pg_trgm`, pagination cursor, denormalisations controlees | Couvert | Equipe | #154 | Citer migrations et tests search/feed. |
-| Implementer authentification et autorisation securisees | BetterAuth, sessions, roles owner/admin/moderator/user, guards API | Couvert | Equipe | #153, #154 | Montrer login + moderation/admin uniquement si necessaire. |
-| Proteger les endpoints contre vulnerabilites courantes | Rate limits, CORS, validation schemas, roles, blobs prives, erreurs transport | Partiel | Equipe | #154, #156 | Relier aux preuves securite/accessibilite. |
+| Gerer les appels vers une base relationnelle ou NoSQL | PostgreSQL + Drizzle, migrations, adapters DB, [Modele de donnees jury](modele-donnees-jury.md) | Couvert | Equipe | #154 | Relire les flux DB avant oral. |
+| Concevoir un modele de donnees pour les entites | [Modele de donnees jury](modele-donnees-jury.md), `packages/db/src/schema.ts`, [Core data entities](../prd/v1-scope/data-entities.md) | Couvert | Equipe | #154 | Relire les entites principales avant oral. |
+| Ecrire des requetes SQL ou operations NoSQL entre API et DB | Drizzle adapters, migrations, search Postgres, feed queries, [Modele de donnees jury](modele-donnees-jury.md) | Couvert | Equipe | #154 | Expliquer publication, media ou moderation selon question jury. |
+| Optimiser l'utilisation de la base de donnees | Index, contraintes, `pg_trgm`, pagination cursor, denormalisations controlees, [Modele de donnees jury](modele-donnees-jury.md) | Couvert | Equipe | #154 | Citer index recherche/feed et contraintes uniques. |
+| Implementer authentification et autorisation securisees | BetterAuth, sessions, roles owner/admin/moderator/user, guards API, [Architecture technique jury](architecture-technique-jury.md) | Couvert | Equipe | #153, #154 | Montrer login + moderation/admin uniquement si necessaire. |
+| Proteger les endpoints contre vulnerabilites courantes | [Architecture technique jury](architecture-technique-jury.md), rate limits, CORS, validation schemas, roles, blobs prives, erreurs transport | Partiel | Equipe | #154, #156 | Completer par audit accessibilite/performance #156. |
 
 ## Mobile
 

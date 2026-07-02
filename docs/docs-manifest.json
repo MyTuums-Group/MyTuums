@@ -221,6 +221,20 @@
           "summary": "Autonomous functional explanation of MyTuums for the jury."
         },
         {
+          "slug": "fil-rouge/technical-architecture-jury",
+          "title": "Technical Architecture Jury Brief",
+          "sourcePath": "docs/fil-rouge/architecture-technique-jury.md",
+          "kind": "codebase-doc",
+          "summary": "Jury-readable web, API, mobile, database, blob, email, environment, and security architecture evidence."
+        },
+        {
+          "slug": "fil-rouge/data-model-jury",
+          "title": "Data Model Jury Brief",
+          "sourcePath": "docs/fil-rouge/modele-donnees-jury.md",
+          "kind": "codebase-doc",
+          "summary": "Simplified PostgreSQL data model, entities, relationships, constraints, and data-flow evidence."
+        },
+        {
           "slug": "fil-rouge/project-management-collaboration",
           "title": "Project Management And Collaboration",
           "sourcePath": "docs/fil-rouge/pilotage-collaboration.md",

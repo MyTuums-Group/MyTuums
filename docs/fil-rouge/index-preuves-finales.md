@@ -20,6 +20,7 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 | Performance frontend | Temps de chargement | Bloque | AcryTeryx | #156 | Joindre mesure Lighthouse/equivalent. |
 | Flutter analyze/test/build | Mobile | Partiel | AcryTeryx | #157 | PR #164 mergee, rejouer et joindre logs du poste de demo. |
 | Captures/video mobile | Mobile fallback | A produire | AcryTeryx | #158 | Joindre supports. |
+| [Smoke local full-stack](preuve-smoke-local-152.md) | Validation locale multi-tiers | Couvert | AcryTeryx | #152 | Captures automatiques ajoutees ; rejouer avant l'oral si l'environnement change. |
 | [Pilotage collaboration](pilotage-collaboration.md) | Git, collaboration, gestion projet | Couvert | ElCabrii | #159 | Joindre captures board/CI. |
 | [Runbook demo](runbook-demo.md) | Demo et fallback | Partiel | ElCabrii | #160 | Mettre a jour comptes et fichiers fallback. |
 | [Scripts oraux](scripts-oraux.md) | Oral 10/20 min | Partiel | ElCabrii | #161 | Chronometrer. |
@@ -36,7 +37,7 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 | Tests | `npx pnpm@9.15.9 test` | Vert avant rendu final |
 | Build | `npx pnpm@9.15.9 build` | Vert avant rendu final |
 | DB | `npx pnpm@9.15.9 db:check` | Vert avant rendu final |
-| Smoke | `npx pnpm@9.15.9 smoke` | Vert apres #152 |
+| Smoke | `npx pnpm@9.15.9 smoke` | Vert avec #152 |
 | Axe | `npx pnpm@9.15.9 axe:smoke` | Vert apres #156 |
 | Git | `git status --short` | Seulement livrables intentionnels |
 
@@ -54,7 +55,7 @@ Les artefacts generes ne doivent pas polluer le rendu :
 | Critere | Statut | Derniere action |
 | --- | --- | --- |
 | Matrice 100% complete | Partiel | Attendre #154, #155, #156, #157, #158. |
-| Proof links, screenshots, logs, docs indexes | Partiel | Ajouter liens finaux dans le registre. |
+| Proof links, screenshots, logs, docs indexes | Partiel | #152 indexe ; ajouter liens finaux #154/#155/#156/#157/#158. |
 | Generated local artifacts ignored or removed | Couvert | `.gitignore` mis a jour. |
 | Git status clean except intentional deliverables | Partiel | A verifier juste avant commit/PR. |
 | Final checklist ready for human validation | Couvert | Checklist ci-dessus. |

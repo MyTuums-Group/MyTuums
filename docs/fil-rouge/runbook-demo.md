@@ -27,10 +27,13 @@ Depuis la racine du repo :
 
 ```powershell
 npx pnpm@9.15.9 install --frozen-lockfile
+npx pnpm@9.15.9 --filter web exec playwright install chromium
 npx pnpm@9.15.9 infra
 npx pnpm@9.15.9 smoke:setup
 npx pnpm@9.15.9 dev:full
 ```
+
+La commande Playwright est a rejouer seulement si le navigateur Chromium manque du cache local. Ce cas a ete rencontre pendant #152, puis resolu sans changement applicatif.
 
 Validation avant demo :
 
@@ -67,19 +70,19 @@ L'iOS doit etre valide sur macOS.
 
 | Besoin | Donnee | Statut |
 | --- | --- | --- |
-| Utilisateur principal | A creer via smoke setup ou inscription demo | A valider avec #152 |
-| Deuxieme utilisateur | Necessaire pour follow/comment/like/report | A valider avec #152 |
-| Compte staff | Admin/owner pour moderation | A valider avec #152 |
-| Jeux seedes | Catalogue via `seed:games` ou `smoke:setup` | A valider avec #152 |
-| Email local | Mailpit | A valider avec #152 |
-| Blob local | Azurite | A valider avec #152 |
+| Utilisateur principal | Cree dynamiquement par le smoke Playwright | Valide avec #152 |
+| Deuxieme utilisateur | Cree dynamiquement par le smoke Playwright | Valide avec #152 |
+| Compte staff | Admin/owner pour moderation | A preparer hors #152 |
+| Jeux seedes | Catalogue via `smoke:setup` | Valide avec #152 |
+| Email local | Mailpit | Valide avec #152 |
+| Blob local | Azurite | Valide avec #152 |
 
 ## Fallback pack
 
 | Support | Contenu attendu | Responsable | Issue |
 | --- | --- | --- | --- |
 | Captures web desktop/tablette/mobile | Auth, feed, post creation, search, profile, report/moderation | AcryTeryx | #155 |
-| Logs full-stack | `infra`, `smoke:setup`, `smoke`, CI locale | AcryTeryx | #152 |
+| Logs full-stack | `infra`, `smoke:setup`, `smoke`, CI locale | AcryTeryx | #152, [preuve smoke local](preuve-smoke-local-152.md) |
 | Captures accessibilite/performance | Axe, audit manuel, Lighthouse ou equivalent | AcryTeryx | #156 |
 | Captures mobile | Android ou iOS, auth, feed, discover, composer, report | AcryTeryx | #158 |
 | Video courte mobile optionnelle | Parcours core mobile | AcryTeryx | #158 |
@@ -102,6 +105,6 @@ L'iOS doit etre valide sur macOS.
 | Critere | Statut | Preuve |
 | --- | --- | --- |
 | Demo order fixe et time | Couvert | Sequence minutee ci-dessus. |
-| Services, commandes, comptes, donnees listes | Partiel | Commandes presentes, comptes a confirmer via #152. |
+| Services, commandes, comptes, donnees listes | Partiel | Services et comptes smoke valides via #152 ; compte staff a preparer pour la demo admin. |
 | Fallback screenshots/video indexes | Partiel | Tableau fallback, fichiers a joindre apres #155/#158. |
 | Recovery steps documented | Couvert | Reprises rapides ci-dessus. |

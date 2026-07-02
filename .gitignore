@@ -12,6 +12,8 @@ node_modules
 
 # Testing
 coverage
+apps/web/playwright-report/
+apps/web/test-results/
 
 # Turbo
 .turbo
@@ -21,7 +23,14 @@ coverage
 
 # Build Outputs
 dist
+build
 *.tsbuildinfo
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
 
 # Tool caches
 .tanstack/

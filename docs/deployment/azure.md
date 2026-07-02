@@ -14,7 +14,7 @@ MyTuums v1 deploys the web app to Azure Static Web Apps, the API to Azure App Se
 - Azure App Service for `apps/api`, using Node 22.
 - Azure Database for PostgreSQL Flexible Server.
 - Azure Storage account with private Blob containers for `user-media` and `game-covers`.
-- App settings for runtime secrets: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `WEB_APP_URL`, `DOCS_APP_URL`, `RESEND_API_KEY`, `SUPPORT_EMAIL`, `PRIVACY_EMAIL`, Azure Storage settings, `SENTRY_DSN`, `SENTRY_RELEASE`, `PUBLIC_SIGNUP_ENABLED`, and `MEDIA_UPLOADS_ENABLED`.
+- App settings for runtime secrets: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `WEB_APP_URL`, `DOCS_APP_URL`, `MOBILE_APP_URL`, `MOBILE_VERIFY_EMAIL_CALLBACK_URL`, `MOBILE_RESET_PASSWORD_CALLBACK_URL`, `RESEND_API_KEY`, `SUPPORT_EMAIL`, `PRIVACY_EMAIL`, Azure Storage settings, `SENTRY_DSN`, `SENTRY_RELEASE`, `PUBLIC_SIGNUP_ENABLED`, and `MEDIA_UPLOADS_ENABLED`.
 
 ## GitHub Configuration
 
@@ -26,7 +26,7 @@ Staging secrets and variables:
 - `STAGING_STATIC_WEB_APPS_API_TOKEN`
 - `STAGING_API_PUBLISH_PROFILE`
 - `STAGING_SENTRY_DSN`
-- `STAGING_API_URL`, `STAGING_WEB_URL`, `STAGING_API_APP_NAME`
+- `STAGING_API_URL`, `STAGING_WEB_URL`, `STAGING_MOBILE_APP_URL`, `STAGING_API_APP_NAME`
 
 Production secrets and variables:
 
@@ -38,7 +38,7 @@ Production secrets and variables:
 - `PRODUCTION_AZURE_STORAGE_ACCOUNT_NAME`
 - `PRODUCTION_AZURE_STORAGE_ACCOUNT_KEY`
 - `PRODUCTION_SENTRY_DSN`
-- `PRODUCTION_API_URL`, `PRODUCTION_WEB_URL`, `PRODUCTION_DOCS_URL`, `PRODUCTION_API_APP_NAME`
+- `PRODUCTION_API_URL`, `PRODUCTION_WEB_URL`, `PRODUCTION_DOCS_URL`, `PRODUCTION_MOBILE_APP_URL`, `PRODUCTION_API_APP_NAME`
 
 ## Release Flow
 

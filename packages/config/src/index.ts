@@ -1,5 +1,5 @@
-import { createEnv } from "@t3-oss/env-core";
-import { z } from "zod";
+import { createEnv } from "@t3-oss/env-core"
+import { z } from "zod"
 
 export const env = createEnv({
   server: {
@@ -12,6 +12,15 @@ export const env = createEnv({
     BETTER_AUTH_TRUSTED_ORIGINS: z.string().optional(),
     WEB_APP_URL: z.string().url().default("http://localhost:5173"),
     DOCS_APP_URL: z.string().url().default("http://localhost:5174"),
+    MOBILE_APP_URL: z.string().min(1).default("mytuums://"),
+    MOBILE_VERIFY_EMAIL_CALLBACK_URL: z
+      .string()
+      .min(1)
+      .default("mytuums://auth/verify-email"),
+    MOBILE_RESET_PASSWORD_CALLBACK_URL: z
+      .string()
+      .min(1)
+      .default("mytuums://auth/reset-password"),
 
     // Email (Resend)
     RESEND_API_KEY: z.string().optional(),
@@ -51,4 +60,4 @@ export const env = createEnv({
   runtimeEnv: process.env,
 
   emptyStringAsUndefined: true,
-});
+})

@@ -23,7 +23,7 @@ V1 remains deliberately narrow:
 - Seeded game catalog only.
 - Reactive moderation only.
 - In-app notifications only.
-- Web app only.
+- Web app plus a targeted Flutter Android/iOS MVP.
 - Azure-hosted production deployment.
 
 ## Scope Authority
@@ -52,7 +52,7 @@ If this PRD and the v1 scope set disagree, the scope wins unless a later ADR exp
 
 ## Release Posture
 
-The product must be usable on desktop and mobile web, enforce the documented ShadCN preset/theme, and ship with enough safety, audit, test, and operational infrastructure to support public signup and media uploads only after launch gates are satisfied.
+The product must be usable on desktop and mobile web, include a targeted Flutter Android/iOS MVP for complete auth/onboarding and core social flows, enforce the documented visual theme, and ship with enough safety, audit, test, and operational infrastructure to support public signup and media uploads only after launch gates are satisfied.
 
 Public signup and media uploads remain blocked until owner bootstrap, at least one additional moderator/admin, verified Resend sender/domain setup, support mailbox routing, and launch-ready legal pages including Legal Notice are complete.
 
@@ -79,4 +79,4 @@ CI and release gates should cover typecheck, lint, unit/integration tests, Drizz
 
 ## Out Of Scope
 
-The full out-of-scope list lives in the split v1 scope set. In short, v1 does not include messaging, live streaming, recommendations, native mobile apps, paid features, third-party ads, push/realtime systems, Redis/RabbitMQ worker infrastructure, OAuth/social login, passkeys, two-factor authentication, post/comment editing, hashtags, mentions, reposts, bookmarks, private accounts, follower-list pages, or analytics dashboards.
+The full out-of-scope list lives in the split v1 scope set. In short, v1 does not include messaging, live streaming, recommendations, full native mobile parity, Flutter desktop, paid features, third-party ads, push/realtime systems, Redis/RabbitMQ worker infrastructure, OAuth/social login, passkeys, two-factor authentication, post/comment editing, hashtags, mentions, reposts, bookmarks, private accounts, follower-list pages, or analytics dashboards.

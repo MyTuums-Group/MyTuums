@@ -184,6 +184,13 @@
           "sourcePath": "docs/adr/0003-custom-developer-documentation-app.md",
           "kind": "adr",
           "summary": "Choose a custom protected docs app over a third-party wiki."
+        },
+        {
+          "slug": "decisions/mobile-rest-facade-before-orpc",
+          "title": "Mobile REST facade before oRPC/OpenAPI",
+          "sourcePath": "docs/adr/0004-mobile-rest-facade-before-orpc.md",
+          "kind": "adr",
+          "summary": "Use a targeted REST facade for Flutter while keeping tRPC for web."
         }
       ]
     },

@@ -12,7 +12,9 @@ Explicitly out of scope for v1:
 - game tracker/stats
 - achievements/playtime/imported libraries
 - third-party gaming account integrations
-- React Native/mobile apps
+- React Native
+- Flutter desktop
+- full native mobile parity beyond the targeted Android/iOS MVP
 - PWA/offline/push notifications
 - Redis
 - RabbitMQ

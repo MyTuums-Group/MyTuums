@@ -1,6 +1,6 @@
 # MyTuums v1 Scope
 
-MyTuums v1 is a web-first social platform for gamers to post, browse, and discuss short-form gaming content. The first release focuses on public posts, profiles, game-tagged discovery, and basic moderation. Messaging, live streaming, game tracking, native mobile apps, and recommendation systems are intentionally deferred.
+MyTuums v1 is a web-first social platform for gamers to post, browse, and discuss short-form gaming content, with a targeted Flutter companion MVP for Android and iOS. The first release focuses on public posts, profiles, game-tagged discovery, basic moderation, and complete mobile authentication/onboarding. Messaging, live streaming, game tracking, full native mobile parity, desktop Flutter, and recommendation systems are intentionally deferred.
 
 ## Authority
 

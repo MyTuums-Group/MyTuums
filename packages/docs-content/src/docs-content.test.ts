@@ -58,6 +58,8 @@ describe("docs-content", () => {
     expect(isEligibleDocsSource("agent-doc", "docs/agents/issue-tracker.md")).toBe(true);
     expect(isEligibleDocsSource("team-convention", "docs/team-conventions.md")).toBe(true);
     expect(isEligibleDocsSource("codebase-doc", "docs/codebase/api/CONTEXT.md")).toBe(true);
+    expect(isEligibleDocsSource("codebase-doc", "docs/fil-rouge/README.md")).toBe(true);
+    expect(isEligibleDocsSource("codebase-doc", "docs/fil-rouge/demo/runbook.md")).toBe(true);
     expect(isEligibleDocsSource("ci-cd-doc", "docs/ci-cd/release.md")).toBe(true);
     expect(isEligibleDocsSource("deployment-doc", "docs/deployment/prod.md")).toBe(true);
     expect(isEligibleDocsSource("infrastructure-doc", "docs/infrastructure/azure.md")).toBe(true);
@@ -82,6 +84,7 @@ describe("docs-content", () => {
       ...(await listMarkdownFiles(path.join(repoRoot, "docs", "adr"), "docs/adr")),
       ...(await listMarkdownFiles(path.join(repoRoot, "docs", "agents"), "docs/agents")),
       ...(await listMarkdownFiles(path.join(repoRoot, "docs", "context"), "docs/context")),
+      ...(await listMarkdownFiles(path.join(repoRoot, "docs", "fil-rouge"), "docs/fil-rouge")),
       ...(await listMarkdownFiles(path.join(repoRoot, "docs", "prd"), "docs/prd")),
     ].sort();
 
@@ -89,6 +92,7 @@ describe("docs-content", () => {
       "orientation",
       "requirements",
       "decisions",
+      "fil-rouge",
       "rncp",
       "agent-workflows",
       "focused-contexts",

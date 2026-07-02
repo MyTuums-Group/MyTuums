@@ -202,7 +202,7 @@ Build a legal readiness and i18n layer for MyTuums v1:
 - Separate copyright portal in v1.
 - DPO appointment unless the company formally appoints one later.
 - Full localization into every official language or country-locale variant across the supported region.
-- Native mobile apps, PWA/offline/push notifications, or app-store legal materials.
+- Full native mobile parity, PWA/offline/push notifications, or app-store legal materials beyond the targeted Flutter Android/iOS MVP.
 
 ## Further Notes
 

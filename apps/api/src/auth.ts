@@ -1,10 +1,15 @@
-import { betterAuth } from "better-auth/minimal";
-import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { db } from "@workspace/db";
-import * as schema from "@workspace/db/schema";
-import { env } from "@workspace/config";
-import { sendEmail } from "./email.js";
-import { getAllowedCorsOrigins } from "./cors-origins.js";
+import { betterAuth } from "better-auth/minimal"
+import { drizzleAdapter } from "@better-auth/drizzle-adapter"
+import { db } from "@workspace/db"
+import * as schema from "@workspace/db/schema"
+import { env } from "@workspace/config"
+import { sendEmail } from "./email.js"
+import { getAllowedCorsOrigins } from "./cors-origins.js"
+import {
+  type AuthCallbackUrlConfig,
+  withResetCallback,
+  withVerificationCallback,
+} from "./auth/callback-url.js"
 
 // ── BetterAuth configuration ─────────────────────────────────────────
 
@@ -26,11 +31,12 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     sendResetPassword: async ({ user, url }) => {
+      const resetUrl = withResetCallback(url, getAuthCallbackUrlConfig())
       await sendEmail({
         to: user.email,
         subject: "Reset your MyTuums password",
-        html: resetPasswordTemplate({ user, url }),
-      });
+        html: resetPasswordTemplate({ user, url: resetUrl }),
+      })
     },
   },
 
@@ -39,13 +45,16 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      const verificationUrl = withWebCallback(url);
-      const html = verificationEmailTemplate({ user, url: verificationUrl });
+      const verificationUrl = withVerificationCallback(
+        url,
+        getAuthCallbackUrlConfig()
+      )
+      const html = verificationEmailTemplate({ user, url: verificationUrl })
       await sendEmail({
         to: user.email ?? "",
         subject: "Verify your MyTuums account",
         html,
-      });
+      })
     },
   },
 
@@ -66,45 +75,54 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: getTrustedOrigins(),
-});
+})
 
 function getTrustedOrigins(): string[] {
-  const configuredOrigins = parseOriginList(env.BETTER_AUTH_TRUSTED_ORIGINS);
+  const configuredOrigins = parseOriginList(env.BETTER_AUTH_TRUSTED_ORIGINS)
   if (configuredOrigins.length > 0) {
-    return configuredOrigins;
+    return configuredOrigins
   }
 
   return getAllowedCorsOrigins({
     nodeEnv: env.NODE_ENV,
-    webAppUrl: env.NODE_ENV === "production" ? process.env.WEB_APP_URL : env.WEB_APP_URL,
-    docsAppUrl: env.NODE_ENV === "production" ? process.env.DOCS_APP_URL : env.DOCS_APP_URL,
-  });
+    webAppUrl:
+      env.NODE_ENV === "production" ? process.env.WEB_APP_URL : env.WEB_APP_URL,
+    docsAppUrl:
+      env.NODE_ENV === "production"
+        ? process.env.DOCS_APP_URL
+        : env.DOCS_APP_URL,
+  }).concat(env.MOBILE_APP_URL)
 }
 
 function parseOriginList(value: string | undefined): string[] {
-  return value
-    ?.split(",")
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0) ?? [];
+  return (
+    value
+      ?.split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0) ?? []
+  )
+}
+
+function getAuthCallbackUrlConfig(): AuthCallbackUrlConfig {
+  return {
+    webAppUrl: env.WEB_APP_URL,
+    mobileAppUrl: env.MOBILE_APP_URL,
+    mobileVerifyEmailCallbackUrl: env.MOBILE_VERIFY_EMAIL_CALLBACK_URL,
+    mobileResetPasswordCallbackUrl: env.MOBILE_RESET_PASSWORD_CALLBACK_URL,
+  }
 }
 
 // ── Email templates ──────────────────────────────────────────────────
-
-function withWebCallback(url: string): string {
-  const verificationUrl = new URL(url);
-  verificationUrl.searchParams.set("callbackURL", env.WEB_APP_URL);
-  return verificationUrl.toString();
-}
 
 function verificationEmailTemplate({
   user,
   url,
 }: {
-  user: { email?: string | null; name?: string | null };
-  url: string;
+  user: { email?: string | null; name?: string | null }
+  url: string
 }): string {
-  const email = user.email ?? "";
-  const displayName = user.name ?? email;
+  const email = user.email ?? ""
+  const displayName = user.name ?? email
   return `<!DOCTYPE html>
 <html>
 <body style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
@@ -118,17 +136,17 @@ function verificationEmailTemplate({
     If you didn't create this account, you can safely ignore this email.
   </p>
 </body>
-</html>`;
+</html>`
 }
 
 function resetPasswordTemplate({
   user,
   url,
 }: {
-  user: { email: string; name?: string | null };
-  url: string;
+  user: { email: string; name?: string | null }
+  url: string
 }): string {
-  const displayName = user.name ?? user.email;
+  const displayName = user.name ?? user.email
   return `<!DOCTYPE html>
 <html>
 <body style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
@@ -142,5 +160,5 @@ function resetPasswordTemplate({
     If you didn't request this, you can safely ignore this email. The link expires in 1 hour.
   </p>
 </body>
-</html>`;
+</html>`
 }

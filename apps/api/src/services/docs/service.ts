@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+import path from "node:path";
 import type {
   DocsArtifact,
   DocsArtifactHomeEntry,
@@ -12,6 +14,15 @@ import type { AccountLifecycleSnapshot } from "../account-status/index.js";
 const DEFAULT_SEARCH_LIMIT = 10;
 const MAX_SEARCH_LIMIT = 25;
 const SEARCH_EXCERPT_LENGTH = 180;
+const MAX_DOCS_ASSET_BYTES = 5 * 1024 * 1024;
+const DOCS_ASSET_CONTENT_TYPES = new Map([
+  [".gif", "image/gif"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".webp", "image/webp"],
+]);
 
 export interface DocsViewer {
   session:
@@ -34,6 +45,10 @@ export interface DocsDiagramInput extends DocsPageInput {
   diagramId: string;
 }
 
+export interface DocsAssetInput extends DocsPageInput {
+  src: string;
+}
+
 export interface DocsSearchInput {
   query: string;
   limit?: number;
@@ -41,6 +56,7 @@ export interface DocsSearchInput {
 
 export interface DocsArtifactAdapter {
   readArtifact(): Promise<DocsArtifact>;
+  readAsset(sourcePath: string): Promise<Uint8Array | null>;
 }
 
 export type DocsPageDiagramMetadata = Omit<DocsDiagram, "snapshot">;
@@ -56,6 +72,22 @@ export interface DocsPageResult {
 
 export interface DocsDiagramResult {
   diagram: DocsDiagram;
+  page: {
+    sectionSlug: string;
+    sectionTitle: string;
+    pageSlug: string;
+    pageTitle: string;
+  };
+  build: DocsBuildMetadata;
+}
+
+export interface DocsAssetResult {
+  asset: {
+    sourcePath: string;
+    contentType: string;
+    base64: string;
+    byteLength: number;
+  };
   page: {
     sectionSlug: string;
     sectionTitle: string;
@@ -86,6 +118,7 @@ export interface DocsService {
   getNavigation(viewer: DocsViewer): Promise<DocsNavigationPayload>;
   getPage(viewer: DocsViewer, input: DocsPageInput): Promise<DocsPageResult>;
   getDiagram(viewer: DocsViewer, input: DocsDiagramInput): Promise<DocsDiagramResult>;
+  getAsset(viewer: DocsViewer, input: DocsAssetInput): Promise<DocsAssetResult>;
   search(viewer: DocsViewer, input: DocsSearchInput): Promise<DocsSearchResult[]>;
 }
 
@@ -135,6 +168,20 @@ export class DocsDiagramNotFoundError extends Error {
     this.sectionSlug = sectionSlug;
     this.pageSlug = pageSlug;
     this.diagramId = diagramId;
+  }
+}
+
+export class DocsAssetNotFoundError extends Error {
+  readonly sectionSlug: string;
+  readonly pageSlug: string;
+  readonly src: string;
+
+  constructor(sectionSlug: string, pageSlug: string, src: string) {
+    super(`Asset not found for ${sectionSlug}/${pageSlug}: ${src}`);
+    this.name = "DocsAssetNotFoundError";
+    this.sectionSlug = sectionSlug;
+    this.pageSlug = pageSlug;
+    this.src = src;
   }
 }
 
@@ -209,6 +256,42 @@ export function createDocsService(adapter: DocsArtifactAdapter): DocsService {
       };
     },
 
+    async getAsset(viewer, input) {
+      assertCanReadDocs(viewer);
+      const artifact = await adapter.readArtifact();
+      const page = findArtifactPage(artifact, input);
+
+      if (!page) {
+        throw new DocsPageNotFoundError(input.sectionSlug, input.pageSlug);
+      }
+
+      const resolvedAsset = resolveDocsAsset(page.sourcePath, input.src);
+      if (resolvedAsset === null) {
+        throw new DocsAssetNotFoundError(input.sectionSlug, input.pageSlug, input.src);
+      }
+
+      const bytes = await adapter.readAsset(resolvedAsset.sourcePath);
+      if (!bytes || bytes.byteLength > MAX_DOCS_ASSET_BYTES) {
+        throw new DocsAssetNotFoundError(input.sectionSlug, input.pageSlug, input.src);
+      }
+
+      return {
+        asset: {
+          sourcePath: resolvedAsset.sourcePath,
+          contentType: resolvedAsset.contentType,
+          base64: Buffer.from(bytes).toString("base64"),
+          byteLength: bytes.byteLength,
+        },
+        page: {
+          sectionSlug: page.sectionId,
+          sectionTitle: page.sectionTitle,
+          pageSlug: page.slug,
+          pageTitle: page.title,
+        },
+        build: artifact.build,
+      };
+    },
+
     async search(viewer, input) {
       assertCanReadDocs(viewer);
       return searchDocsIndex((await adapter.readArtifact()).searchIndex, input);
@@ -234,7 +317,74 @@ export function createInMemoryDocsService(artifact: DocsArtifact): DocsService {
     readArtifact() {
       return Promise.resolve(artifact);
     },
+    readAsset() {
+      return Promise.resolve(null);
+    },
   });
+}
+
+function resolveDocsAsset(
+  pageSourcePath: string,
+  src: string,
+): { sourcePath: string; contentType: string } | null {
+  const trimmedSrc = src.trim();
+  if (trimmedSrc.length === 0 || isExternalLink(trimmedSrc) || trimmedSrc.startsWith("/")) {
+    return null;
+  }
+
+  const assetPathPart = stripUrlSuffix(trimmedSrc);
+  if (
+    assetPathPart.length === 0 ||
+    assetPathPart.startsWith("#") ||
+    assetPathPart.startsWith("diagram:")
+  ) {
+    return null;
+  }
+
+  const extension = path.posix.extname(assetPathPart).toLowerCase();
+  const contentType = DOCS_ASSET_CONTENT_TYPES.get(extension);
+  if (contentType === undefined) {
+    return null;
+  }
+
+  const pageDirectory = path.posix.dirname(pageSourcePath);
+  const normalizedAssetPath = path.posix.normalize(
+    path.posix.join(pageDirectory, assetPathPart.replace(/\\/gu, "/")),
+  );
+
+  if (!isPathInsideDirectory(normalizedAssetPath, pageDirectory)) {
+    return null;
+  }
+
+  return {
+    sourcePath: normalizedAssetPath,
+    contentType,
+  };
+}
+
+function stripUrlSuffix(src: string): string {
+  const queryIndex = src.indexOf("?");
+  const hashIndex = src.indexOf("#");
+  const suffixIndexes = [queryIndex, hashIndex].filter((index) => index >= 0);
+  const firstSuffixIndex = Math.min(...suffixIndexes);
+
+  return suffixIndexes.length === 0 ? src : src.slice(0, firstSuffixIndex);
+}
+
+function isPathInsideDirectory(targetPath: string, directory: string): boolean {
+  if (targetPath === "." || targetPath === ".." || targetPath.startsWith("../")) {
+    return false;
+  }
+
+  if (directory === ".") {
+    return !targetPath.startsWith("/");
+  }
+
+  return targetPath.startsWith(`${directory}/`);
+}
+
+function isExternalLink(href: string): boolean {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(href);
 }
 
 interface RankedDocsSearchResult extends DocsSearchResult {

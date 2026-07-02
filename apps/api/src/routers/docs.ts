@@ -1,12 +1,14 @@
 import { z } from "zod";
 import {
   DocsAccessError,
+  DocsAssetNotFoundError,
   DocsDiagramNotFoundError,
   DocsPageNotFoundError,
 } from "../services/docs/index.js";
 import { docsService } from "../services/docs/production.js";
 import {
   mapDocsAccessErrorToTRPC,
+  mapDocsAssetErrorToTRPC,
   mapDocsDiagramErrorToTRPC,
   mapDocsPageErrorToTRPC,
 } from "../transport/docs-errors.js";
@@ -67,6 +69,28 @@ export const docsRouter = router({
       }
     }),
 
+  asset: protectedProcedure
+    .input(
+      z.object({
+        sectionSlug: z.string().min(1),
+        pageSlug: z.string().min(1),
+        src: z.string().min(1).max(500),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await docsService.getAsset(
+          {
+            session: ctx.session,
+            account: ctx.accountLifecycle,
+          },
+          input,
+        );
+      } catch (error) {
+        rethrowDocsError(error);
+      }
+    }),
+
   search: protectedProcedure
     .input(
       z.object({
@@ -100,6 +124,10 @@ function rethrowDocsError(error: unknown): never {
 
   if (error instanceof DocsDiagramNotFoundError) {
     throw mapDocsDiagramErrorToTRPC(error);
+  }
+
+  if (error instanceof DocsAssetNotFoundError) {
+    throw mapDocsAssetErrorToTRPC(error);
   }
 
   throw error;

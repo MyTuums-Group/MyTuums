@@ -12,6 +12,7 @@ export type DocsReaderBootstrap = inferRouterOutputs<AppRouter>["docs"]["navigat
 export type DocsNavigation = DocsReaderBootstrap["sections"]
 export type DocsPageRead = inferRouterOutputs<AppRouter>["docs"]["page"]
 export type DocsDiagramRead = inferRouterOutputs<AppRouter>["docs"]["diagram"]
+export type DocsAssetRead = inferRouterOutputs<AppRouter>["docs"]["asset"]
 export type DocsSearchResult = inferRouterOutputs<AppRouter>["docs"]["search"][number]
 
 export function getApiBase() {

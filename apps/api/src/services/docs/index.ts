@@ -1,4 +1,6 @@
 export type {
+  DocsAssetInput,
+  DocsAssetResult,
   DocsArtifactAdapter,
   DocsDiagramInput,
   DocsDiagramResult,
@@ -17,6 +19,7 @@ export {
   createDocsService,
   createInMemoryDocsService,
   DocsAccessError,
+  DocsAssetNotFoundError,
   DocsDiagramNotFoundError,
   DocsPageNotFoundError,
 } from "./service.js";

@@ -1,17 +1,19 @@
-import type { ReactNode } from "react"
+import { startTransition, type ReactNode, useEffect, useState } from "react"
 import ReactMarkdown, { type Components } from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
 import remarkGfm from "remark-gfm"
 import { cn } from "@workspace/ui/lib/utils"
 import { DocsDiagramViewer } from "./docs-diagram-viewer"
-import type { DocsPageRead } from "../lib/trpc"
+import { createTrpcClient, type DocsAssetRead, type DocsPageRead } from "../lib/trpc"
 
 type MarkdownPage = DocsPageRead["page"]
 type MarkdownBuild = DocsPageRead["build"]
 type MarkdownHeading = MarkdownPage["headings"][number]
 type MarkdownDiagram = MarkdownPage["diagrams"][number]
+type MarkdownImageStatus = "loading" | "ready" | "error"
 
 const CALLOUT_MARKER_PATTERN = /^(>\s*)\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/iu
+const docsClient = createTrpcClient()
 
 export function DocsMarkdownReader({
   page,
@@ -225,6 +227,17 @@ function renderImageOrDiagram({
     return null
   }
 
+  if (isProtectedDocsAssetSrc(src)) {
+    return (
+      <DocsMarkdownImage
+        alt={alt ?? ""}
+        pageSlug={pageSlug}
+        sectionSlug={sectionSlug}
+        src={src}
+      />
+    )
+  }
+
   return (
     <img
       alt={alt ?? ""}
@@ -233,6 +246,110 @@ function renderImageOrDiagram({
       src={src}
     />
   )
+}
+
+function DocsMarkdownImage({
+  alt,
+  pageSlug,
+  sectionSlug,
+  src,
+}: {
+  alt: string
+  pageSlug: string
+  sectionSlug: string
+  src: string
+}) {
+  const [asset, setAsset] = useState<DocsAssetRead["asset"] | null>(null)
+  const [status, setStatus] = useState<MarkdownImageStatus>("loading")
+
+  useEffect(() => {
+    let cancelled = false
+
+    setAsset(null)
+    setStatus("loading")
+
+    void docsClient.docs.asset
+      .query({
+        sectionSlug,
+        pageSlug,
+        src,
+      })
+      .then((assetRead) => {
+        if (cancelled) {
+          return
+        }
+
+        startTransition(() => {
+          setAsset(assetRead.asset)
+          setStatus("ready")
+        })
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+
+        startTransition(() => {
+          setAsset(null)
+          setStatus("error")
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [pageSlug, sectionSlug, src])
+
+  if (status === "error") {
+    return (
+      <span className="my-6 block rounded-lg border border-destructive/35 bg-card px-3 py-2 text-sm text-destructive">
+        Image unavailable: {alt || src}
+      </span>
+    )
+  }
+
+  if (status === "loading" || asset === null) {
+    return (
+      <span
+        className="my-6 block rounded-lg border border-border/70 bg-muted/45 px-3 py-2 text-sm text-muted-foreground"
+        data-docs-asset-src={src}
+      >
+        Loading image...
+      </span>
+    )
+  }
+
+  return (
+    <img
+      alt={alt}
+      className="my-6 max-w-full rounded-xl border border-border/70 shadow-sm"
+      data-docs-asset-source-path={asset.sourcePath}
+      loading="lazy"
+      src={`data:${asset.contentType};base64,${asset.base64}`}
+    />
+  )
+}
+
+function isProtectedDocsAssetSrc(src: string): boolean {
+  const trimmedSrc = src.trim()
+
+  if (
+    trimmedSrc.length === 0 ||
+    trimmedSrc.startsWith("#") ||
+    trimmedSrc.startsWith("/") ||
+    trimmedSrc.startsWith("data:") ||
+    trimmedSrc.startsWith("blob:") ||
+    trimmedSrc.startsWith("diagram:")
+  ) {
+    return false
+  }
+
+  try {
+    new URL(trimmedSrc)
+    return false
+  } catch {
+    return true
+  }
 }
 
 function renderHeading(level: number, heading: MarkdownHeading | null, children: ReactNode) {
@@ -370,6 +487,10 @@ function formatDateTime(value: string): string {
 function safeUrlTransform(url: string): string {
   const trimmedUrl = url.trim()
 
+  if (isSafeRelativeUrl(trimmedUrl)) {
+    return trimmedUrl
+  }
+
   if (
     trimmedUrl.startsWith("#") ||
     trimmedUrl.startsWith("diagram:") ||
@@ -390,4 +511,22 @@ function safeUrlTransform(url: string): string {
   }
 
   return ""
+}
+
+function isSafeRelativeUrl(url: string): boolean {
+  if (
+    url.length === 0 ||
+    url.startsWith("#") ||
+    url.startsWith("/") ||
+    url.startsWith("\\") ||
+    url.includes("\u0000")
+  ) {
+    return false
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:/iu.test(url) || url.startsWith("//")) {
+    return false
+  }
+
+  return true
 }

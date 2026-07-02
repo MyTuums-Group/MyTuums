@@ -18,10 +18,10 @@ Verifier que le pack fil rouge est complet, coherent et presentable avant rendu.
 | [Captures responsive web](preuve-responsive-web-155.md) | UI multi-support | Couvert | AcryTeryx | #155 | Relire avant integration dans le runbook final. |
 | Axe + audit manuel | Accessibilite | Bloque | AcryTeryx | #156 | Joindre resultats et limites. |
 | Performance frontend | Temps de chargement | Bloque | AcryTeryx | #156 | Joindre mesure Lighthouse/equivalent. |
-| Flutter analyze/test/build | Mobile | Partiel | AcryTeryx | #157 | PR #164 mergee, rejouer et joindre logs du poste de demo. |
-| Captures/video mobile | Mobile fallback | A produire | AcryTeryx | #158 | Joindre supports. |
+| [Flutter analyze/test](preuve-mobile-157-158.md) | Mobile | Couvert | AcryTeryx | #157 | Logs locaux 2026-07-02 ajoutes ; build Android/iOS depend du poste de demo. |
+| Captures/video mobile | Mobile fallback | Bloque | AcryTeryx | #158 | Android SDK/emulateur ou device requis. |
 | [Smoke local full-stack](preuve-smoke-local-152.md) | Validation locale multi-tiers | Couvert | AcryTeryx | #152 | Captures automatiques ajoutees ; rejouer avant l'oral si l'environnement change. |
-| [Pilotage collaboration](pilotage-collaboration.md) | Git, collaboration, gestion projet | Couvert | ElCabrii | #159 | Joindre captures board/CI. |
+| [Pilotage collaboration](pilotage-collaboration.md) et [preuve #159](preuve-pilotage-159.md) | Git, collaboration, gestion projet | Couvert | ElCabrii | #159 | Capture graphique optionnelle pour le support oral. |
 | [Runbook demo](runbook-demo.md) | Demo et fallback | Partiel | ElCabrii | #160 | Finaliser apres preuves mobile #157/#158. |
 | [Scripts oraux](scripts-oraux.md) | Oral 10/20 min | Partiel | ElCabrii | #161 | Chronometrer. |
 | [Diaporama fil rouge](diaporama-fil-rouge.md) | Support oral | Partiel | ElCabrii | #161 | Exporter le diaporama final, chronométrer la présentation et enrichir avec captures finales si disponibles. |

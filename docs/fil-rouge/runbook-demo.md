@@ -51,12 +51,12 @@ Mobile Android :
 
 ```powershell
 Set-Location apps/mobile
-& 'C:\Users\Gabriel\flutter\bin\flutter.bat' analyze
-& 'C:\Users\Gabriel\flutter\bin\flutter.bat' test
-& 'C:\Users\Gabriel\flutter\bin\flutter.bat' run --dart-define=MYTUUMS_API_BASE_URL=http://10.0.2.2:4000
+flutter analyze
+flutter test
+flutter run --dart-define=MYTUUMS_API_BASE_URL=http://10.0.2.2:4000
 ```
 
-Validation mobile deja executee pendant la PR #164 : `dart format`, `flutter pub get`, `flutter analyze`, `flutter test`, tests API mobile, typecheck API et lint cible. A rejouer sur le poste de demo avant l'oral.
+Validation mobile deja executee pendant la PR #164 : `dart format`, `flutter pub get`, `flutter analyze`, `flutter test`, tests API mobile, typecheck API et lint cible. Rejouee localement le 2026-07-02 avec Flutter 3.44.4 : voir [preuve mobile #157/#158](preuve-mobile-157-158.md). A rejouer sur le poste de demo avant l'oral.
 
 Mobile iOS simulator :
 
@@ -84,7 +84,7 @@ L'iOS doit etre valide sur macOS.
 | [Captures web desktop/tablette/mobile](preuve-responsive-web-155.md) | Auth, feed, post creation, search, profile, report/moderation | AcryTeryx | #155 |
 | Logs full-stack | `infra`, `smoke:setup`, `smoke`, CI locale | AcryTeryx | #152, [preuve smoke local](preuve-smoke-local-152.md) |
 | Captures accessibilite/performance | Axe, audit manuel, Lighthouse ou equivalent | AcryTeryx | #156 |
-| Captures mobile | Android ou iOS, auth, feed, discover, composer, report | AcryTeryx | #158 |
+| Captures mobile | Android ou iOS, auth, feed, discover, composer, report | AcryTeryx | #158, protocole dans [preuve mobile](preuve-mobile-157-158.md) |
 | Video courte mobile optionnelle | Parcours core mobile | AcryTeryx | #158 |
 | Diaporama pre-final | Source Markdown du récit oral, à exporter manuellement | ElCabrii | #161 |
 

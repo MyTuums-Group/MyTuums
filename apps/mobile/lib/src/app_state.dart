@@ -41,7 +41,7 @@ class AppState extends ChangeNotifier {
     required bool ageConfirmed,
   }) async {
     if (!ageConfirmed) {
-      _fail('Confirm that you are at least 15 years old.');
+      _fail('Confirm that you are at least 16 years old.');
       return;
     }
     if (password != confirmation) {

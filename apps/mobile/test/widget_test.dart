@@ -10,6 +10,7 @@ import 'package:mytuums_mobile/src/mobile_config.dart';
 import 'package:mytuums_mobile/src/mytuums_mobile_app.dart';
 import 'package:mytuums_mobile/src/mobile_theme.dart';
 import 'package:mytuums_mobile/src/screens/app_home_screen.dart';
+import 'package:mytuums_mobile/src/screens/auth_screens.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 void main() {
@@ -68,6 +69,19 @@ void main() {
 
     expect(captured.brightness, Brightness.dark);
     expect(captured.primary, MobileTheme.darkColorScheme.primary);
+  });
+
+  testWidgets('register screen uses the v1 16+ eligibility wording', (
+    tester,
+  ) async {
+    _setPhoneViewport(tester);
+    final state = _signedOutState();
+
+    await _pumpScopedApp(tester, state, const LoginScreen());
+    await tester.tap(find.text('Create an account'));
+    await _pumpUi(tester);
+
+    expect(find.text('I am at least 16 years old'), findsOneWidget);
   });
 
   testWidgets(
@@ -169,6 +183,14 @@ Future<void> _pumpScopedApp(WidgetTester tester, AppState state, Widget child) {
 Future<void> _pumpUi(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
+}
+
+AppState _signedOutState() {
+  final state = _signedInState();
+  state.phase = AppPhase.signedOut;
+  state.sessionState = {'kind': 'anonymous'};
+  state.activeFeed = null;
+  return state;
 }
 
 AppState _signedInState() {

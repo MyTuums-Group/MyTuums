@@ -1,6 +1,6 @@
 # Pilotage et collaboration
 
-Statut : version prete pour revue pour issue #159, captures board/CI a joindre.
+Statut : version prete pour revue pour issue #159, preuves board/CI indexees.
 
 ## Objectif
 
@@ -53,13 +53,13 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 
 | Trace | Pourquoi | Statut |
 | --- | --- | --- |
-| Projet `Tasks` avec issues fil rouge | Prouve suivi d'avancement et repartition | A capturer |
+| Projet `Tasks` avec issues fil rouge | Prouve suivi d'avancement et repartition | Couvert par [preuve #159](preuve-pilotage-159.md) |
 | Liste des issues #151 a #162 | Prouve decoupage du travail | Couvert par GitHub |
 | PR representative backend/service | Prouve implementation et revue technique | A selectionner dans les PR service/API mergees |
 | PR representative frontend/UI | Prouve interface et tests web | A selectionner dans les PR web mergees |
 | PR docs fil rouge | Prouve dossier projet fil rouge separe de RNCP | Cette branche/PR |
-| PR mobile #164 | Prouve MVP Flutter et facade REST mobile | Couvert par PR #164, captures a joindre via #158 |
-| CI verte | Prouve qualite continue | Checks PR #164/#165/#166 verts, capture finale a joindre |
+| PR mobile #164 | Prouve MVP Flutter et facade REST mobile | Couvert par PR #164 et [preuve mobile](preuve-mobile-157-158.md), captures a joindre via #158 |
+| CI verte | Prouve qualite continue | Couvert par [preuve #159](preuve-pilotage-159.md) pour PR #164/#165/#167/#168 |
 | Historique Git local | Prouve versioning | Couvert |
 
 ## Decisions et arbitrages
@@ -77,6 +77,6 @@ Montrer que MyTuums a ete pilote comme un projet informatique : cadrage, prioris
 | Critere | Statut | Preuve |
 | --- | --- | --- |
 | Planning previsionnel/reel ecrit | Couvert | Tableau ci-dessus. |
-| GitHub Issues/Tasks/PR/CI evidence capturee | Partiel | Liste des captures a produire, PR #164 deja identifiee. |
+| GitHub Issues/Tasks/PR/CI evidence capturee | Couvert | [Preuve pilotage #159](preuve-pilotage-159.md). |
 | Roles ElCabrii/AcryTeryx clairs | Couvert | Repartition ci-dessus. |
 | Decisions et tradeoffs resumes | Couvert | Tableau decisions et arbitrages. |

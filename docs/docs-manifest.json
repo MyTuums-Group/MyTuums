@@ -263,6 +263,20 @@
           "summary": "Issue #155 desktop, tablet, and mobile web screenshot evidence."
         },
         {
+          "slug": "fil-rouge/mobile-evidence",
+          "title": "Mobile Evidence",
+          "sourcePath": "docs/fil-rouge/preuve-mobile-157-158.md",
+          "kind": "codebase-doc",
+          "summary": "Issue #157 Flutter validation and #158 Android/iOS capture checklist."
+        },
+        {
+          "slug": "fil-rouge/project-management-evidence",
+          "title": "Project Management Evidence",
+          "sourcePath": "docs/fil-rouge/preuve-pilotage-159.md",
+          "kind": "codebase-doc",
+          "summary": "Issue #159 Tasks board, PR, CI, and collaboration evidence."
+        },
+        {
           "slug": "fil-rouge/oral-scripts",
           "title": "Oral Scripts",
           "sourcePath": "docs/fil-rouge/scripts-oraux.md",

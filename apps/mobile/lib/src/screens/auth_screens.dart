@@ -137,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onChanged: (value) => setState(
                 () => _ageConfirmed = value == CheckboxState.checked,
               ),
-              trailing: const Text('I am at least 15 years old'),
+              trailing: const Text('I am at least 16 years old'),
             ),
           ),
           PrimaryAction(

@@ -39,7 +39,7 @@ Legende :
 | --- | --- | --- | --- | --- | --- |
 | Implementer une architecture backend orientee services | `apps/api/src/services/**`, [Architecture technique jury](architecture-technique-jury.md), [Architecture scope](../prd/v1-scope/architecture.md) | Couvert | Equipe | #154 | Montrer media et moderation si le jury demande un exemple. |
 | Structurer le code selon les bonnes pratiques d'architecture logicielle | Services/adapters, [Architecture technique jury](architecture-technique-jury.md), [Coding practices](../context/coding-practices/CONTEXT.md) | Couvert | Equipe | #154 | Citer CI et docs validation comme controle de non-regression. |
-| Suivre SOLID, DRY, KISS et bonnes pratiques de code | Modules profonds, tests services, refactors traces par PR | Partiel | Equipe | #159 | Citer une PR/refactor representative dans le dossier pilotage. |
+| Suivre SOLID, DRY, KISS et bonnes pratiques de code | Modules profonds, tests services, refactors traces par PR, [preuve pilotage #159](preuve-pilotage-159.md) | Couvert | Equipe | #159 | Relire les exemples avant oral. |
 | Gerer les appels vers une base relationnelle ou NoSQL | PostgreSQL + Drizzle, migrations, adapters DB, [Modele de donnees jury](modele-donnees-jury.md) | Couvert | Equipe | #154 | Relire les flux DB avant oral. |
 | Concevoir un modele de donnees pour les entites | [Modele de donnees jury](modele-donnees-jury.md), `packages/db/src/schema.ts`, [Core data entities](../prd/v1-scope/data-entities.md) | Couvert | Equipe | #154 | Relire les entites principales avant oral. |
 | Ecrire des requetes SQL ou operations NoSQL entre API et DB | Drizzle adapters, migrations, search Postgres, feed queries, [Modele de donnees jury](modele-donnees-jury.md) | Couvert | Equipe | #154 | Expliquer publication, media ou moderation selon question jury. |
@@ -51,17 +51,17 @@ Legende :
 
 | Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
-| Developper une application Android et/ou iOS | Flutter MVP dans `apps/mobile`, ADR mobile REST facade, PR #164 mergee le 2026-07-02 | Partiel | AcryTeryx | #157 | Rejouer `flutter analyze`, `flutter test`, build/debug sur le poste de demo. |
-| Fournir une version mobile du projet initial | MVP mobile auth, onboarding, feed, discover, composer, post detail, like, report, logout | A produire | AcryTeryx | #157, #158 | Capturer demo emulateur ou video courte. |
-| Documenter setup et API URL mobile | [Runbook de demo](runbook-demo.md), `apps/mobile/README.md` | Partiel | ElCabrii | #160 | Verifier commande finale Android/iOS avant oral. |
+| Developper une application Android et/ou iOS | Flutter MVP dans `apps/mobile`, ADR mobile REST facade, PR #164 mergee le 2026-07-02, [preuve mobile #157/#158](preuve-mobile-157-158.md) | Couvert | AcryTeryx | #157 | Capturer un run Android/iOS pour #158 si un device/emulateur est disponible. |
+| Fournir une version mobile du projet initial | MVP mobile auth, onboarding, feed, discover, composer, post detail, like, report, logout, `flutter analyze`, `flutter test` | Partiel | AcryTeryx | #157, #158 | Joindre captures Android/iOS ou video courte. |
+| Documenter setup et API URL mobile | [Runbook de demo](runbook-demo.md), `apps/mobile/README.md`, [preuve mobile #157/#158](preuve-mobile-157-158.md) | Couvert | ElCabrii | #160 | Rejouer la commande Android/iOS sur le poste de demo. |
 
 ## Collaboration, Git et gestion projet
 
 | Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Versionner son code avec Git | Historique Git, branches, PR, commits | Couvert | Equipe | #159 | Selectionner 3 commits/PR representatifs. |
-| Collaborer et communiquer avec GitHub/Trello/Notion/Teams ou equivalent | GitHub Issues, Project Tasks, PR, CI, repartition ElCabrii/AcryTeryx | Couvert | ElCabrii | #159 | Capturer board Tasks et issues fil rouge. |
-| Gerer un projet informatique : planification et suivi | [Pilotage et collaboration](pilotage-collaboration.md) | Partiel | ElCabrii | #159 | Completer dates reelles et ecarts. |
+| Collaborer et communiquer avec GitHub/Trello/Notion/Teams ou equivalent | GitHub Issues, Project Tasks, PR, CI, repartition ElCabrii/AcryTeryx, [preuve pilotage #159](preuve-pilotage-159.md) | Couvert | ElCabrii | #159 | Capture graphique optionnelle pour le support oral. |
+| Gerer un projet informatique : planification et suivi | [Pilotage et collaboration](pilotage-collaboration.md), [preuve pilotage #159](preuve-pilotage-159.md) | Couvert | ElCabrii | #159 | Relire avec le discours final. |
 | Montrer une note transverse pendant oral intermediaire 10 minutes | [Scripts oraux](scripts-oraux.md) | Partiel | ElCabrii | #161 | Chronometrer le script 10 minutes. |
 | Montrer une note technique pendant oral final 20 minutes | [Scripts oraux](scripts-oraux.md) | Partiel | ElCabrii | #161 | Chronometrer le script 20 minutes. |
 

@@ -19,6 +19,8 @@ Ce dossier rassemble les livrables du projet fil rouge pour MyTuums. Il est volo
 - [Preuve responsive web #155](preuve-responsive-web-155.md) : captures desktop/tablette/mobile des parcours web principaux.
 - [Pilotage et collaboration](pilotage-collaboration.md) : planning, traces GitHub, repartition ElCabrii/AcryTeryx, decisions et arbitrages.
 - [Runbook de demo](runbook-demo.md) : sequence locale minutee, services, commandes, donnees, supports de repli et procedures de reprise.
+- [Preuve mobile #157/#158](preuve-mobile-157-158.md) : validation Flutter, surfaces mobiles et checklist de capture Android/iOS.
+- [Preuve pilotage #159](preuve-pilotage-159.md) : snapshot board, PR representatives et checks CI.
 - [Scripts oraux](scripts-oraux.md) : scripts 10 minutes et 20 minutes, avec repartition speaker.
 - [Diaporama fil rouge](diaporama-fil-rouge.md) : source Markdown du support oral.
 - [Questions reponses jury](questions-reponses-jury.md) : questions probables et angles de reponse.

@@ -1,6 +1,6 @@
 # Runbook de demo
 
-Statut : version prete pour repetition, validation finale dependante de #152, #155, #157 et #158.
+Statut : version prete pour repetition, validation finale dependante de #157 et #158.
 
 ## Objectif
 
@@ -13,8 +13,8 @@ Permettre une demo locale fluide de MyTuums et prevoir un support de repli si un
 | 0:00 - 1:00 | Rappeler le sujet libre | MyTuums remplace Smart Cafe mais couvre les memes competences | [Scripts oraux](scripts-oraux.md) |
 | 1:00 - 3:00 | Montrer la matrice du projet fil rouge | Chaque attendu PDF est relie a une preuve | [Matrice](matrice-conformite-projet-fil-rouge.md) |
 | 3:00 - 5:00 | Lancer ou montrer la stack locale | Web + API + DB + mail + storage | Logs #152 |
-| 5:00 - 8:00 | Parcours web utilisateur | Auth, onboarding, feed, post, search | Captures #155 |
-| 8:00 - 10:00 | Parcours interaction | Commentaire, like, follow, report | Captures/video #155 |
+| 5:00 - 8:00 | Parcours web utilisateur | Auth, onboarding, feed, post, search | [Captures #155](preuve-responsive-web-155.md) |
+| 8:00 - 10:00 | Parcours interaction | Commentaire, like, follow, report | [Captures #155](preuve-responsive-web-155.md) |
 | 10:00 - 12:00 | Parcours moderation/admin | Signalement, action staff, audit | Captures web ou tests moderation |
 | 12:00 - 14:00 | Mobile Flutter | MVP Android/iOS avec API locale | Captures/video #158 |
 | 14:00 - 16:00 | Architecture et donnees | Web/API/DB/blob/email/mobile | [Architecture technique jury](architecture-technique-jury.md), [Modele de donnees jury](modele-donnees-jury.md) |
@@ -81,7 +81,7 @@ L'iOS doit etre valide sur macOS.
 
 | Support | Contenu attendu | Responsable | Issue |
 | --- | --- | --- | --- |
-| Captures web desktop/tablette/mobile | Auth, feed, post creation, search, profile, report/moderation | AcryTeryx | #155 |
+| [Captures web desktop/tablette/mobile](preuve-responsive-web-155.md) | Auth, feed, post creation, search, profile, report/moderation | AcryTeryx | #155 |
 | Logs full-stack | `infra`, `smoke:setup`, `smoke`, CI locale | AcryTeryx | #152, [preuve smoke local](preuve-smoke-local-152.md) |
 | Captures accessibilite/performance | Axe, audit manuel, Lighthouse ou equivalent | AcryTeryx | #156 |
 | Captures mobile | Android ou iOS, auth, feed, discover, composer, report | AcryTeryx | #158 |
@@ -106,5 +106,5 @@ L'iOS doit etre valide sur macOS.
 | --- | --- | --- |
 | Demo order fixe et time | Couvert | Sequence minutee ci-dessus. |
 | Services, commandes, comptes, donnees listes | Partiel | Services et comptes smoke valides via #152 ; compte staff a preparer pour la demo admin. |
-| Fallback screenshots/video indexes | Partiel | Tableau fallback, fichiers a joindre apres #155/#158. |
+| Fallback screenshots/video indexes | Partiel | Captures web #155 indexees ; captures mobile #158 a joindre. |
 | Recovery steps documented | Couvert | Reprises rapides ci-dessus. |

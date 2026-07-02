@@ -26,12 +26,12 @@ Legende :
 | Attendu projet fil rouge | Preuve MyTuums | Statut | Responsable | Issue liee | Action restante |
 | --- | --- | --- | --- | --- | --- |
 | Concevoir une application web avec un framework moderne | React 19, Vite, TanStack Router dans [README](https://github.com/MyTuums-Group/MyTuums/blob/main/README.md), application `apps/web` | Couvert | Equipe | #153 | Selectionner 2 captures web pour l'oral. |
-| Developper des interfaces compatibles desktop, tablette et smartphone | Web responsive, [DESIGN](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md), captures a collecter | Bloque | AcryTeryx | #155 | Joindre captures desktop/tablette/mobile. |
-| Concevoir des interfaces UI/UX | [DESIGN](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md), parcours dans [Document fonctionnel jury](document-fonctionnel-jury.md) | Partiel | Equipe | #153, #155 | Completer par captures de feed, composer, profile, moderation. |
+| Developper des interfaces compatibles desktop, tablette et smartphone | Web responsive, [DESIGN](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md), [preuve responsive web #155](preuve-responsive-web-155.md) | Couvert | AcryTeryx | #155 | Relire avant oral. |
+| Concevoir des interfaces UI/UX | [DESIGN](https://github.com/MyTuums-Group/MyTuums/blob/main/DESIGN.md), parcours dans [Document fonctionnel jury](document-fonctionnel-jury.md), [preuve responsive web #155](preuve-responsive-web-155.md) | Couvert | Equipe | #153, #155 | Selectionner les captures a montrer dans le diaporama. |
 | Respecter les normes d'accessibilite | Page accessibilite produit, `pnpm axe:smoke`, rapport manuel attendu | Bloque | AcryTeryx | #156 | Joindre resultat axe et audit clavier/focus/contraste. |
 | Optimiser les temps de chargement et performances frontend | Build Vite, smoke Playwright, Lighthouse ou mesure equivalente attendue | Bloque | AcryTeryx | #156 | Ajouter mesure performance et conclusion. |
-| Fournir des feedbacks clairs : erreurs, validations, succes/echec/chargement | Auth, onboarding, composer, report sheet, notifications UI | Partiel | Equipe | #153, #155 | Illustrer avec captures des etats erreur/loading/succes. |
-| Accompagner l'utilisateur avec des interactions fluides | Parcours demo web et mobile dans [Runbook de demo](runbook-demo.md), [preuve smoke local #152](preuve-smoke-local-152.md) | Partiel | ElCabrii | #160 | Completer avec captures web/mobile finales. |
+| Fournir des feedbacks clairs : erreurs, validations, succes/echec/chargement | Auth, onboarding, composer, report sheet, notifications UI, [preuve responsive web #155](preuve-responsive-web-155.md) | Partiel | Equipe | #153, #155 | Completer si besoin avec audit #156. |
+| Accompagner l'utilisateur avec des interactions fluides | Parcours demo web et mobile dans [Runbook de demo](runbook-demo.md), [preuve smoke local #152](preuve-smoke-local-152.md), [preuve responsive web #155](preuve-responsive-web-155.md) | Partiel | ElCabrii | #160 | Completer avec captures mobile finales. |
 
 ## Backend, securite et base de donnees
 

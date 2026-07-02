@@ -34,6 +34,8 @@ const pageRead = {
 
 ![Platform map](diagram:platform-map)
 
+![Responsive screenshot](captures/issue-155/desktop-feed.png)
+
 \`\`\`ts
 const message: string = "hello"
 \`\`\`
@@ -78,6 +80,7 @@ describe("DocsMarkdownReader", () => {
     expect(html).toContain("Callouts become styled reader notes")
     expect(html).toContain('data-docs-diagram-id="platform-map"')
     expect(html).toContain("Platform Map")
+    expect(html).toContain('data-docs-asset-src="captures/issue-155/desktop-feed.png"')
     expect(html).toContain("hljs")
     expect(html).toContain("ci")
     expect(html).toContain("CONTEXT.md")

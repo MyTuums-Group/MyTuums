@@ -4,6 +4,7 @@ import type { AccountLifecycleSnapshot } from "../services/account-status/index.
 import {
   createDocsService,
   createInMemoryDocsService,
+  DocsAssetNotFoundError,
   DocsPageNotFoundError,
 } from "../services/docs/index.js";
 
@@ -145,6 +146,14 @@ describe("Docs service", () => {
     });
 
     await expect(
+      service.getAsset(createViewer(), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        src: "images/platform.png",
+      }),
+    ).rejects.toBeInstanceOf(DocsAssetNotFoundError);
+
+    await expect(
       service.getNavigation(
         createViewer({
           session: { user: { id: "owner-1", emailVerified: true } },
@@ -252,6 +261,82 @@ describe("Docs service", () => {
     });
   });
 
+  it("serves page-relative protected image assets", async () => {
+    const imageBytes = Uint8Array.from([1, 2, 3]);
+    const service = createDocsService({
+      readArtifact() {
+        return Promise.resolve({
+          ...artifact,
+          pages: [
+            {
+              ...artifact.pages[0]!,
+              sourcePath: "docs/fil-rouge/preuve-responsive-web-155.md",
+            },
+          ],
+        });
+      },
+      readAsset(sourcePath) {
+        if (sourcePath === "docs/fil-rouge/captures/issue-155/desktop-feed.png") {
+          return Promise.resolve(imageBytes);
+        }
+
+        return Promise.resolve(null);
+      },
+    });
+
+    await expect(
+      service.getAsset(createViewer(), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        src: "captures/issue-155/desktop-feed.png",
+      }),
+    ).resolves.toEqual({
+      asset: {
+        sourcePath: "docs/fil-rouge/captures/issue-155/desktop-feed.png",
+        contentType: "image/png",
+        base64: "AQID",
+        byteLength: 3,
+      },
+      page: {
+        sectionSlug: "platform",
+        sectionTitle: "Platform",
+        pageSlug: "overview",
+        pageTitle: "Overview",
+      },
+      build: artifact.build,
+    });
+  });
+
+  it("rejects docs image assets outside the source directory", async () => {
+    let assetReadCount = 0;
+    const service = createDocsService({
+      readArtifact() {
+        return Promise.resolve({
+          ...artifact,
+          pages: [
+            {
+              ...artifact.pages[0]!,
+              sourcePath: "docs/fil-rouge/preuve-responsive-web-155.md",
+            },
+          ],
+        });
+      },
+      readAsset() {
+        assetReadCount += 1;
+        return Promise.resolve(Uint8Array.from([1]));
+      },
+    });
+
+    await expect(
+      service.getAsset(createViewer(), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        src: "../private.png",
+      }),
+    ).rejects.toBeInstanceOf(DocsAssetNotFoundError);
+    expect(assetReadCount).toBe(0);
+  });
+
   it("searches generated docs index entries and returns stable slug targets", async () => {
     const service = createInMemoryDocsService({
       ...artifact,
@@ -347,6 +432,9 @@ describe("Docs service", () => {
       readArtifact() {
         throw new Error("Docs artifact leaked to unauthorized caller.");
       },
+      readAsset() {
+        throw new Error("Docs asset leaked to unauthorized caller.");
+      },
     });
 
     await expect(
@@ -360,6 +448,14 @@ describe("Docs service", () => {
         sectionSlug: "platform",
         pageSlug: "overview",
         diagramId: "platform-map",
+      }),
+    ).rejects.toMatchObject({ kind: "unauthenticated" });
+
+    await expect(
+      service.getAsset(createViewer({ session: null, account: null }), {
+        sectionSlug: "platform",
+        pageSlug: "overview",
+        src: "images/platform.png",
       }),
     ).rejects.toMatchObject({ kind: "unauthenticated" });
   });

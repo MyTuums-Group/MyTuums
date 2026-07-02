@@ -1,5 +1,6 @@
 import {
   DocsAccessError,
+  DocsAssetNotFoundError,
   DocsDiagramNotFoundError,
   DocsPageNotFoundError,
 } from "../services/docs/service.js"
@@ -54,6 +55,17 @@ export function mapDocsDiagramErrorToTransport(
   }
 }
 
+export function mapDocsAssetErrorToTransport(
+  _error: DocsAssetNotFoundError
+): TransportErrorDescriptor {
+  return {
+    trpcCode: "NOT_FOUND",
+    httpStatus: 404,
+    publicCode: "docs_asset_not_found",
+    message: "Document asset not found.",
+  }
+}
+
 export function mapDocsAccessErrorToTRPC(error: DocsAccessError) {
   return toTRPCError(mapDocsAccessErrorToTransport(error))
 }
@@ -66,6 +78,10 @@ export function mapDocsDiagramErrorToTRPC(error: DocsDiagramNotFoundError) {
   return toTRPCError(mapDocsDiagramErrorToTransport(error))
 }
 
+export function mapDocsAssetErrorToTRPC(error: DocsAssetNotFoundError) {
+  return toTRPCError(mapDocsAssetErrorToTransport(error))
+}
+
 export function mapDocsAccessErrorToRest(error: DocsAccessError) {
   return toRestError(mapDocsAccessErrorToTransport(error))
 }
@@ -76,4 +92,8 @@ export function mapDocsPageErrorToRest(error: DocsPageNotFoundError) {
 
 export function mapDocsDiagramErrorToRest(error: DocsDiagramNotFoundError) {
   return toRestError(mapDocsDiagramErrorToTransport(error))
+}
+
+export function mapDocsAssetErrorToRest(error: DocsAssetNotFoundError) {
+  return toRestError(mapDocsAssetErrorToTransport(error))
 }

@@ -63,7 +63,7 @@ Ce document liste les annexes à collecter pour le dossier final. Les fichiers l
 - Seed catalogue jeux.
 - Logs `smoke:setup`.
 - Description environnement multi-tiers.
-- [Statut mobile Flutter](mobile-flutter-statut.md), tant que #157/#158 restent bloques.
+- [Statut mobile Flutter](mobile-flutter-statut.md), avec sorties `flutter` et captures emulateur a joindre.
 
 ## A7 - Preuves développement
 

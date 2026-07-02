@@ -18,7 +18,7 @@ memes competences techniques et transverses.
 | Exigence UF DEV B3 | Preuve MyTuums | Statut | Action restante |
 | --- | --- | --- | --- |
 | Concevoir une application web avec un framework moderne | React, Vite, TanStack Router dans `apps/web` | Couvert | Ajouter captures finales de l'application |
-| Interfaces compatibles desktop, tablette et smartphone | Layout responsive web-first, routes publiques et app | Partiel | Capturer desktop/tablette/mobile apres stack locale verte |
+| Interfaces compatibles desktop, tablette et smartphone | Layout responsive web-first + MVP Flutter Android/iOS cible | Partiel | Capturer desktop/tablette/mobile web et emulateur mobile |
 | Respecter les normes d'accessibilite | `pnpm axe:smoke`, page accessibilite, ShadCN/Radix | Partiel | Audit manuel clavier/focus/labels/contraste |
 | Optimiser temps de chargement et performances frontend | Vite build, pages statiques, protocole Lighthouse | A produire | Capturer Lighthouse ou equivalent |
 | Interfaces intuitives avec feedbacks clairs | Formulaires auth/contact/post, erreurs, toasts, etats de chargement | Partiel | Captures UX des principaux parcours |
@@ -31,7 +31,7 @@ memes competences techniques et transverses.
 | Modele de donnees pour les entites | Drizzle schema : user, profile, post, media, moderation, notification | Couvert | Ajouter diagramme DB jury |
 | Requetes SQL ou operations NoSQL entre API et DB | Drizzle adapters et migrations | Couvert | Montrer une migration et un adapter |
 | Optimiser l'utilisation de la base de donnees | index, contraintes uniques, trigram/unaccent search | Partiel | Expliquer indexes et limites de charge |
-| Developper une application Android et/ou iOS | Issue #157/#158 demandent Flutter | Bloque | Aucun projet Flutter dans le repo ; decision humaine requise |
+| Developper une application Android et/ou iOS | `apps/mobile` Flutter, hotes Android/iOS, facade `/api/mobile/v1` | Partiel | Executer `flutter analyze` / `flutter test` et capturer l'emulateur |
 | Versionner son code avec Git | GitHub repo, branches, PR, CI | Couvert | Captures branch/PR/CI finales |
 | Collaborer et communiquer en equipe | GitHub Issues, Project Tasks, PRs | Partiel | Captures GitHub Tasks et repartition equipe |
 | Gerer un projet informatique | Issues, statuts, journal, planning | Partiel | Completer planning previsionnel/reel |
@@ -43,7 +43,7 @@ memes competences techniques et transverses.
 
 | Ecart | Risque jury | Position defendable |
 | --- | --- | --- |
-| Le PDF demande Android/iOS, mais le scope v1 MyTuums est web-only | Manque sur la competence mobile | Assumer un sujet libre web responsive seulement si l'equipe pedagogique valide ; sinon fournir un MVP Flutter separe |
+| Le PDF demande Android/iOS, et le MVP Flutter vient d'etre integre | Preuves encore incompletes sans validation SDK/emulateur | Presenter le scope comme web-first + Flutter Android/iOS cible ; joindre les captures et sorties `flutter` |
 | Rate limit local apres essais repetes | Smoke local peut echouer avec `Too many authentication attempts` | Vider `rate_limit` ou reset l'infra avant de recapturer le smoke |
 | Accessibilite automatique verte mais audit manuel incomplet | Preuve RGAA/WCAG partielle | Completer la grille manuelle et capturer les pages critiques |
 | Performance frontend non mesuree | Optimisation non prouvee | Capturer Lighthouse ou Playwright performance apres build local |
@@ -56,5 +56,5 @@ memes competences techniques et transverses.
 - Vue desktop, tablette et mobile du feed, du composer, de la recherche, du
   profil et du report.
 - Lighthouse ou panneau Performance avec score et metriques.
-- Si Flutter est conserve : emulator Android/iOS sur login, feed, composer,
+- Emulator Android/iOS Flutter sur login, onboarding, feed, composer,
   post detail, report et logout.

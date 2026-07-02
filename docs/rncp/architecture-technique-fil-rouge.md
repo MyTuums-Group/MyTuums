@@ -12,7 +12,7 @@ et controles de securite relies au code.
 flowchart LR
   User["Utilisateur web<br/>desktop/tablette/mobile"] --> Web["apps/web<br/>React + Vite + TanStack Router"]
   Jury["Jury / lecteur docs"] --> Docs["apps/docs<br/>documentation protegee"]
-  Flutter["Flutter mobile MVP<br/>non present dans le repo"] -. "a fournir ou requalifier" .-> API
+  Flutter["apps/mobile<br/>Flutter Android/iOS MVP"] -->|"REST /api/mobile/v1"| API
   Web -->|"tRPC + auth + REST media"| API["apps/api<br/>Fastify + tRPC + BetterAuth"]
   Docs -->|"tRPC docs"| API
   API --> DB["PostgreSQL<br/>Drizzle schema + migrations"]
@@ -24,9 +24,9 @@ flowchart LR
   GitHub --> DB
 ```
 
-La ligne Flutter est volontairement en pointille : les issues #157/#158 demandent
-un livrable Flutter, mais aucun projet Flutter n'est present dans le depot, et le
-scope v1 indique que le natif mobile est differe.
+La ligne Flutter est limitee a un MVP Android/iOS cible : elle ne remplace pas le
+web responsive, mais elle couvre les parcours mobiles essentiels via une facade
+REST versionnee sous `/api/mobile/v1`.
 
 ## Composants
 
@@ -39,7 +39,8 @@ scope v1 indique que le natif mobile est differe.
 | `packages/ui` | Primitives ShadCN et wrappers UI | `packages/ui/src/components` |
 | Azure Blob / Azurite | Stockage media prive avec URLs signees | media service, docker-compose |
 | Resend / Mailpit | Emails transactionnels et validation locale | email service, smoke Mailpit |
-| Flutter | Mobile natif attendu par #157/#158 | Bloque : absent du depot |
+| `apps/mobile` | MVP Flutter Android/iOS : auth, onboarding, feed, search, composer, profil, report | `apps/mobile/lib`, `apps/mobile/test`, facade `apps/api/src/mobile-routes.ts` |
+| `/api/mobile/v1` | API REST stable pour le client Flutter | `apps/api/src/mobile-routes.ts`, `docs/adr/0004-mobile-rest-facade-before-orpc.md` |
 
 ## Routeurs API
 
@@ -107,5 +108,6 @@ erDiagram
 - Extrait du schema Drizzle ou diagramme DB simplifie.
 - Terminal `pnpm db:check` ou migration appliquee.
 - Ecran GitHub Actions CI montrant typecheck/lint/build/tests/smoke/axe.
-- Pour la partie Flutter : capture de l'arborescence du projet mobile si elle est
-  fournie, ou capture de la decision de requalification si elle ne l'est pas.
+- Pour la partie Flutter : capture de `apps/mobile`, terminal `flutter analyze`
+  / `flutter test`, puis emulateur Android/iOS sur login, feed, composer et
+  report.

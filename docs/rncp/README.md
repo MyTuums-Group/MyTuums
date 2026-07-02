@@ -33,7 +33,7 @@ Rendre les preuves de compétence explicites, classées et défendables :
 - [Preuves de demo locale](preuves-demo-locale.md) : protocole `pnpm infra` / `smoke:setup` / `smoke` et resultats locaux.
 - [Preuves responsive web](preuves-responsive.md) : checklist desktop/tablette/mobile et moments de capture.
 - [Audit accessibilite et performance](audit-accessibilite-performance.md) : resultat axe, grille manuelle et protocole Lighthouse.
-- [Statut mobile Flutter](mobile-flutter-statut.md) : decision humaine requise pour les issues mobile #157/#158.
+- [Statut mobile Flutter](mobile-flutter-statut.md) : etat du MVP Android/iOS et preuves a capturer pour #157/#158.
 
 ## Sources techniques principales
 

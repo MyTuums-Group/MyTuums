@@ -323,7 +323,7 @@
           "title": "Flutter Mobile Status",
           "sourcePath": "docs/rncp/mobile-flutter-statut.md",
           "kind": "codebase-doc",
-          "summary": "Decision record for Flutter mobile issues and required human intervention."
+          "summary": "Flutter Android/iOS MVP status, validation commands, and capture checklist."
         }
       ]
     },

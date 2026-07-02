@@ -31,7 +31,7 @@ Legende :
 | Respecter les normes d'accessibilite | Page accessibilite produit, `pnpm axe:smoke`, rapport manuel attendu | Bloque | AcryTeryx | #156 | Joindre resultat axe et audit clavier/focus/contraste. |
 | Optimiser les temps de chargement et performances frontend | Build Vite, smoke Playwright, Lighthouse ou mesure equivalente attendue | Bloque | AcryTeryx | #156 | Ajouter mesure performance et conclusion. |
 | Fournir des feedbacks clairs : erreurs, validations, succes/echec/chargement | Auth, onboarding, composer, report sheet, notifications UI | Partiel | Equipe | #153, #155 | Illustrer avec captures des etats erreur/loading/succes. |
-| Accompagner l'utilisateur avec des interactions fluides | Parcours demo web et mobile dans [Runbook de demo](runbook-demo.md) | Partiel | ElCabrii | #160 | Valider en smoke local avant oral. |
+| Accompagner l'utilisateur avec des interactions fluides | Parcours demo web et mobile dans [Runbook de demo](runbook-demo.md), [preuve smoke local #152](preuve-smoke-local-152.md) | Partiel | ElCabrii | #160 | Completer avec captures web/mobile finales. |
 
 ## Backend, securite et base de donnees
 
@@ -70,6 +70,7 @@ Legende :
 | Issue | Objet | Dependances | Impact fil rouge |
 | --- | --- | --- | --- |
 | #151 | Matrice projet fil rouge | Aucune | Debloque le cadrage et la priorisation. |
+| #152 | Smoke local full-stack | Aucune | Valide infra, migrations, seeds, email, blob et parcours critique web. |
 | #153 | Document fonctionnel jury | #151 | Debloque le recit produit et l'oral. |
 | #159 | Pilotage/collaboration | #151 | Debloque les preuves transverses. |
 | #160 | Runbook demo | #152, #155, #157, #158 | Peut etre prepare, validation finale apres preuves web/mobile. |

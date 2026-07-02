@@ -235,6 +235,13 @@
           "summary": "Timed local demo sequence, services, fallback assets, and recovery steps."
         },
         {
+          "slug": "fil-rouge/local-smoke-evidence",
+          "title": "Local Smoke Evidence",
+          "sourcePath": "docs/fil-rouge/preuve-smoke-local-152.md",
+          "kind": "codebase-doc",
+          "summary": "Issue #152 local full-stack smoke validation evidence."
+        },
+        {
           "slug": "fil-rouge/oral-scripts",
           "title": "Oral Scripts",
           "sourcePath": "docs/fil-rouge/scripts-oraux.md",

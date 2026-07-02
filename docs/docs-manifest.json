@@ -195,6 +195,76 @@
       ]
     },
     {
+      "id": "fil-rouge",
+      "title": "Fil Rouge UF DEV B3",
+      "description": "Bachelor 3 DEV free-topic project evidence, separate from the RNCP proof portfolio.",
+      "pages": [
+        {
+          "slug": "fil-rouge/overview",
+          "title": "Fil Rouge Overview",
+          "sourcePath": "docs/fil-rouge/README.md",
+          "kind": "codebase-doc",
+          "summary": "Entry point for the UF DEV B3 fil rouge dossier."
+        },
+        {
+          "slug": "fil-rouge/compliance-matrix",
+          "title": "UF DEV B3 Compliance Matrix",
+          "sourcePath": "docs/fil-rouge/matrice-conformite-uf-dev-b3.md",
+          "kind": "codebase-doc",
+          "summary": "Line-by-line mapping between UF DEV B3 expectations and MyTuums evidence."
+        },
+        {
+          "slug": "fil-rouge/functional-jury-brief",
+          "title": "Functional Jury Brief",
+          "sourcePath": "docs/fil-rouge/document-fonctionnel-jury.md",
+          "kind": "codebase-doc",
+          "summary": "Autonomous functional explanation of MyTuums for the jury."
+        },
+        {
+          "slug": "fil-rouge/project-management-collaboration",
+          "title": "Project Management And Collaboration",
+          "sourcePath": "docs/fil-rouge/pilotage-collaboration.md",
+          "kind": "codebase-doc",
+          "summary": "Planning, GitHub evidence, roles, and decisions for the fil rouge."
+        },
+        {
+          "slug": "fil-rouge/demo-runbook",
+          "title": "Demo Runbook",
+          "sourcePath": "docs/fil-rouge/runbook-demo.md",
+          "kind": "codebase-doc",
+          "summary": "Timed local demo sequence, services, fallback assets, and recovery steps."
+        },
+        {
+          "slug": "fil-rouge/oral-scripts",
+          "title": "Oral Scripts",
+          "sourcePath": "docs/fil-rouge/scripts-oraux.md",
+          "kind": "codebase-doc",
+          "summary": "10-minute and 20-minute oral scripts with speaker split."
+        },
+        {
+          "slug": "fil-rouge/slide-deck",
+          "title": "Fil Rouge Slide Deck",
+          "sourcePath": "docs/fil-rouge/diaporama-fil-rouge.md",
+          "kind": "codebase-doc",
+          "summary": "Pre-final Markdown slide deck for the UF DEV B3 oral presentation."
+        },
+        {
+          "slug": "fil-rouge/jury-qa",
+          "title": "Jury Questions And Answers",
+          "sourcePath": "docs/fil-rouge/questions-reponses-jury.md",
+          "kind": "codebase-doc",
+          "summary": "Likely jury questions and concise answer angles."
+        },
+        {
+          "slug": "fil-rouge/final-evidence-index",
+          "title": "Final Evidence Index",
+          "sourcePath": "docs/fil-rouge/index-preuves-finales.md",
+          "kind": "codebase-doc",
+          "summary": "Final proof checklist and readiness registry."
+        }
+      ]
+    },
+    {
       "id": "rncp",
       "title": "RNCP Proof Portfolio",
       "description": "Certification evidence mapped to RNCP 36463 competency blocks.",
